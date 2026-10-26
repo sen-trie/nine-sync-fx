@@ -1,0 +1,75 @@
+k & 3
+k % 3
+k / 3
+k >> 1
+k << 1
+(k ^ 5) | 2
+weights[k & 3]
+acc
+sin(Time * 3 + k)
+SelfRx
+SelfXYZ.x
+SelfXYZ.y
+SelfXYZ.z
+mul(float4(1, 0, 0, 0), SelfM).x
+mul(float4(1, 0, 0, 0), SelfM).y
+mul(float4(1, 0, 0, 0), SelfM).z
+LightDir.x
+LightDir.y
+LightDir.z
+(!(k < 2) && Tr > 0.3 || k == 0) ? 1 : 0
+Elapsed
+Viewport.y
+mul(VI[3], WIT).y
+CamPos.y
+CamDir.y
+LightPos.y
+LightColor.y
+mul(float4(Pos.xyz, 1), WV).y
+lp.z / lp.w
+Si
+Tr
+Spread
+BoneM[0].x
+BoneM[1].y
+BoneM[2].z
+BoneM[3].x
+BoneM[3].y
+BoneM[3].z
+BoneM[0].z
+BonePos.x
+BonePos.y
+BonePos.z
+Other.x
+Other.y
+Other.z
+MorphW
+smoothstep(0.2, 0.8, frac(Time))
+smoothstep(Si * 0.1, Tr, 0.3)
+lerp(SelfXYZ, CamPos, Tr).x
+lerp(SelfXYZ, CamPos, Tr).z
+lerp(Tr, Si, frac(Time))
+lerp(SelfXYZ, CamPos, LightDir).y
+normalize(CamPos - SelfXYZ).x
+normalize(CamPos - SelfXYZ).y
+cross(LightDir, CamDir).x
+cross(LightDir, CamDir).z
+length(CamPos - SelfXYZ)
+distance(CamPos, SelfXYZ)
+dot(LightDir, CamDir)
+reflect(LightDir, CamDir * 2).y
+saturate(Tr * 3 - 1)
+clamp(frac(Time) * 3, Tr, Si)
+saturate(CamDir).y
+mul(float4(CamPos, 1), WVP).w
+mul(WVP, float4(CamPos, 1)).y
+mul(WVP, VI)[2].z
+mul(VI, WVP)[3].x
+normalize(float4(CamPos, Tr)).w
+length(float4(CamPos, Tr))
+mul(CamPos, (float3x3)WV).y
+mul((float3x3)WV, CamPos).z
+mul((float3x3)VI, (float3x3)WV)[1].y
+mul(CamPos, WVP).w
+mul(CamPos, WVP).x
+mul(LightDir, (float3x3)SelfM).x

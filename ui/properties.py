@@ -41,8 +41,7 @@ class NineSyncFXLink(PropertyGroup):
 
 
 class NineSyncFXSettings(PropertyGroup):
-    filepath: StringProperty(name="PMM File", subtype="FILE_PATH")
-    status: StringProperty(default="Idle")
+    filepath: StringProperty(name="PMM File", description="Set by NineSync: PMM Bridge on each sync", subtype="FILE_PATH", options={"HIDDEN"})
     auto_scale: BoolProperty(
         name="Auto Scale From Model",
         description="Use the scale the first enabled model was imported with in mmd_tools",

@@ -10,7 +10,7 @@ blender_version_min = "5.3.0"
 license = ["SPDX:GPL-3.0-or-later"]
 
 [permissions]
-files = "Read PMM, .x, .fx and texture files; write the shared node library and the pre-cull cache in the temp folder"
+files = "Read .x, .fx and texture files; write the shared node library and the pre-cull cache in the temp folder"
 
 [build]
 paths_exclude_pattern = ["__pycache__/", "/tests/", "/tools/", "*.pyc"]

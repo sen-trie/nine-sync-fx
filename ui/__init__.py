@@ -3,9 +3,7 @@ from .operators.accessories import (
     NINESYNC_FX_OT_copy_report,
     NINESYNC_FX_OT_import_accessory,
     NINESYNC_FX_OT_key_accessory_visibility,
-    NINESYNC_FX_OT_read_pmm,
     NINESYNC_FX_OT_select_object,
-    NINESYNC_FX_OT_sync_accessories,
 )
 from .operators.bake import NINESYNC_FX_OT_bake_effects
 from .operators.effects import (
@@ -45,8 +43,6 @@ CLASSES = (
     NINESYNC_FX_OT_select_object,
     NINESYNC_FX_OT_save_core_library,
     NINESYNC_FX_OT_rebuild_core_library,
-    NINESYNC_FX_OT_read_pmm,
-    NINESYNC_FX_OT_sync_accessories,
     NINESYNC_FX_OT_clean,
     NINESYNC_FX_OT_copy_report,
     NINESYNC_FX_OT_repair_legacy,

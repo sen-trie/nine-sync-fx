@@ -5,12 +5,10 @@ from .batch import import_accessories
 from .entries import refresh_accessories
 
 
-# Copies what core (or the standalone context) knows into FX's own settings before a build: the PMM path and
-# the model links. FX never imports core, this is the hand-over.
+# Copies what core knows into FX's own settings before a build: the PMM path and the model links. FX never
+# imports core, this is the hand-over.
 def mirror_context(settings, ctx):
-    integrated = bool(getattr(ctx, "integrated", False))
-    if integrated:
-        settings.filepath = ctx.pmm_path
+    settings.filepath = ctx.pmm_path
     wanted = [model_key(m) for m in ctx.project.models]
     for index in reversed(range(len(settings.targets))):
         if settings.targets[index].key not in wanted:
@@ -24,8 +22,7 @@ def mirror_context(settings, ctx):
             link.key = key
             link.pmm_name = model.name or model.name_en or key
             link.enabled = True
-        if integrated:
-            link.target = ctx.targets.get(key)
+        link.target = ctx.targets.get(key)
 
 
 # When effects exist: locks the render interface so they can update safely during a render, and optionally
@@ -44,8 +41,7 @@ def apply_render_defaults(scene, settings):
             pass
 
 
-# The one sync path. Core calls it through the post_sync hook, standalone mode builds its own context and
-# calls it too.
+# The one sync path, called by core through the post_sync hook.
 def sync_accessories(ctx):
     scene = ctx.scene
     settings = getattr(scene, "ninesync_fx", None)

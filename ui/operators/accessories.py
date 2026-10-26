@@ -6,7 +6,6 @@ from bpy.types import Operator, OperatorFileListElement
 from bpy_extras.io_utils import ImportHelper
 from ... import hooks
 
-from ...accessories.entries import refresh_accessories
 from ...accessories.standalone_import import import_standalone_accessory
 from ...common.animation import iter_fcurves
 from ...common.constants import (
@@ -23,10 +22,6 @@ from ...common.scene_utils import (
     redraw_all,
     short_text,
 )
-from ...pmm import PmmError
-from ...standalone.ctx import run_standalone_sync
-from ...standalone.model_links import refresh_links
-from ...standalone.pmm_source import read_standalone_project
 from ..helpers import accessory_visibility_keyed
 from ..hook_entry import (
     clean_hook,
@@ -147,47 +142,6 @@ class NINESYNC_FX_OT_select_object(Operator):
         obj.hide_select = False
         obj.select_set(True)
         context.view_layer.objects.active = obj
-        return {"FINISHED"}
-
-
-class NINESYNC_FX_OT_read_pmm(Operator):
-    bl_idname = "ninesync_fx.read_pmm"
-    bl_label = "Read PMM"
-    bl_description = "Read the PMM's models and accessories and match its models to mmd_tools models in the scene"
-
-    def execute(self, context):
-        if refuse_if_outdated(self, context):
-            return {"CANCELLED"}
-        settings = context.scene.ninesync_fx
-        try:
-            path, project = read_standalone_project(settings)
-        except (OSError, PmmError) as error:
-            self.report({"ERROR"}, str(error))
-            log.error("scan failed: %s", error)
-            return {"CANCELLED"}
-        refresh_links(settings, project)
-        refresh_accessories(settings, project)
-        self.report({"INFO"}, "Found %d model(s), %d accessory(ies)" % (len(project.models), len(project.accessories)))
-        redraw_all()
-        return {"FINISHED"}
-
-
-class NINESYNC_FX_OT_sync_accessories(Operator):
-    bl_idname = "ninesync_fx.sync_accessories"
-    bl_label = "Sync Accessories"
-    bl_description = "Import the PMM's accessories with their animation and effects"
-
-    def execute(self, context):
-        if refuse_if_outdated(self, context):
-            return {"CANCELLED"}
-        settings = context.scene.ninesync_fx
-        if not os.path.isfile(bpy.path.abspath(settings.filepath)):
-            self.report({"ERROR"}, "PMM file not found")
-            return {"CANCELLED"}
-        if not run_standalone_sync(context.scene):
-            self.report({"ERROR"}, settings.status)
-            return {"CANCELLED"}
-        self.report({"INFO"}, settings.status)
         return {"FINISHED"}
 
 

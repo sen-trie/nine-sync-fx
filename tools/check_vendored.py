@@ -3,7 +3,7 @@ import os
 import sys
 
 
-SHARED = ("pmm.py", "hooks.py")
+SHARED = ("hooks.py",)
 
 
 def digest(path):

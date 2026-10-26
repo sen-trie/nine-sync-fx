@@ -2,6 +2,7 @@ import bpy
 import os
 import time
 import types
+from typing import NamedTuple, Tuple
 
 from ..common.constants import (
     ACCESSORY_PREFIX,
@@ -12,10 +13,6 @@ from ..common.scene_utils import (
     accessory_collection,
     find_accessory_root,
     short_name,
-)
-from ..pmm import (
-    AccessoryKey,
-    PmmProject,
 )
 from ..runtime.effect_files import mme_find_effect
 from ..runtime.update import mme_update_scene
@@ -28,6 +25,24 @@ from .mesh import (
     create_x_object,
     import_x_with_addon,
 )
+
+
+# Same fields as the accessory keys core hands over, so the keying code reads both alike.
+class AccessoryKey(NamedTuple):
+    frame: int
+    visible: int
+    parent_model: int
+    parent_bone: int
+    position: Tuple[float, float, float]
+    rotation: Tuple[float, float, float]
+    scale: float
+    shadow: int
+    opacity: float = 1.0
+
+
+# Empty project for an import with no PMM: no models, no other accessories.
+def standalone_project():
+    return types.SimpleNamespace(models=[], accessories=[], accessory_error=None)
 
 
 # Unique entry key for an accessory imported by hand, numbered when the same file is imported twice.
@@ -109,7 +124,7 @@ def import_standalone_accessory(context, path, unit, use_effect=True, effect_pat
     collection = accessory_collection(scene, True)
     acc = standalone_accessory(path, key)
     started = time.time()
-    if not import_accessory(scene, collection, PmmProject(), settings, acc, entry, unit):
+    if not import_accessory(scene, collection, standalone_project(), settings, acc, entry, unit):
         return None
     root = find_accessory_root(collection, key)
     if root is not None:

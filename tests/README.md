@@ -13,8 +13,8 @@ Environment:
 |---|---|
 | `NINESYNC_FX` | FX package folder (default: this repo) |
 | `NINESYNC_CORE` | core package folder (default: sibling `ninesync`) |
-| `NINESYNC_FIXTURES` | folder with `Thunder/`, `Synth/`, `Texture/`, `plain/`, `meiling.pmm` |
-| `NINESYNC_TEST_PMM` | PMM used by `t_modeb.py` and `t_core.py` |
+| `NINESYNC_FIXTURES` | folder with `Thunder/`, `Synth/`, `Texture/`, `plain/`, `meiling.pmm` (core tests only) |
+| `NINESYNC_TEST_PMM` | PMM used by `t_core.py` (needs core) |
 
 `tests/fixtures` ships `Synth/` and `Texture/` only. `Thunder/Thunder_lv1.fx` and `.x` are the third-party SimpleMagic Thunder effect, `plain/plainthing.x` is any plain text `.x` mesh, and `meiling.pmm` is a PMM with three accessories; supply your own copies.
 

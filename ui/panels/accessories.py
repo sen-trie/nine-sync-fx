@@ -39,7 +39,7 @@ class NINESYNC_FX_PT_accessories(Panel):
         col.prop(settings, "accessory_dir")
         armature = first_armature(settings)
         if not len(settings.accessories):
-            layout.label(text="Sync a PMM, or import an accessory directly", icon="INFO")
+            layout.label(text="Sync a PMM with NineSync: PMM Bridge, or import an accessory directly", icon="INFO")
             layout.operator("import_scene.ninesync_fx_accessory", text="Import Accessory (.x)", icon="IMPORT")
             return
         collection = accessory_collection(context.scene)

@@ -10,8 +10,7 @@ Imports MikuMikuDance accessories (`.x`) and runs their MME effects (`.fx`): ver
 ## Ways to use it
 
 1. **Manual import.** File > Import > MMD Accessory (.x). A same-name `.fx` next to the `.x` is used, or pick one. Tr and Si and every effect parameter appear as custom properties on the accessory root.
-2. **Its own PMM sync.** In the Accessories panel, set a PMM file, press Read PMM, match its models to mmd_tools models, press Sync Accessories. Uses a vendored copy of the PMM parser and retimes accessory keys to the scene fps.
-3. **With NineSync: PMM Bridge.** Press Sync Now there. Core calls this add-on through the hook registry; the PMM field here is replaced by a note.
+2. **With NineSync: PMM Bridge.** Press Sync Now there. Core parses the PMM, retimes it and calls this add-on through the hook registry; this add-on imports the accessories with their animation, parenting and effects. FX reads no PMM itself.
 
 ## Panels (sidebar tab NineSync)
 
@@ -35,7 +34,6 @@ Scene data from the old combined add-on keeps working: collection names, `MMDBri
 __init__.py        register, unregister, bl_info
 handlers.py        frame, load and depsgraph handlers, hook registration
 hooks.py           hook registry client (identical in ninesync)
-pmm.py             vendored copy of ninesync/pmm.py (identical)
 common/            constants, state, logging, scene and animation helpers (some copied from ninesync), controller helpers
 xfile/             .x parser, merge, texture lookup (pure Python)
 fx/                HLSL .fx front end (preprocessor, lexer, parser, types, techniques, semantics)
@@ -43,14 +41,14 @@ fx/interp/         interpreter (FxExec and its mixins), numpy backend, intrinsic
 nodes/             node library, shader and Geometry Nodes backends, materials, layout, shared groups
 runtime/           effect build, pruning, strip simplification, per-frame update, bake, visibility, progress
 accessories/       .x import, materials, parenting, keying, the single sync path
-standalone/        own PMM read, model links, retime, legacy repair
+standalone/        legacy repair
 ui/                properties, operators, panels, relink, hook entry points
 data/mme_core.blend  shared node groups
-tools/check_vendored.py   fails if pmm.py or hooks.py drift from core
+tools/check_vendored.py   fails if hooks.py drifts from core
 tests/
 ```
 
-Packages import only from the ones above them: `common`, `xfile`, `fx`, `nodes`, `runtime`, `accessories`, `standalone`, `ui`, `handlers`, `__init__` (`hooks.py` and `pmm.py` only need `common`).
+Packages import only from the ones above them: `common`, `xfile`, `fx`, `nodes`, `runtime`, `accessories`, `standalone`, `ui`, `handlers`, `__init__` (`hooks.py` only needs `common`).
 
 ## Compatibility
 

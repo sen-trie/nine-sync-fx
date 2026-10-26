@@ -26,7 +26,7 @@ class NINESYNC_FX_PT_effects(Panel):
         layout = self.layout
         settings = context.scene.ninesync_fx
         if not len(settings.accessories):
-            draw_wrapped(layout, "Sync a PMM, or use File > Import > MMD Accessory (.x).")
+            draw_wrapped(layout, "Sync a PMM with NineSync: PMM Bridge, or use File > Import > MMD Accessory (.x).")
             return
         collection = accessory_collection(context.scene)
         active = getattr(context, "active_object", None)

@@ -1,6 +1,6 @@
 import os, sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from harness_fx import *
-import math
+import math, types
 scene = bpy.context.scene
 for o in list(bpy.data.objects): bpy.data.objects.remove(o)
 settings = scene.ninesync_fx
@@ -54,7 +54,7 @@ _, n = look("eye off")
 root.ninesync_visible = True
 _, n2 = look("eye on")
 print("render respects eye:", n == 0, n2 > 0)
-proj = mb.PmmProject()
+proj = types.SimpleNamespace(models=[], accessories=[], accessory_error=None)
 mb.refresh_accessories(settings, proj)
 print("standalone entry kept after PMM refresh:", len(settings.accessories) == 1)
 before = set(bpy.data.objects.keys())

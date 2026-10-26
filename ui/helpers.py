@@ -26,7 +26,6 @@ from ..common.controls import (
 from ..common.scene_utils import (
     accessory_collection,
     find_accessory_root,
-    fps_differs,
 )
 from ..standalone.legacy_repair import (
     legacy_group,
@@ -202,28 +201,9 @@ def draw_standalone_block(layout, context, settings):
         draw_wrapped(box, "This file was saved with the old combined NineSync.")
         box.operator("ninesync_fx.repair_legacy", icon="RECOVER_LAST")
     if hooks.core_installed():
-        draw_wrapped(layout, "Synced by NineSync: PMM Bridge. Press Sync Now there.")
+        draw_wrapped(layout, "PMM accessories are synced by NineSync: PMM Bridge. Press Sync Now there.")
         return
-    box = layout.box()
-    box.prop(settings, "filepath", text="")
-    row = box.row(align=True)
-    row.operator("ninesync_fx.read_pmm", text="Read PMM", icon="FILE_REFRESH")
-    row.operator("ninesync_fx.sync_accessories", text="Sync Accessories", icon="IMPORT")
-    box.label(text=settings.status, icon="INFO")
-    if fps_differs(context.scene):
-        box.prop(settings, "retime_fps")
-    box.prop(settings, "auto_scale")
-    if not settings.auto_scale:
-        box.prop(settings, "scale")
-    if len(settings.targets):
-        header, body = layout.panel("ninesync_fx_links", default_closed=True)
-        header.label(text="Models (%d)" % len(settings.targets))
-        if body is not None:
-            for link in settings.targets:
-                row = body.row(align=True)
-                row.prop(link, "enabled", text="")
-                row.label(text=link.pmm_name)
-                row.prop(link, "target", text="")
+    draw_wrapped(layout, "PMM projects need NineSync: PMM Bridge. Import .x accessories directly with File > Import > MMD Accessory (.x).")
     tools = layout.row(align=True)
     tools.operator("ninesync_fx.clean", icon="TRASH")
     tools.operator("ninesync_fx.copy_report", icon="COPYDOWN")

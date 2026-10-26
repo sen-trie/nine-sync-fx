@@ -51,7 +51,7 @@ print("numpy loaded by core modules:", any("numpy" in str(getattr(sys.modules[m]
 
 if mode == "both":
     fxs = scene.ninesync_fx
-    print("fx status:", fxs.status, "| filepath mirrored:", fxs.filepath)
+    print("fx filepath mirrored:", fxs.filepath)
     print("fx entries:", [(e.display, e.enabled, e.effect_note) for e in fxs.accessories])
     print("fx links:", [(l.pmm_name, l.target) for l in fxs.targets])
     print("accessory roots:", sorted(o.name for o in bpy.data.objects if o.get("mmd_bridge_accessory")))

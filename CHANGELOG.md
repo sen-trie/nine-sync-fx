@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Internal: the large modules were split into packages (`common`, `xfile`, `fx`, `nodes`, `runtime`, `accessories`, `standalone`, `ui`) with one-way imports; `mme_core.blend` moved to `data/`. Behaviour is unchanged.
+- Functions specific to this add-on now carry short comments explaining why they work the way they do.
+
 ## 0.2.0
 
 - Split from the combined NineSync. Runs without NineSync: PMM Bridge.

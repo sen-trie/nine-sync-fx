@@ -5,20 +5,23 @@ paths.prepare("ninesync_fx")
 FIX = paths.fixtures()
 os.makedirs(FIX + "/out", exist_ok=True)
 pkg = importlib.import_module("ninesync_fx")
-SUBS = ["ui", "standalone", "accessories", "mme", "mme_nodes", "fx", "xfile", "util", "pmm", "common"]
-MODS = [importlib.import_module(pkg.__name__ + "." + n) for n in SUBS] + [pkg]
+def package_modules():
+    prefix = pkg.__name__ + "."
+    return [m for n, m in list(sys.modules.items()) if n.startswith(prefix) and m is not None] + [pkg]
+
+
 
 
 class Proxy:
     def __getattr__(self, name):
-        for module in [pkg] + MODS:
+        for module in package_modules():
             if hasattr(module, name):
                 return getattr(module, name)
         raise AttributeError(name)
 
     def __setattr__(self, name, value):
         hit = False
-        for module in MODS:
+        for module in package_modules():
             if name in module.__dict__:
                 setattr(module, name, value)
                 hit = True

@@ -32,22 +32,25 @@ Scene data from the old combined add-on keeps working: collection names, `MMDBri
 ## Layout
 
 ```
-__init__.py    register, handlers, hook registration
-common.py      constants, effect property names, caches
-util.py        small helpers copied from ninesync (keep in step by hand)
-hooks.py       hook registry client (identical in ninesync)
-pmm.py         vendored copy of ninesync/pmm.py (identical)
-standalone.py  own PMM read, model links, retime, legacy repair
-xfile.py       .x parser
-fx.py          HLSL .fx parser and interpreter
-mme_nodes.py   node library and backends
-mme.py         effect build, update, bake, visibility, progress
-accessories.py accessory import, hooks
-ui.py          properties, operators, panels
-mme_core.blend shared node groups
+__init__.py        register, unregister, bl_info
+handlers.py        frame, load and depsgraph handlers, hook registration
+hooks.py           hook registry client (identical in ninesync)
+pmm.py             vendored copy of ninesync/pmm.py (identical)
+common/            constants, state, logging, scene and animation helpers (some copied from ninesync), controller helpers
+xfile/             .x parser, merge, texture lookup (pure Python)
+fx/                HLSL .fx front end (preprocessor, lexer, parser, types, techniques, semantics)
+fx/interp/         interpreter (FxExec and its mixins), numpy backend, intrinsics
+nodes/             node library, shader and Geometry Nodes backends, materials, layout, shared groups
+runtime/           effect build, pruning, strip simplification, per-frame update, bake, visibility, progress
+accessories/       .x import, materials, parenting, keying, the single sync path
+standalone/        own PMM read, model links, retime, legacy repair
+ui/                properties, operators, panels, relink, hook entry points
+data/mme_core.blend  shared node groups
 tools/check_vendored.py   fails if pmm.py or hooks.py drift from core
 tests/
 ```
+
+Packages import only from the ones above them: `common`, `xfile`, `fx`, `nodes`, `runtime`, `accessories`, `standalone`, `ui`, `handlers`, `__init__` (`hooks.py` and `pmm.py` only need `common`).
 
 ## Compatibility
 

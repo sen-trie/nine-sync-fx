@@ -1,0 +1,294 @@
+import numpy as np
+
+
+MIN_BLENDER = (5, 3, 0)
+
+
+NINESYNC_NAME = "NineSync"
+
+
+NINESYNC_CATEGORY = "NineSync"
+
+
+NINESYNC_MAIN_LABEL = NINESYNC_NAME + ": PMM Bridge"
+
+
+NINESYNC_FX_LABEL = NINESYNC_NAME + ": FX Importer"
+
+
+NINESYNC_ACC_LABEL = NINESYNC_NAME + ": Accessories (.x)"
+
+
+ACTION_PREFIX = "MMDBridge_"
+
+
+CAMERA_COLLECTION = "MMD_Camera"
+
+
+LIGHT_COLLECTION = "MMD_Sun"
+
+
+FOLLOW_PREFIX = "MMDBridgeFollow"
+
+
+UNIT_SCALE = 1.0
+
+
+TEMP_PREFIX = "mmd_bridge_"
+
+
+TEMP_DIR_NAME = "mmd_bridge"
+
+
+STALE_TEMP_SECONDS = 300
+
+
+FRAME_EPSILON = 1e-4
+
+
+CLIP_TRACK_NAME = "MMDBridge"
+
+
+UV_KEY_PREFIX = "MMDUV_"
+
+
+UV_NODE_PREFIX = "MMDBridgeUV"
+
+
+UV_ATTRIBUTE_PREFIX = "MMDBridgeUV_"
+
+
+UV_SLIDER_LIMIT = 10.0
+
+
+PMM_FPS = 30.0
+
+
+AUDIO_STATE_SIZE = 28
+
+
+AUDIO_PATH_LENGTH = 256
+
+
+AUDIO_STRIP_NAME = "MMDBridge_Audio"
+
+
+AUDIO_EXTENSIONS = (".wav", ".mp3", ".ogg", ".flac", ".aac", ".m4a")
+
+
+REPORT_TEXT_NAME = "NineSyncReport"
+
+
+REPORT_LOG_LINES = 300
+
+
+ADDON_PACKAGE = (__package__ or __name__).split(".")[0] if not (__package__ or "").startswith("bl_ext.") else ".".join((__package__ or "").split(".")[:3])
+
+
+ACCESSORY_COLLECTION = "MMD_Accessories"
+
+
+ACCESSORY_OWNER_PROP = "ninesync_scene"
+
+
+ACCESSORY_PREFIX = "MMDAcc_"
+
+
+ACCESSORY_FOLLOW_PREFIX = "MMDBridgeAcc"
+
+
+ACCESSORY_VISIBLE_PROP = "mme_visible"
+
+
+ACCESSORY_VISIBLE_MODIFIER = "NineSync Visible"
+
+
+ACCESSORY_VISIBLE_GROUP = "NineSync Visibility"
+
+
+ACCESSORY_OWNED_PATHS = ("location", "rotation_euler", "scale", '["mme_tr"]', '["mme_si"]')
+
+
+ACCESSORY_UNIT = 10.0
+
+
+X_IMPORTER_MODULES = ("io_directx_x", "io_scene_x")
+
+
+X_IMPORTER_URL = "https://extensions.blender.org/add-ons/io-directx-x/"
+
+
+MMD_TOOLS_URL = "https://extensions.blender.org/add-ons/mmd-tools/"
+
+
+MME_DRAW_PROP = "mme_draw"
+
+
+MME_VARYINGS_PROP = "mme_varyings"
+
+
+MME_UNIFORMS_PROP = "mme_uniforms"
+
+
+MME_ATTR_SRC = "mme_src"
+
+
+MME_ATTR_INST = "mme_inst"
+
+
+MME_ATTR_CULL = "mme_cull"
+
+
+MME_VARYING_PREFIX = "mmeV_"
+
+
+MME_LOOP_PREFIX = "mmeL_"
+
+
+MME_UNIFORM_PREFIX = "mmeU_"
+
+
+MME_CONTROL_PREFIX = "mmeC_"
+
+
+MME_IGNORED_PROP = "mme_ignored_sources"
+
+
+MME_USE_PREFIX = "mmeUse_"
+
+
+MME_IMAGE_PREFIX = "MME_"
+
+
+MME_GAMMA = 2.2
+
+
+MME_PRUNE_TR = (1.0, 0.8, 0.6, 0.4, 0.2, 0.0)
+
+
+MME_SWAP = np.array(
+    [[1.0, 0, 0, 0], [0, 0, 1.0, 0], [0, 1.0, 0, 0], [0, 0, 0, 1.0]], dtype=np.float64
+)
+
+
+MME_SWAP3 = MME_SWAP[:3, :3]
+
+
+MME_SELF_NAMES = ("(self)", "(offscreenowner)")
+
+
+MME_PARAM_PREFIX = "mmeP_"
+
+
+MME_PARAMS_PROP = "mme_params"
+
+
+MME_PARAM_BUILT_PROP = "mme_param_built"
+
+
+MME_GN_MODIFIER = "MME"
+
+
+MME_BACKEND_PROP = "mme_backend"
+
+
+MME_PRUNED_PROP = "mme_pruned"
+
+
+MME_BAKED_PROP = "mme_baked"
+
+
+MME_DRIVEN_PROP = "mme_driven"
+
+
+MME_OWNER_PROP = "mme_owner"
+
+
+MME_GROUP_PROP = "mme_group"
+
+
+MME_SIG_PROP = "mme_sig"
+
+
+MME_ATTR_POS = "mme_p"
+
+
+MME_ATTR_NRM = "mme_n"
+
+
+MME_ATTR_UV = "mme_uv"
+
+
+MME_REBUILD_DELAY = 0.6
+
+
+MME_CORE_VERSION = 2
+
+
+MME_KEY_PROP = "mme_key"
+
+
+MME_RET_PROP = "mme_ret"
+
+
+MME_CORE_FILE = "mme_core.blend"
+
+
+MME_SIMPLIFY_TR = (1.0, 0.9, 0.75, 0.6, 0.45, 0.3, 0.15, 0.0)
+
+
+MME_GATE_TR = tuple(k / 32.0 for k in range(32, -1, -1))
+
+
+MME_GATE_MARGIN = 2
+
+
+MME_GATE_EPS = 1e-5
+
+
+MME_GATE_ALPHA = 1.0 / 512.0
+
+
+MME_GATE_PROBES = 96
+
+
+MME_TRANSPARENT_BOUNCES = 128
+
+
+MME_VARIANT_FRAMES = 24
+
+
+MME_VARIANT_MAX = 48
+
+
+MME_SIMPLIFY_VARIANTS = 8
+
+
+MME_SIMPLIFY_BUDGET = 15.0
+
+
+MME_ANALYSIS_DTYPE = np.float32
+
+
+MME_PRECULL_VERSION = 2
+
+
+MME_PRECULL_GROUPS = 24
+
+
+MME_STRIP_CACHE_ENTRIES = 64
+
+
+MME_PROGRESS_WIDTH = 24
+
+
+MME_WRAP_MARGIN = 40
+
+
+MME_WRAP_CHAR = 6.2
+
+
+MME_PROGRESS_REDRAW = 0.25
+
+
+MME_RUNTIME_VALUES_PROP = "mme_runtime_values"

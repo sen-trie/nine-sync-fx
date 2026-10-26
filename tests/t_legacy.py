@@ -38,9 +38,9 @@ print("legacy panels gone:", not hasattr(bpy.types, "NINESYNC_PT_legacy"), not h
 for m in (core, fxm):
     m.register()
 print("normal again:", hasattr(bpy.types, "NINESYNC_PT_main"), hasattr(bpy.types, "NINESYNC_FX_PT_main"))
-nodes = importlib.import_module("ninesync_fx.mme_nodes")
-print("core path (not extension):", os.path.basename(nodes.mme_core_path()), os.path.dirname(nodes.mme_core_path()).endswith("ninesync_fx"))
-nodes.__package__ = "bl_ext.test_repo.ninesync_fx"
+nodes = importlib.import_module("ninesync_fx.nodes.core_library")
+print("core path (not extension):", os.path.basename(nodes.mme_core_path()), os.path.dirname(nodes.mme_core_path()).endswith("data"))
+nodes.ADDON_PACKAGE = "bl_ext.test_repo.ninesync_fx"
 try:
     p = nodes.mme_core_path()
     print("core path (extension):", p, os.path.isfile(p))

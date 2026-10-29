@@ -2,6 +2,7 @@ import bpy
 import hashlib
 
 from ..common.constants import (
+    MME_GROUP_LABEL,
     MME_GROUP_PROP,
     MME_LOOP_PREFIX,
     MME_OWNER_PROP,
@@ -204,7 +205,7 @@ def mme_compile_material(name, runtime, draw, state, vs_outputs, owner=None):
         group_node = tree.nodes.new("ShaderNodeGroup")
         group_node.node_tree = group
         group_node.name = "MME Pixel Shader"
-        group_node.label = "%s (%s)" % (draw.fx_pass.name or "pass", fx_entry(program, draw.fx_pass.ps)[0].name)
+        group_node.label = MME_GROUP_LABEL
         group_node.width = 240
         group_node.location = (0, 0)
         mme_shader_post(tree, group_node, mode, 340)
@@ -257,7 +258,7 @@ def mme_fallback_material(name, runtime, subset, mode="ALPHA", reason="", owner=
     group_node = tree.nodes.new("ShaderNodeGroup")
     group_node.node_tree = group
     group_node.name = "MME Pixel Shader"
-    group_node.label = "Fallback (pixel shader not converted)"
+    group_node.label = MME_GROUP_LABEL
     group_node.width = 240
     mme_shader_post(tree, group_node, mode, 340)
     mme_wire_inputs(tree, group_node, B)

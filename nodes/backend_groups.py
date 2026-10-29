@@ -2,6 +2,7 @@ import json
 
 from ..common.constants import (
     MME_CORE_VERSION,
+    MME_GROUP_LABEL,
     MME_RET_PROP,
 )
 from ..common.scene_utils import node_socket
@@ -323,7 +324,7 @@ class MmeGroupCalls:
             return FxValue(rt, list(found))
         node = self.new(self.group_idname)
         node.node_tree = group
-        node.label = label[:MME_LABEL_LIMIT]
+        node.label = ("%s: %s" % (MME_GROUP_LABEL, label))[:MME_LABEL_LIMIT]
         inputs = {s.name: s for s in node.inputs}
         for name, value in zip(names, values):
             whole = inputs.get(name)

@@ -292,3 +292,7 @@ MME_PROGRESS_REDRAW = 0.25
 
 
 MME_RUNTIME_VALUES_PROP = "mme_runtime_values"
+
+
+MME_GROUP_LABEL = "MMEffects"
+

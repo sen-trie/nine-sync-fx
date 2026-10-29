@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Translated node groups carry the label `MMEffects` in Shader Nodes and Geometry Nodes (group nodes for the pixel shader and the vertex shader; groups made from HLSL functions and intrinsics read `MMEffects: name(args)`).
 - Removed FX's own PMM support: the vendored `pmm.py`, `ninesync_fx.read_pmm`, `ninesync_fx.sync_accessories`, the PMM file field, model-link list and `status` setting. PMM accessory sync now comes only from NineSync: PMM Bridge through the `post_sync` hook. Standalone `.x` import and `.fx` conversion are unchanged.
 - Internal: the large modules were split into packages (`common`, `xfile`, `fx`, `nodes`, `runtime`, `accessories`, `standalone`, `ui`) with one-way imports; `mme_core.blend` moved to `data/`. Behaviour is unchanged.
 - Functions specific to this add-on now carry short comments explaining why they work the way they do.

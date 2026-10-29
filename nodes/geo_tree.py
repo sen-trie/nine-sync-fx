@@ -3,6 +3,7 @@ import bpy
 from ..common.constants import (
     MME_ATTR_CULL,
     MME_ATTR_INST,
+    MME_GROUP_LABEL,
     MME_LOOP_PREFIX,
     MME_OWNER_PROP,
     MME_VARYING_PREFIX,
@@ -138,7 +139,7 @@ def mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_a
                     S.cache[("loopvar", var)] = T.imod(remaining, value)
                 remaining = T.idiv(remaining, value)
         T.statement("Vertex shader: %s" % function.name)
-        vs = S.node("GeometryNodeGroup", "Vertex shader: %s (%s)" % (function.name, draw.fx_pass.name or "pass"))
+        vs = S.node("GeometryNodeGroup", MME_GROUP_LABEL)
         vs.node_tree = inner
         vs.width = 260
         for key, identifier in inner_inputs.items():

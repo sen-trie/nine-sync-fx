@@ -120,3 +120,44 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "NineSync: FX Importer $tag" \
             --notes-file notes.md
+
+  notify-bundled:
+    needs: [build, publish]
+    if: needs.publish.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Notify Bundled of the stable release
+        env:
+          RELEASE_TOKEN: ${{ github.token }}
+          DISPATCH_TOKEN: ${{ secrets.BUNDLED_DISPATCH_TOKEN }}
+          BUNDLED_REPOSITORY: ${{ vars.BUNDLED_REPOSITORY || 'sen-trie/nine-sync-release' }}
+          VERSION: ${{ needs.build.outputs.version }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DISPATCH_TOKEN" ] || [ -z "$BUNDLED_REPOSITORY" ]; then
+            echo "::error::BUNDLED_DISPATCH_TOKEN secret must be set"
+            exit 1
+          fi
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::version '$VERSION' is not a stable x.y.z version"
+            exit 1
+          fi
+          tag="v$VERSION"
+          release=$(GH_TOKEN="$RELEASE_TOKEN" gh api "repos/$SOURCE_REPOSITORY/releases/tags/$tag")
+          if [ "$(jq -r '.draft or .prerelease' <<<"$release")" != "false" ]; then
+            echo "::error::release $tag is a draft or prerelease; not notifying"
+            exit 1
+          fi
+          sha=$(GH_TOKEN="$RELEASE_TOKEN" gh api "repos/$SOURCE_REPOSITORY/commits/$tag" --jq .sha)
+          if [ "$sha" != "$GITHUB_SHA" ]; then
+            echo "::error::tag $tag resolves to $sha, expected $GITHUB_SHA"
+            exit 1
+          fi
+          jq -n --arg v "$VERSION" --arg t "$tag" --arg s "$sha" --arg r "$SOURCE_REPOSITORY" \
+            '{event_type: "component_released", client_payload: {component: "fx", version: $v, tag: $t, sha: $s, repository: $r}}' > payload.json
+          cat payload.json
+          GH_TOKEN="$DISPATCH_TOKEN" gh api "repos/$BUNDLED_REPOSITORY/dispatches" --input payload.json
+          echo "Notified $BUNDLED_REPOSITORY"

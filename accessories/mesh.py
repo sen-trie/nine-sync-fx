@@ -1,9 +1,11 @@
+import importlib
+
 import bpy
 import numpy as np
 
-from ..common.constants import X_IMPORTER_MODULES
+from ..common.constants import X_IMPORT_OPTIONS, X_IMPORTER_BUNDLED_MODULE, X_IMPORTER_MODULES
 from ..common.log import log
-from ..common.scene_utils import addon_loaded
+from ..common.scene_utils import loaded_addon_names
 from ..xfile.geometry import merge_x_meshes
 from .materials import build_x_material
 
@@ -28,9 +30,45 @@ def remove_subset_faces(obj, subsets):
     mesh.update()
 
 
-# Binary and compressed .x files are only importable through the separate DirectX X Importer add-on.
+# Binary and compressed .x files need the DirectX X importer. Order: a copy bundled by the combined build, then
+# an enabled importer add-on's import_x function (no operator needed, so nothing is registered twice), and
+# last an operator probe for importers that expose no function (returned as None here).
+def x_importer_function():
+    try:
+        bundled = importlib.import_module(
+            "..%s" % X_IMPORTER_BUNDLED_MODULE, __package__
+        )
+        function = getattr(bundled, "import_x", None)
+        if callable(function):
+            return function
+    except ModuleNotFoundError as error:
+        if error.name is None or not error.name.endswith(X_IMPORTER_BUNDLED_MODULE):
+            log.warning("bundled .x importer failed to load: %s", error)
+    except Exception as error:
+        log.warning("bundled .x importer failed to load: %s", error)
+    for name in loaded_addon_names(X_IMPORTER_MODULES):
+        try:
+            function = getattr(importlib.import_module(name + ".importer"), "import_x", None)
+        except Exception as error:
+            log.warning("importer add-on %s has no usable importer module: %s", name, error)
+            continue
+        if callable(function):
+            return function
+    return None
+
+
+def x_importer_operator():
+    group = getattr(bpy.ops, "import_scene", None)
+    if group is None:
+        return None
+    for candidate in ("x", "directx", "directx_x", "x_file", "dx"):
+        if hasattr(group, candidate):
+            return getattr(group, candidate)
+    return None
+
+
 def x_importer_available():
-    return addon_loaded(X_IMPORTER_MODULES)
+    return x_importer_function() is not None or x_importer_operator() is not None
 
 
 # Mesh object from a parsed .x without the importer add-on: axes swapped (Y/Z), face order reversed to match,
@@ -71,19 +109,26 @@ def create_x_object(name, xscene, folder, settings):
     return bpy.data.objects.new(name, mesh)
 
 
-# Fallback for binary .x files: finds whichever import operator the DirectX X Importer registers and returns
-# the new objects.
+# Binary .x import through whichever importer x_importer_function finds, else the operator probe. Returns the
+# new objects; on failure it removes what the importer created and raises RuntimeError for the caller to report.
 def import_x_with_addon(path):
-    before = set(bpy.data.objects)
-    group = getattr(bpy.ops, "import_scene", None)
-    operator = None
-    for candidate in ("x", "directx", "directx_x", "x_file", "dx"):
-        if group is not None and hasattr(group, candidate):
-            operator = getattr(group, candidate)
-            break
-    if operator is None:
+    function = x_importer_function()
+    operator = None if function is not None else x_importer_operator()
+    if function is None and operator is None:
         raise RuntimeError(
-            "binary/compressed .x needs the DirectX X Importer add-on, but its import operator was not found"
+            "binary/compressed .x needs the DirectX X Importer, but no importer function or import operator was found"
         )
-    operator(filepath=path)
+    before = set(bpy.data.objects)
+    before_collections = set(bpy.data.collections)
+    try:
+        if function is not None:
+            function(bpy.context, filepath=path, **X_IMPORT_OPTIONS)
+        else:
+            operator(filepath=path)
+    except Exception as error:
+        for obj in [o for o in bpy.data.objects if o not in before]:
+            bpy.data.objects.remove(obj)
+        for collection in [c for c in bpy.data.collections if c not in before_collections]:
+            bpy.data.collections.remove(collection)
+        raise RuntimeError("DirectX X importer failed on %s: %s" % (path, error)) from error
     return [o for o in bpy.data.objects if o not in before]

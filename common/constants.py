@@ -115,7 +115,38 @@ ACCESSORY_UNIT = 10.0
 X_IMPORTER_MODULES = ("io_directx_x", "io_scene_x")
 
 
-X_IMPORTER_URL = "https://extensions.blender.org/add-ons/io-directx-x/"
+X_IMPORTER_BUNDLED_MODULE = "x_importer_bundled"
+
+
+# Spelled out because the operator path relied on the operator's defaults, which differ from import_x's
+# (axis_forward is "Z" on the operator and "-Z" on the function).
+X_IMPORT_OPTIONS = {
+    "use_apply_transform": True,
+    "global_scale": 1.0,
+    "axis_forward": "Z",
+    "axis_up": "Y",
+    "import_normals": True,
+    "import_uvs": True,
+    "import_materials": True,
+    "import_textures": True,
+    "use_diffuse_alpha": True,
+    "rest_from_frame1": False,
+    "flatten_reflections": True,
+    "smooth_shade_from_faces": False,
+    "split_submeshes": True,
+    "triangulate_quads": True,
+    "weld_duplicate_verts": True,
+    "import_armature": True,
+    "import_weights": True,
+    "import_animation": True,
+    "anim_fps": 0.0,
+    "set_frame_range": False,
+    "use_import_collection": True,
+    "import_type": "standard",
+}
+
+
+X_IMPORTER_URL ="https://extensions.blender.org/add-ons/io-directx-x/"
 
 
 MMD_TOOLS_URL = "https://extensions.blender.org/add-ons/mmd-tools/"

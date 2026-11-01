@@ -193,11 +193,16 @@ def short_text(text, limit=80):
 # Add-on keys differ between legacy add-ons and extensions (bl_ext.repo.name), so only the last segment is
 # compared.
 def addon_loaded(modules):
+    return bool(loaded_addon_names(modules))
+
+
+# Full enabled module names (e.g. bl_ext.blender_org.io_directx_x), needed to import a submodule of the add-on.
+def loaded_addon_names(modules):
     try:
         names = list(bpy.context.preferences.addons.keys())
     except Exception:
-        return False
-    return any(name.rsplit(".", 1)[-1] in modules for name in names)
+        return []
+    return [name for name in names if name.rsplit(".", 1)[-1] in modules]
 
 
 # A model link is usable only while its root is still in the file and has an armature to follow.

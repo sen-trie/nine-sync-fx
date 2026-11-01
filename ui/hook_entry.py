@@ -93,9 +93,12 @@ def report_hook(context):
     return lines
 
 
-# Version from bl_info of the root package.
+# Blender strips bl_info from an enabled extension's module, so the version comes from ADDON_VERSION in the
+# root package, with bl_info only as a fallback.
 def addon_version():
     try:
-        return tuple(importlib.import_module(ADDON_PACKAGE).bl_info["version"])
+        root = importlib.import_module(ADDON_PACKAGE)
+        version = getattr(root, "ADDON_VERSION", None) or root.bl_info["version"]
+        return tuple(version)
     except Exception:
         return (0, 0, 0)

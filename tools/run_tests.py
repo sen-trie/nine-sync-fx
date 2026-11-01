@@ -35,6 +35,7 @@ BLENDER = [
     ("plain_fixture", (), ()),
     ("x_importer", (), ()),
     ("mixed", (), ()),
+    ("version", (), ()),
     ("legacy", (), ()),
     ("labels", (), (THUNDER,)),
     ("panels", ("--", "fx"), ()),

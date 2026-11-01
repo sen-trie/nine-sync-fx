@@ -13,7 +13,12 @@ def digest(path):
 
 def main(argv):
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    core = argv[1] if len(argv) > 1 else os.path.join(os.path.dirname(here), "ninesync")
+    core = argv[1] if len(argv) > 1 else None
+    if core is None:
+        for folder in ("nine-sync-core", "ninesync-core", "ninesync"):
+            core = os.path.join(os.path.dirname(here), folder)
+            if os.path.isfile(os.path.join(core, "hooks.py")):
+                break
     failed = False
     for name in SHARED:
         a = os.path.join(here, name)

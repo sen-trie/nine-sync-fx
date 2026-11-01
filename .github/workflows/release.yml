@@ -1,85 +1,122 @@
 name: Release
 
-# Runs when a push to master changes blender_manifest.toml. If the version number
-# changed (any part, so 0.3.1 counts), it tags v<version> and publishes a release
-# with the extension zip.
+# A push to master that changes blender_manifest.toml, or a manual run, checks the repository, builds the
+# extension with Blender 5.3 or newer, runs the tests that need no third-party assets and uploads the zip with
+# a SHA-256 checksum file as a workflow artifact. Nothing is tagged or published unless the run was started by
+# hand with "publish" ticked, which is the owner's approval.
 on:
   push:
     branches: [master]
     paths: [blender_manifest.toml]
-  # Run by hand from the Actions tab: releases the current version if it has no tag yet.
   workflow_dispatch:
+    inputs:
+      publish:
+        description: "Tag v<version> and publish the GitHub release (owner approval)"
+        type: boolean
+        default: false
+
+env:
+  BLENDER_VERSION: "5.3.0"
+  BLENDER_SERIES: "5.3"
 
 permissions:
   contents: write
 
 jobs:
-  release:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Static release checks
+        id: check
+        run: |
+          python tools/check_release.py
+          echo "version=$(grep -m1 '^version' blender_manifest.toml | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Download Blender
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxi6 libxxf86vm1 libxfixes3 libxrender1 libxkbcommon0 libgl1 libegl1 libsm6
+          curl -fsSL "https://download.blender.org/release/Blender${BLENDER_SERIES}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" | tar -xJ
+          echo "BLENDER=$PWD/blender-${BLENDER_VERSION}-linux-x64/blender" >> "$GITHUB_ENV"
+
+      - name: Blender version
+        run: |
+          "$BLENDER" --version | head -1
+          "$BLENDER" -b --factory-startup --python-expr "import bpy,sys; sys.exit(0 if bpy.app.version >= (5, 3, 0) else 1)"
+
+      - name: Validate and build
+        run: |
+          export BLENDER_USER_RESOURCES="$RUNNER_TEMP/blender-profile"
+          "$BLENDER" --background --factory-startup --command extension validate .
+          mkdir out
+          "$BLENDER" --background --factory-startup --command extension build --source-dir . --output-dir out
+          (cd out && sha256sum *.zip > SHA256SUMS.txt && cat SHA256SUMS.txt)
+
+      - name: Package contents
+        run: |
+          python - <<'PY'
+          import glob, zipfile
+          names = zipfile.ZipFile(glob.glob("out/*.zip")[0]).namelist()
+          bad = [n for n in names if n.startswith(("tests/", "tools/", "docs/", ".github/", ".git/", "debug-src/")) or n.endswith((".pyc", "CLAUDE.md"))]
+          missing = [n for n in ("LICENSE", "hooks.py", "data/mme_core.blend", "blender_manifest.toml", "__init__.py") if n not in names]
+          print(len(names), "files; unexpected:", bad, "missing:", missing)
+          raise SystemExit(1 if bad or missing else 0)
+          PY
+
+      - name: Tests that need no third-party assets
+        run: python tools/run_tests.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ninesync-fx-${{ steps.check.outputs.version }}
+          path: out/*
+
+  publish:
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Did the version change?
-        id: version
-        run: |
-          read_version() { grep -m1 '^version' | cut -d'"' -f2; }
-          new=$(read_version < blender_manifest.toml)
-          old=""
-          if [ "${{ github.event_name }}" = "push" ]; then
-            old=$(git show "${{ github.event.before }}:blender_manifest.toml" 2>/dev/null | read_version || true)
-          fi
-          echo "old=${old:-none} new=$new"
-          if [ "$new" != "$old" ]; then
-            if git rev-parse -q --verify "refs/tags/v$new" > /dev/null; then
-              echo "tag v$new already exists; nothing to do"
-              echo "release=false" >> "$GITHUB_OUTPUT"
-            else
-              echo "release=true" >> "$GITHUB_OUTPUT"
-              echo "version=$new" >> "$GITHUB_OUTPUT"
-            fi
-          else
-            echo "version unchanged; nothing to do"
-            echo "release=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      # Used only to run `extension build`; the add-on itself targets 5.3+.
-      - name: Download Blender
-        if: steps.version.outputs.release == 'true'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libxi6 libxxf86vm1 libxfixes3 libxrender1 libxkbcommon0 libgl1 libegl1 libsm6
-          curl -sSL https://download.blender.org/release/Blender5.2/blender-5.2.3-linux-x64.tar.xz | tar -xJ
-          echo "BLENDER=$PWD/blender-5.2.3-linux-x64/blender" >> "$GITHUB_ENV"
-
-      - name: Validate and build
-        if: steps.version.outputs.release == 'true'
-        run: |
-          "$BLENDER" --background --factory-startup --command extension validate .
-          mkdir out
-          "$BLENDER" --background --factory-startup --command extension build --source-dir . --output-dir out
-          ls -l out
+      - uses: actions/download-artifact@v4
+        with:
+          name: ninesync-fx-${{ needs.build.outputs.version }}
+          path: out
 
       - name: Release notes from the changelog
-        if: steps.version.outputs.release == 'true'
         run: |
-          awk -v v="${{ steps.version.outputs.version }}" '
+          awk -v v="${{ needs.build.outputs.version }}" '
             $0 ~ "^## " { if (on) exit; on = ($2 == v); next }
             on { print }
-          ' CHANGELOG.md | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' | sed '/./,$!d' > notes.md
+          ' CHANGELOG.md | sed '/./,$!d' > notes.md
           if [ ! -s notes.md ]; then
-            echo "CHANGELOG.md has no entry for ${{ steps.version.outputs.version }}"
+            echo "CHANGELOG.md has no entry for ${{ needs.build.outputs.version }}"
             exit 1
           fi
           cat notes.md
 
       - name: Tag and publish release
-        if: steps.version.outputs.release == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v${{ steps.version.outputs.version }}" out/*.zip \
+          tag="v${{ needs.build.outputs.version }}"
+          if git rev-parse -q --verify "refs/tags/$tag" > /dev/null; then
+            echo "tag $tag already exists"
+            exit 1
+          fi
+          gh release create "$tag" out/*.zip out/SHA256SUMS.txt \
             --target "$GITHUB_SHA" \
-            --title "NineSync: FX Importer v${{ steps.version.outputs.version }}" \
+            --title "NineSync: FX Importer $tag" \
             --notes-file notes.md

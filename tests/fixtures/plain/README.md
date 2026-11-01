@@ -1,0 +1,1 @@
+`plainthing.x` is a synthetic unit cube (8 vertices, 6 quads, one material, UVs) written by `tools/make_plain_fixture.py`. It is original to this repository and carries the repository licence. It stands in for the plain-text `.x` mesh the tests expect and is not a copy of any third-party asset.

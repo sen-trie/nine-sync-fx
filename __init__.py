@@ -2,11 +2,13 @@ ADDON_VERSION = (0, 3, 0)
 
 bl_info = {
     "name": "NineSync: FX Importer",
-    "author": "",
+    "author": "sentrie",
     "version": ADDON_VERSION,
     "blender": (5, 3, 0),
     "location": "View3D > Sidebar > NineSync",
     "description": "⑨-Sync FX: import MikuMikuDance accessories (.x) and run their MME effects (.fx) through Geometry Nodes and shader nodes. Works alone or with NineSync: PMM Bridge",
+    "doc_url": "https://github.com/sen-trie/nine-sync-fx",
+    "tracker_url": "https://github.com/sen-trie/nine-sync-fx/issues",
     "category": "Import-Export",
 }
 
@@ -45,7 +47,20 @@ from .ui.properties import NineSyncFXSettings
 from .ui.operators.accessories import menu_import_accessory
 
 
+_install = {"registered": False}
+
+
+# A second copy of this add-on (a legacy zip next to the extension, or a renamed folder) would register the
+# same classes and properties. The later copy refuses to start and leaves the first one untouched.
+def conflicting_copy():
+    return not _install["registered"] and hasattr(bpy.types.Scene, "ninesync_fx")
+
+
 def register():
+    if conflicting_copy():
+        raise RuntimeError(
+            "NineSync: FX Importer is already enabled from another install; disable that copy first. Nothing was changed."
+        )
     if bpy.app.version < MIN_BLENDER:
         raise RuntimeError(
             "NineSync: FX needs Blender %d.%d or newer (this is %s)"
@@ -71,10 +86,14 @@ def register():
     _mme_runtimes.clear()
     if not bpy.app.timers.is_registered(startup_check):
         bpy.app.timers.register(startup_check, first_interval=1.0)
+    _install["registered"] = True
     log.info("%s FX registered", NINESYNC_NAME)
 
 
 def unregister():
+    if not _install["registered"]:
+        return
+    _install["registered"] = False
     remove_handlers()
     hooks.remove(hooks.FX_OWNER)
     _mme_runtimes.clear()

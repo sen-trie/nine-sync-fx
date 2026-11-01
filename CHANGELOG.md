@@ -6,6 +6,9 @@
 - Open FX Library .blend button in the Core Node Library panel.
 - Translated node groups carry the label `MMEffects` in Shader Nodes and Geometry Nodes (group nodes for the pixel shader and the vertex shader; groups made from HLSL functions and intrinsics read `MMEffects: name(args)`).
 - Unresolved effect controllers can be assigned to an object or bone by hand.
+- Fix: the DirectX X Importer check always said an importer was installed (Blender answers `hasattr` on `bpy.ops` with True for any name), so the missing-importer notice never appeared. It now lists the registered operators.
+- A second enabled copy of this add-on refuses to register instead of colliding with the first.
+- GPL-3.0 `LICENSE`, repository links in the manifest and `bl_info`.
 
 ## 0.2.0
 

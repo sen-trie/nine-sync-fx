@@ -32,7 +32,8 @@ def remove_subset_faces(obj, subsets):
 
 # Binary and compressed .x files need the DirectX X importer. Order: a copy bundled by the combined build, then
 # an enabled importer add-on's import_x function (no operator needed, so nothing is registered twice), and
-# last an operator probe for importers that expose no function (returned as None here).
+# last an operator probe for importers that expose no function (returned as None here). The probe lists the
+# registered operators with dir(): hasattr on bpy.ops answers True for any name.
 def x_importer_function():
     try:
         bundled = importlib.import_module(
@@ -61,8 +62,9 @@ def x_importer_operator():
     group = getattr(bpy.ops, "import_scene", None)
     if group is None:
         return None
+    registered = set(dir(group))
     for candidate in ("x", "directx", "directx_x", "x_file", "dx"):
-        if hasattr(group, candidate):
+        if candidate in registered:
             return getattr(group, candidate)
     return None
 

@@ -7,22 +7,22 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 
 LAYOUT = {
-    "ninesync": ("NINESYNC_CORE", "ninesync"),
-    "ninesync_fx": ("NINESYNC_FX", "ninesync-fx"),
+    "ninesync": ("NINESYNC_CORE", ("nine-sync-core", "ninesync-core", "ninesync")),
+    "ninesync_fx": ("NINESYNC_FX", ("nine-sync-fx", "ninesync-fx", "ninesync_fx")),
 }
 
 
-def locate(module):
-    env, folder = LAYOUT[module]
-    explicit = os.environ.get(env)
+def locate(module, repo=REPO, environ=os.environ):
+    env, folders = LAYOUT[module]
+    explicit = environ.get(env)
     if explicit:
         return os.path.abspath(explicit)
-    own = os.path.basename(REPO)
-    if own in (folder, module):
-        return REPO
-    sibling = os.path.join(os.path.dirname(REPO), folder)
-    if os.path.isfile(os.path.join(sibling, "__init__.py")):
-        return sibling
+    if os.path.basename(repo) in folders or os.path.basename(repo) == module:
+        return repo
+    for folder in folders:
+        sibling = os.path.join(os.path.dirname(repo), folder)
+        if os.path.isfile(os.path.join(sibling, "__init__.py")):
+            return sibling
     return None
 
 

@@ -7,6 +7,17 @@ Imports MikuMikuDance accessories (`.x`) and runs their MME effects (`.fx`): ver
 - Blender 5.3 or newer
 - Optional: mmd_tools (parent bones, morph names), DirectX X Importer (binary or compressed `.x` only)
 
+### Compatibility
+
+- FX 0.3.x pairs with NineSync: PMM Bridge 0.3.x (hook API 1). FX works without Core; Core is only needed to sync a PMM project.
+- mmd_tools is optional for FX. Without it, accessories import and effects run, but a PMM sync cannot parent them to model bones.
+- Tested with: Blender 5.3.0 Beta (build 2026-10-25) and NineSync: PMM Bridge 0.3.0 (registration, hook sync, disabling either add-on). DirectX X Importer (`io_directx_x`) 1.4.0 was checked for function and operator import. mmd_tools 4.5.14 was enabled alongside, but no PMX model sync through it was tested. Other versions are untested.
+- Install one copy only. If a second copy of this add-on is enabled (for example a legacy zip next to the extension), the later one refuses to start with a message and changes nothing; it never disables or removes the other.
+
+## License
+
+GPL-3.0-or-later, see `LICENSE`.
+
 ## Ways to use it
 
 1. **Manual import.** File > Import > MMD Accessory (.x). A same-name `.fx` next to the `.x` is used, or pick one. Tr and Si and every effect parameter appear as custom properties on the accessory root.

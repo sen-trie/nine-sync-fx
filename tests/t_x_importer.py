@@ -23,16 +23,27 @@ def drop(*names):
 addon_key = "bl_ext.fake_repo.io_directx_x"
 mesh_mod.loaded_addon_names = lambda modules: []
 print("neither -> None:", mesh_mod.x_importer_function() is None)
+standalone_operator = "directx_x" in dir(bpy.ops.import_scene)
+if standalone_operator:
+    print("SKIP no-operator checks: an importer add-on registers its own operator in this profile")
+else:
+    print("no importer -> no operator, not available:", mesh_mod.x_importer_operator() is None and not mesh_mod.x_importer_available())
 
 fake_module(addon_key + ".importer", "addon")
 sys.modules[addon_key] = types.ModuleType(addon_key)
 mesh_mod.loaded_addon_names = lambda modules: [addon_key]
 fn = mesh_mod.x_importer_function()
-print("addon only -> addon function:", fn is not None and fn.__module__ == addon_key + ".importer")
+calls.clear()
+if fn is not None:
+    fn(bpy.context, filepath="x")
+print("addon only -> addon function:", [c[0] for c in calls] == ["addon"])
 
 fake_module(bundled_name, "bundled")
 fn = mesh_mod.x_importer_function()
-print("bundled + addon -> bundled wins:", fn is not None and fn.__module__ == bundled_name)
+calls.clear()
+if fn is not None:
+    fn(bpy.context, filepath="x")
+print("bundled + addon -> bundled wins:", [c[0] for c in calls] == ["bundled"])
 print("available:", mesh_mod.x_importer_available())
 
 target = os.path.join(FIX, "Synth", "synth.x")
@@ -41,7 +52,7 @@ mesh_mod.import_x_with_addon(target)
 label, path, options = calls[0]
 print("call goes to bundled with explicit options:", label == "bundled" and path == target and all(
     k in options for k in ("use_import_collection", "import_animation", "use_apply_transform", "global_scale")))
-print("registers no operator:", not hasattr(bpy.ops.import_scene, "directx_x"))
+print("registers no operator:", standalone_operator or "directx_x" not in dir(bpy.ops.import_scene))
 
 drop(bundled_name)
 calls.clear()
@@ -83,4 +94,4 @@ else:
         by_operator = mesh_mod.import_x_with_addon(binary)
         operator_result = snapshot(by_operator)
         print("function vs operator (objects, materials, vertices):", function_result, operator_result, function_result == operator_result)
-print("no FX-registered x operator:", not any(hasattr(bpy.ops.import_scene, n) for n in ("x", "directx", "x_file", "dx")) or real is not None)
+print("no FX-registered x operator:", not any(n in dir(bpy.ops.import_scene) for n in ("x", "directx", "directx_x", "x_file", "dx")) or real is not None)

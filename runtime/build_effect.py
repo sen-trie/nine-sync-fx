@@ -13,7 +13,7 @@ from ..common.constants import (
     MME_PARAM_BUILT_PROP,
     MME_PRUNED_PROP,
     MME_RUNTIME_VALUES_PROP,
-    MME_TRANSPARENT_BOUNCES,
+    MME_UNSUPPORTED_PROP,
 )
 from ..common.controls import (
     mme_ensure_use_props,
@@ -40,6 +40,7 @@ from ..fx.params import (
 from ..nodes.standard_groups import mme_save_core_library
 from .build_pass import mme_build_pass
 from .cleanup import remove_accessory_children_single
+from .controls_resolve import mme_apply_manual_controls
 from .frame_state import mme_frame_state
 from .params import (
     mme_built_values,
@@ -60,21 +61,6 @@ from .visibility import (
     mme_restore_visibility,
 )
 from .vs_eval import mme_self_tr_globals
-
-
-# Stacked transparent layers need many transparent bounces in Cycles or later layers render black; raise the
-# limit if it is lower.
-def mme_raise_transparent_bounces(scene):
-    cycles = getattr(scene, "cycles", None)
-    if cycles is None or not hasattr(cycles, "transparent_max_bounces"):
-        return
-    if cycles.transparent_max_bounces < MME_TRANSPARENT_BOUNCES:
-        log.info(
-            "raised Cycles transparent bounces from %d to %d so stacked effect layers do not render black",
-            cycles.transparent_max_bounces,
-            MME_TRANSPARENT_BOUNCES,
-        )
-        cycles.transparent_max_bounces = MME_TRANSPARENT_BOUNCES
 
 
 # Builds a whole effect on a root: syncs parameters and controls, samples keyed variants, then builds every
@@ -115,7 +101,6 @@ def mme_build_effect(scene, collection, settings, acc, root, x_path, fx_path, un
     state = mme_frame_state(scene, depsgraph, root, runtime, unit)
     density = settings.mme_density
     backend = settings.mme_backend
-    mme_raise_transparent_bounces(scene)
     built_before = _mme_core["stats"]["built"]
     library_before = _mme_core["stats"]["library"]
     file_before = _mme_core["stats"]["file"]
@@ -169,8 +154,14 @@ def mme_build_effect(scene, collection, settings, acc, root, x_path, fx_path, un
             os.path.basename(fx_path),
             offscreen,
         )
+    root[MME_UNSUPPORTED_PROP] = json.dumps(skipped)
     if skipped:
-        log.info("effect '%s': screen-space passes not emulated: %s", os.path.basename(fx_path), skipped)
+        log.info(
+            "effect '%s': skipped %d full-screen pass(es), which this add-on does not support: %s",
+            os.path.basename(fx_path),
+            len(skipped),
+            skipped,
+        )
     _mme_runtimes[root.name] = runtime
     return children, uncovered, None, len(emitted)
 
@@ -192,7 +183,7 @@ def mme_rebuild_effect(scene, root):
         remove_accessory_children_single(child)
     started = time.time()
     children, _uncovered, _tracks, total = mme_build_effect(
-        scene, collection, settings, None, root, x_path, fx_path, unit, mme_load_controls_raw(root)
+        scene, collection, settings, None, root, x_path, fx_path, unit, mme_apply_manual_controls(root, mme_load_controls_raw(root))
     )
     for child in children:
         child.scale = (ACCESSORY_UNIT * unit,) * 3

@@ -27,10 +27,8 @@ from .common.log import (
     log,
     setup_logging,
 )
-from .common.scene_utils import legacy_monolith_active
 from .common.state import _mme_runtimes
 from .handlers import (
-    _state,
     mme_frame_handler,
     mme_load_handler,
     mme_param_watch,
@@ -42,10 +40,7 @@ from .runtime.visibility import (
     accessory_visible_get,
     accessory_visible_set,
 )
-from .ui import (
-    CLASSES,
-    LEGACY_CLASSES,
-)
+from .ui import CLASSES
 from .ui.properties import NineSyncFXSettings
 from .ui.operators.accessories import menu_import_accessory
 
@@ -57,15 +52,6 @@ def register():
             % (MIN_BLENDER[0], MIN_BLENDER[1], bpy.app.version_string)
         )
     setup_logging()
-    if legacy_monolith_active():
-        _state["legacy"] = True
-        for cls in LEGACY_CLASSES:
-            bpy.utils.register_class(cls)
-        log.error(
-            "the old combined NineSync is enabled; disable it before using NineSync: FX"
-        )
-        return
-    _state["legacy"] = False
     for cls in CLASSES:
         bpy.utils.register_class(cls)
     bpy.types.Scene.ninesync_fx = PointerProperty(type=NineSyncFXSettings)
@@ -92,14 +78,6 @@ def unregister():
     remove_handlers()
     hooks.remove(hooks.FX_OWNER)
     _mme_runtimes.clear()
-    if _state["legacy"]:
-        for cls in reversed(LEGACY_CLASSES):
-            try:
-                bpy.utils.unregister_class(cls)
-            except (RuntimeError, ValueError):
-                pass
-        _state["legacy"] = False
-        return
     try:
         bpy.types.TOPBAR_MT_file_import.remove(menu_import_accessory)
     except (ValueError, RuntimeError):

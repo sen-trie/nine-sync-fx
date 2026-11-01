@@ -124,7 +124,7 @@ def mme_update_pass(runtime, obj, root, state, unit, depsgraph=None):
 # during a bake. Each error is logged once.
 def mme_update_scene(scene, depsgraph=None, force=False):
     settings = getattr(scene, "ninesync_fx", None)
-    if settings is None or not getattr(settings, "mme_effects", False):
+    if settings is None:
         return 0
     rendering = False
     try:

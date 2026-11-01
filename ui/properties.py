@@ -70,11 +70,6 @@ class NineSyncFXSettings(PropertyGroup):
         subtype="DIR_PATH",
     )
     accessories: CollectionProperty(type=NineSyncFXAccessory)
-    mme_effects: BoolProperty(
-        name="MME Effects (.fx)",
-        description="Run the MikuMikuEffect file of each accessory: the same-name .fx next to the .x, or the one assigned in the PMM's .emm file. Vertex shaders run every frame, pixel shaders become material nodes",
-        default=True,
-    )
     mme_density: FloatProperty(
         name="Effect Density",
         description="Share of each LoopByCount loop to draw. 1 matches MMD. Lower values make heavy effects such as Nuke2 faster to scrub. Geometry Nodes passes update live; Python passes on the next sync or Refresh Effects",
@@ -144,11 +139,6 @@ class NineSyncFXSettings(PropertyGroup):
         description="Folder for effect bakes stored on disk",
         default="//mme_bake/",
         subtype="DIR_PATH",
-    )
-    mme_standard_view: BoolProperty(
-        name="MMD Colors (Standard View)",
-        description="Switch the scene view transform to Standard when effects are synced so effect colors match MMD",
-        default=True,
     )
     retime_fps: BoolProperty(
         name="Retime to Scene FPS",

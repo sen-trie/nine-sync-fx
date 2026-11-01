@@ -34,7 +34,11 @@ if hasattr(mb, "MIN_BLENDER"):
     mb.MIN_BLENDER = (5, 2, 0)
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 import shim52; shim52.install(mb)
+import tempfile
+_library_folder = tempfile.mkdtemp(prefix="ninesync_user_")
+mb.mme_user_folder = lambda: _library_folder
 mb.register()
+bpy.context.scene.cycles.transparent_max_bounces = 128
 FX = (FIX + "/Thunder/Thunder_lv1.fx")
 XP = (FIX + "/Thunder/Thunder_lv1.x")
 

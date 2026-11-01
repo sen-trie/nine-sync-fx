@@ -1,9 +1,13 @@
 import bpy
+import json
 import os
 
 from ..common.animation import iter_fcurves
 from ..common.constants import (
     MME_CONTROL_PREFIX,
+    MME_MANUAL_BONES_PROP,
+    MME_MANUAL_PREFIX,
+    MME_OBJECT_ITEMS,
     MME_SELF_NAMES,
 )
 from ..common.scene_utils import (
@@ -79,8 +83,105 @@ def mme_resolve_controls(program, project, settings, acc, root):
                     desc = {"kind": "model", "object": target.name if target is not None else ""}
         desc["from"] = "%s%s" % (name, (" / %s" % item) if item else "")
         desc["source"] = name
+        desc.setdefault("item", item)
         controls[g.name] = desc
-    return controls, morph_tracks
+    return mme_apply_manual_controls(root, controls), morph_tracks
+
+
+# The controller item a control asks for; controls saved before 'item' was stored keep it in their label.
+def mme_control_item(desc):
+    if desc.get("item") is not None:
+        return desc["item"]
+    text = desc.get("from") or ""
+    return text.split(" / ", 1)[1] if " / " in text else ""
+
+
+def mme_manual_prop(name):
+    return mme_prop_name(MME_MANUAL_PREFIX, name)
+
+
+def mme_manual_bones(root):
+    try:
+        return json.loads(root.get(MME_MANUAL_BONES_PROP, "{}"))
+    except (TypeError, ValueError):
+        return {}
+
+
+# The object is an ID property rather than a stored name, so a user's assignment follows renames and reads as
+# empty once the object is deleted.
+def mme_manual_set(root, name, obj, bone=""):
+    root[mme_manual_prop(name)] = obj
+    bones = mme_manual_bones(root)
+    if bone:
+        bones[name] = bone
+    else:
+        bones.pop(name, None)
+    root[MME_MANUAL_BONES_PROP] = json.dumps(bones)
+
+
+def mme_manual_clear(root, name):
+    prop = mme_manual_prop(name)
+    if prop in root:
+        del root[prop]
+    bones = mme_manual_bones(root)
+    if bones.pop(name, None) is not None:
+        root[MME_MANUAL_BONES_PROP] = json.dumps(bones)
+
+
+def mme_manual_armature(obj):
+    if obj.type == "ARMATURE":
+        return obj
+    if obj.parent is not None and obj.parent.type == "ARMATURE":
+        return obj.parent
+    return find_armature(obj)
+
+
+# Reads a controller item off the object the user picked, in the same order as a matched model: shape key, then
+# bone, then a transform item. A bone the user named wins. None when the object cannot supply the item.
+def mme_manual_control(obj, item, bone=""):
+    armature = mme_manual_armature(obj)
+    if bone:
+        if armature is None or armature.pose.bones.get(bone) is None:
+            return None
+        return {"kind": "bone", "object": armature.name, "bone": bone}
+    if not item:
+        return {"kind": "model", "object": obj.name}
+    for child in [obj] + list(obj.children_recursive):
+        keys = child.data.shape_keys if child.type == "MESH" else None
+        if keys is not None and item in keys.key_blocks:
+            return {"kind": "shapekey", "object": child.name, "key": item}
+    found = pose_bone_name(armature, item) if armature is not None else None
+    if found is not None:
+        return {"kind": "bone", "object": armature.name, "bone": found}
+    if item.lower() in MME_OBJECT_ITEMS:
+        return {"kind": "object", "object": obj.name, "item": item}
+    return None
+
+
+# Applies manual assignments to controls nothing else resolved. Automatic matches win, so a model that later
+# appears in the PMM takes over; the assignment stays stored and returns if the match goes away. An assignment
+# that stopped working goes back to the constant with a note saying why.
+def mme_apply_manual_controls(root, controls):
+    bones = mme_manual_bones(root)
+    for name, desc in list(controls.items()):
+        if desc.get("kind") != "const" and not desc.get("manual"):
+            continue
+        shared = {key: desc[key] for key in ("from", "source") if key in desc}
+        item = mme_control_item(desc)
+        shared["item"] = item
+        prop = mme_manual_prop(name)
+        if prop not in root:
+            if desc.get("manual"):
+                controls[name] = {"kind": "const", "values": [0.0], **shared}
+            continue
+        obj = root.get(prop)
+        found = mme_manual_control(obj, item, bones.get(name, "")) if obj is not None else None
+        if found is None:
+            note = "assigned object was deleted" if obj is None else "%s has no %s" % (obj.name, bones.get(name) or item)
+            controls[name] = {"kind": "const", "values": [0.0], "manual": True, "note": note, **shared}
+        else:
+            controls[name] = {**shared, **found, "manual": True}
+    return controls
 
 
 # mmd_tools root matching a name, by exact match then by substring, ignoring folders and extensions.

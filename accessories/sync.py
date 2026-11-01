@@ -25,20 +25,13 @@ def mirror_context(settings, ctx):
         link.target = ctx.targets.get(key)
 
 
-# When effects exist: locks the render interface so they can update safely during a render, and optionally
-# switches to the Standard view transform so colours match MMD.
-def apply_render_defaults(scene, settings):
-    if not (settings.mme_effects and mme_effect_roots(scene)):
+# When effects exist: locks the render interface so they can update safely during a render.
+def apply_render_defaults(scene):
+    if not mme_effect_roots(scene):
         return
     if not scene.render.use_lock_interface:
         scene.render.use_lock_interface = True
         log.info("render interface locking enabled so effects can update safely while rendering")
-    if settings.mme_standard_view and scene.view_settings.view_transform != "Standard":
-        try:
-            scene.view_settings.view_transform = "Standard"
-            log.info("view transform set to Standard so effect colors match MMD")
-        except TypeError:
-            pass
 
 
 # The one sync path, called by core through the post_sync hook.
@@ -51,5 +44,5 @@ def sync_accessories(ctx):
     mirror_context(settings, ctx)
     refresh_accessories(settings, project)
     done = import_accessories(scene, project, settings, ctx.unit)
-    apply_render_defaults(scene, settings)
+    apply_render_defaults(scene)
     return done

@@ -26,7 +26,30 @@ Imports MikuMikuDance accessories (`.x`) and runs their MME effects (`.fx`): ver
 | Panels | `NINESYNC_FX_PT_*` |
 | Logger | `NineSync.FX` (shared text block `NineSyncLog`) |
 
-Scene data from the old combined add-on keeps working: collection names, `MMDBridge_` action prefix, `mmd_bridge_accessory` and `mme_*` object properties are unchanged. For `.blend` files saved with the old add-on, press Repair Legacy Data in the Accessories panel, then Rebuild All Effects.
+Scene data from older NineSync versions keeps working: collection names, `MMDBridge_` action prefix, `mmd_bridge_accessory` and `mme_*` object properties are unchanged. For `.blend` files saved with an older version, press Repair Legacy Data in the Accessories panel, then Rebuild All Effects.
+
+## Shared node library
+
+Effects reuse node groups from `mme_core.blend`. The add-on ships a read-only copy in `data/` and works from your own copy, which survives updates: the extension's user folder, or `<Blender config>/datafiles/ninesync_fx` for a development install. Core Node Library shows the path, and **Open FX Library .blend** opens it, in a second Blender by default so the current file stays open.
+
+On startup your copy is compared with the bundled one by the `:v<N>` version in the group keys:
+
+| Bundled compared with yours | What happens |
+|---|---|
+| Newer | Your library is replaced; older groups are obsolete. The previous file stays as `mme_core.blend.bak` |
+| Same version, bundled has new groups | Merged. Bundled wins a duplicate key, and groups only you have are kept, nested groups included |
+| Same version, nothing new | Nothing is written |
+| Older | Your library is left alone. If it is newer than this add-on can read, the bundled copy is used read-only for the session |
+
+Every write goes through a temporary file that must validate before an atomic replace. If an update fails, your file is left as it was and the bundled copy is used until Blender restarts. A damaged library is kept as `.corrupt` and restored from `.bak` when that is good.
+
+## Rendering
+
+EEVEE is the assumed renderer. In Cycles, stacked effect layers can render black: raise Light Paths > Max Bounces > Transparent, 128 is plenty. The add-on leaves your view transform alone, so use Standard if effect colors should match MMD.
+
+## Not supported
+
+Full-screen and post-process passes (`Draw=Buffer`, and effects that work on the rendered image) are out of scope: this add-on converts effects drawn on geometry, and has no planned way to run those. They are skipped, and the Passes tab and the log name what was skipped.
 
 ## Layout
 
@@ -38,7 +61,7 @@ common/            constants, state, logging, scene and animation helpers (some 
 xfile/             .x parser, merge, texture lookup (pure Python)
 fx/                HLSL .fx front end (preprocessor, lexer, parser, types, techniques, semantics)
 fx/interp/         interpreter (FxExec and its mixins), numpy backend, intrinsics
-nodes/             node library, shader and Geometry Nodes backends, materials, layout, shared groups
+nodes/             node library and its on-disk store, shader and Geometry Nodes backends, materials, layout, shared groups
 runtime/           effect build, pruning, strip simplification, per-frame update, bake, visibility, progress
 accessories/       .x import, materials, parenting, keying, the single sync path
 standalone/        legacy repair

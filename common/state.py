@@ -13,4 +13,4 @@ _mme_state = {"busy": False, "errors": set(), "only": None, "rebuild": set(), "p
 _mme_groups = {}
 
 
-_mme_core = {"names": None, "path": None, "stats": {"built": 0, "file": 0, "library": 0}}
+_mme_core = {"names": None, "path": None, "synced": False, "fallback": None, "stats": {"built": 0, "file": 0, "library": 0}}

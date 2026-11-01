@@ -26,10 +26,6 @@ class NINESYNC_FX_PT_main(Panel):
             draw_wrapped(layout, STALE_SETTINGS_MESSAGE)
             return
         settings = context.scene.ninesync_fx
-        layout.prop(settings, "mme_effects")
-        if not settings.mme_effects:
-            draw_wrapped(layout, "Turn this on and sync to import accessory effects.")
-            return
         col = layout.column()
         col.use_property_split = True
         col.use_property_decorate = False
@@ -42,7 +38,6 @@ class NINESYNC_FX_PT_main(Panel):
         precull.operator("ninesync_fx.clear_precull", text="", icon="TRASH")
         if settings.mme_backend == "PYTHON":
             col.prop(settings, "mme_live")
-        col.prop(settings, "mme_standard_view")
         row = layout.row()
         row.scale_y = 1.3
         row.alert = bool(_mme_state["stale"])

@@ -190,14 +190,6 @@ def short_text(text, limit=80):
     return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
-# The old combined add-on registers mmd_bridge with the mme_* FX properties on it. Seeing one means the two
-# cannot run together.
-def legacy_monolith_active():
-    prop = bpy.types.Scene.bl_rna.properties.get("mmd_bridge")
-    fixed = getattr(prop, "fixed_type", None) if prop is not None else None
-    return fixed is not None and "mme_backend" in fixed.bl_rna.properties
-
-
 # Add-on keys differ between legacy add-ons and extensions (bl_ext.repo.name), so only the last segment is
 # compared.
 def addon_loaded(modules):

@@ -8,7 +8,7 @@ from ..relink import refuse_if_outdated
 class NINESYNC_FX_OT_repair_legacy(Operator):
     bl_idname = "ninesync_fx.repair_legacy"
     bl_label = "Repair Legacy Data"
-    bl_description = "Copy effect settings from a file saved with the old combined NineSync into this add-on and re-point the effect drivers. Press Rebuild All Effects afterwards"
+    bl_description = "Copy effect settings from a file saved with an older NineSync version into this add-on and re-point the effect drivers. Press Rebuild All Effects afterwards"
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):

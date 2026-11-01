@@ -53,8 +53,6 @@ from .parenting import apply_accessory_parent
 # whether effects are used for the entry at all;
 # returns (fx_path, program, controls, morph tracks), or Nones when there is no effect or it cannot be read.
 def effect_setup(project, settings, acc, entry, path, root):
-    if not settings.mme_effects:
-        return None, None, {}, {}
     if entry is not None and not entry.effect_checked:
         entry.effect_checked = True
         entry.use_effect = True

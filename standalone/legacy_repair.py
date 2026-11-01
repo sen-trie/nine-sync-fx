@@ -53,7 +53,7 @@ def legacy_group(scene):
 LEGACY_MARKERS = ("sync_accessories", "sphere_maps", "accessory_dir", "fx_info_tab", "accessories", "accessory_collection")
 
 
-# Keys that show a file was saved with the old combined add-on.
+# Keys that show a file was saved with an older NineSync.
 def legacy_markers(raw):
     try:
         return [k for k in raw.keys() if k.startswith("mme_") or k in LEGACY_MARKERS]

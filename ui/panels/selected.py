@@ -19,7 +19,7 @@ class NINESYNC_FX_PT_selected(Panel):
 
     @classmethod
     def poll(cls, context):
-        return not settings_outdated(context.scene) and context.scene.ninesync_fx.mme_effects
+        return not settings_outdated(context.scene)
 
     def draw(self, context):
         active = context.active_object

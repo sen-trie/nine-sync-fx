@@ -234,6 +234,24 @@ MME_RET_PROP = "mme_ret"
 MME_CORE_FILE = "mme_core.blend"
 
 
+MME_LIBRARY_FOLDER = "ninesync_fx"
+
+
+MME_LIBRARY_LOCK_STALE = 120.0
+
+
+MME_MANUAL_PREFIX = "mme_manual_"
+
+
+MME_MANUAL_BONES_PROP = "mme_manual_bones"
+
+
+MME_UNSUPPORTED_PROP = "mme_unsupported"
+
+
+MME_OBJECT_ITEMS = ("x", "y", "z", "xyz", "rx", "ry", "rz", "rxyz", "si", "tr")
+
+
 MME_SIMPLIFY_TR = (1.0, 0.9, 0.75, 0.6, 0.45, 0.3, 0.15, 0.0)
 
 
@@ -252,9 +270,6 @@ MME_GATE_ALPHA = 1.0 / 512.0
 MME_GATE_PROBES = 96
 
 
-MME_TRANSPARENT_BOUNCES = 128
-
-
 MME_VARIANT_FRAMES = 24
 
 
@@ -265,6 +280,9 @@ MME_SIMPLIFY_VARIANTS = 8
 
 
 MME_SIMPLIFY_BUDGET = 15.0
+
+
+MME_STRIP_CACHE_VERSION = 2
 
 
 MME_ANALYSIS_DTYPE = np.float32

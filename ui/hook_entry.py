@@ -57,8 +57,8 @@ def report_hook(context):
         % (settings.sync_accessories, settings.sphere_maps, settings.retime_fps, current_scale(settings))
     )
     lines.append(
-        "effects: on=%s backend=%s density=%.2f tolerance=%.4f live=%s bake_to=%s"
-        % (settings.mme_effects, settings.mme_backend, settings.mme_density, settings.mme_tolerance, settings.mme_live, settings.mme_bake_target)
+        "effects: backend=%s density=%.2f tolerance=%.4f live=%s bake_to=%s"
+        % (settings.mme_backend, settings.mme_density, settings.mme_tolerance, settings.mme_live, settings.mme_bake_target)
     )
     for root in mme_effect_roots(scene):
         passes = mme_effect_passes(root)

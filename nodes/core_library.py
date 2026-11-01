@@ -1,44 +1,24 @@
 import bpy
 import os
-import shutil
 
-from ..common.constants import (
-    ADDON_PACKAGE,
-    MME_CORE_FILE,
-    MME_KEY_PROP,
-)
+from ..common.constants import MME_KEY_PROP
 from ..common.log import log
 from ..common.state import (
     _mme_core,
     _mme_groups,
 )
+from .library_store import (
+    mme_core_path,
+    mme_library_sync,
+)
 
 
-# Where the shared node-group library lives. Installed as an extension, the add-on folder is replaced on
-# update, so the file is copied once into the user extension folder
-# and written there; otherwise the bundled data/ copy is used directly.
-def mme_core_path():
-    bundled = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", MME_CORE_FILE)
-    package = ADDON_PACKAGE
-    if not package.startswith("bl_ext."):
-        return bundled
-    try:
-        folder = bpy.utils.extension_path_user(package, path="", create=True)
-    except (ValueError, RuntimeError, OSError):
-        return bundled
-    target = os.path.join(folder, MME_CORE_FILE)
-    if not os.path.isfile(target) and os.path.isfile(bundled):
-        try:
-            shutil.copyfile(bundled, target)
-        except OSError:
-            return bundled
-    return target
-
-
-# Names of the groups in the library, read once per path (loading a library just to list names is slow).
+# Names of the groups in the library, read once per file version (loading a library just to list names is
+# slow). The modified time is part of the check because the file can be edited in a second Blender.
 def mme_core_names():
     path = mme_core_path()
-    if _mme_core["names"] is None or _mme_core["path"] != path:
+    stamp = (path, os.path.getmtime(path) if os.path.isfile(path) else None)
+    if _mme_core["names"] is None or _mme_core["path"] != stamp:
         names = set()
         if os.path.isfile(path):
             try:
@@ -47,7 +27,7 @@ def mme_core_names():
             except (OSError, RuntimeError) as error:
                 log.warning("core library %s could not be read: %s", path, error)
         _mme_core["names"] = names
-        _mme_core["path"] = path
+        _mme_core["path"] = stamp
     return _mme_core["names"]
 
 
@@ -55,6 +35,7 @@ def mme_core_names():
 # whose key differs
 # (an older version of the group) is thrown away so the caller rebuilds it.
 def mme_core_append(name, key):
+    mme_library_sync()
     if name not in mme_core_names():
         return None
     blocking = bpy.data.node_groups.get(name)

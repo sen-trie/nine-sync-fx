@@ -10,6 +10,7 @@ from ..common.constants import (
     MME_SIMPLIFY_TR,
     MME_SIMPLIFY_VARIANTS,
     MME_STRIP_CACHE_ENTRIES,
+    MME_STRIP_CACHE_VERSION,
 )
 from ..common.log import log
 from ..fx.types import fx_is_numeric
@@ -117,8 +118,9 @@ def mme_strip_samples(runtime, draw, state, used, rows, layout, instances, tr_na
 
 # Chooses which strip rows to keep: recursively splits a span at the row that interpolates worst (position and
 # varying error against a tolerance relative to the effect's size).
-# Rows next to culled ones are always kept. If the time budget runs out, the remaining rows are kept as they
-# are.
+# Only rows where a lane's cull state changes are forced, so a span between them is uniformly culled or visible
+# per lane; forcing whole spans kept every row of Thunder's Wave ring. If the time budget runs out, the
+# remaining rows are kept as they are.
 def mme_simplify_rows(params, pos, var, cul, tolerance):
     n = len(params)
     if n <= 2:
@@ -149,8 +151,10 @@ def mme_simplify_rows(params, pos, var, cul, tolerance):
     else:
         V = None
     params = np.asarray(params, dtype=np.float64)
-    keep = {0, n - 1}
-    stack = [(0, n - 1)]
+    changes = np.nonzero((C[1:] != C[:-1]).any(axis=1))[0]
+    keep = {0, n - 1} | {int(r) for r in changes} | {int(r) + 1 for r in changes}
+    fixed = sorted(keep)
+    stack = list(zip(fixed[:-1], fixed[1:]))
     deadline = time.time() + MME_SIMPLIFY_BUDGET
     while stack:
         a, b = stack.pop()
@@ -169,20 +173,8 @@ def mme_simplify_rows(params, pos, var, cul, tolerance):
         if V is not None:
             vpred = V[a][None] + (V[b] - V[a])[None] * t[:, None, None]
             score = np.maximum(score, np.abs(vpred - V[a + 1:b]).max(axis=-1))
-        cm = C[a + 1:b]
-        ends = C[a] | C[b]
-        all_culled = cm & (C[a] & C[b])[None]
-        mixed = (cm | ends[None]) & ~all_culled
-        score = np.where(all_culled, 0.0, score)
+        score = np.where(C[a + 1:b], 0.0, score)
         worst = score.max(axis=1)
-        hard = mixed.any(axis=1)
-        if hard.any():
-            fixed = [a] + (np.nonzero(hard)[0] + a + 1).tolist() + [b]
-            keep.update(fixed)
-            for lo, hi in zip(fixed[:-1], fixed[1:]):
-                if hi - lo >= 2:
-                    stack.append((lo, hi))
-            continue
         k = int(np.argmax(worst))
         if worst[k] > 1.0:
             split = a + 1 + k
@@ -259,7 +251,7 @@ def mme_simplify_strip(runtime, draw, state, used, local_faces, instances, tr_na
             for r in run:
                 out.extend(template[r])
             continue
-        key = hashlib.md5(json.dumps([signature, camera, round(tolerance, 7), instances, density, int(rows[0]), int(rows[-1])], sort_keys=True).encode("utf-8")).hexdigest()
+        key = hashlib.md5(json.dumps([MME_STRIP_CACHE_VERSION, signature, camera, round(tolerance, 7), instances, density, int(rows[0]), int(rows[-1])], sort_keys=True).encode("utf-8")).hexdigest()
         if key in cached:
             kept_rows = rows[np.asarray(cached[key], dtype=np.int64)]
         else:

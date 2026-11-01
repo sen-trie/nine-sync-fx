@@ -2,6 +2,7 @@ import bpy
 import os
 
 from ..common.constants import (
+    MME_CORE_FILE,
     MME_CORE_VERSION,
     MME_KEY_PROP,
 )
@@ -14,15 +15,25 @@ from ..fx.program import FxProgram
 from .backend_geo import MmeGeoBackend
 from .backend_groups import MmeGroupEnv
 from .backend_ps import MmePsBackend
-from .core_library import (
-    mme_core_names,
-    mme_core_path,
-)
 from .geo_groups import (
     mme_geo_camera_group,
     mme_geo_clip_group,
     mme_geo_light_group,
     mme_geo_matrix_group,
+)
+from .library_store import (
+    mme_group_closure,
+    mme_key_version,
+    mme_library_fallback,
+    mme_library_lock,
+    mme_library_read,
+    mme_library_swap,
+    mme_library_sync,
+    mme_library_validate,
+    mme_merge_files,
+    mme_remove_quietly,
+    mme_temp_path,
+    mme_user_path,
 )
 
 
@@ -74,37 +85,46 @@ def mme_build_standard_groups(force=False):
     return _mme_core["stats"]["built"] - before
 
 
-# Writes all current-version shared groups, and the groups they nest, to the library file. Groups already in
-# the file are kept by appending them first,
-# so saving from a file that lacks some of them does not remove them from the library.
+# Writes all current-version shared groups, and the groups they nest, into the user library. The session's
+# groups go to a scratch file first and are merged with the library on disk, so saving from a file that lacks
+# some groups keeps them, and the result only replaces the library once it validates. Nothing here writes to
+# the add-on folder: without a writable user library, this raises.
 def mme_save_core_library(path=None):
-    path = path or mme_core_path()
+    mme_library_sync()
+    reason = mme_library_fallback()
+    if reason:
+        raise OSError("the library is read-only this session: %s" % reason)
+    target = path or mme_user_path()
+    if target is None:
+        raise OSError("no user folder is available for %s" % MME_CORE_FILE)
     keep = {}
-    for group in bpy.data.node_groups:
+    for group in sorted(bpy.data.node_groups, key=lambda g: g.name):
         key = group.get(MME_KEY_PROP)
-        if key and group.library is None and str(key).endswith(":v%d" % MME_CORE_VERSION):
+        if key and group.library is None and mme_key_version(key) == MME_CORE_VERSION:
             keep.setdefault(key, group)
-    appended = []
-    missing = [n for n in mme_core_names() if bpy.data.node_groups.get(n) is None]
-    if missing and os.path.isfile(path):
-        with bpy.data.libraries.load(path, link=False) as (_source, target):
-            target.node_groups = missing
-        appended = [g for g in target.node_groups if g is not None]
-        for group in appended:
-            key = group.get(MME_KEY_PROP)
-            if key:
-                keep.setdefault(key, group)
-    blocks = set(keep.values())
-    for group in list(blocks):
-        for node in group.nodes:
-            if node.bl_idname in ("GeometryNodeGroup", "ShaderNodeGroup") and node.node_tree is not None:
-                blocks.add(node.node_tree)
-    folder = os.path.dirname(path)
+    folder = os.path.dirname(target)
     if folder:
         os.makedirs(folder, exist_ok=True)
-    bpy.data.libraries.write(path, blocks, fake_user=True, compress=True)
-    for group in appended:
-        if group.users == 0:
-            bpy.data.node_groups.remove(group)
+    with mme_library_lock(target):
+        previous = mme_library_read(target)
+        if previous is not None and previous.version is not None and previous.version > MME_CORE_VERSION:
+            raise OSError("the user library is newer than this add-on")
+        session = mme_temp_path(target, "session")
+        merged = mme_temp_path(target, "save")
+        try:
+            if keep:
+                bpy.data.libraries.write(session, mme_group_closure(keep.values()), fake_user=True, compress=True)
+            first, second = (session, target if previous is not None else None) if keep else (target, None)
+            if not os.path.isfile(first):
+                return 0
+            count = mme_merge_files(first, second, MME_CORE_VERSION, merged)
+            required = set(keep)
+            if previous is not None:
+                required |= previous.keys(MME_CORE_VERSION)
+            mme_library_validate(merged, required, MME_CORE_VERSION)
+            mme_library_swap(merged, target, previous)
+        finally:
+            mme_remove_quietly(session)
+            mme_remove_quietly(merged)
     _mme_core["names"] = None
-    return len(keep)
+    return count

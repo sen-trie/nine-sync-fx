@@ -108,7 +108,7 @@ def import_standalone_accessory(context, path, unit, use_effect=True, effect_pat
     name = os.path.basename(path)
     probe = standalone_accessory(path, "")
     fx_path = ""
-    if use_effect and settings.mme_effects:
+    if use_effect:
         fx_path = effect_path if effect_path and os.path.isfile(effect_path) else (mme_find_effect(probe, path, settings, None) or "")
     if not fx_path:
         return import_plain_accessory(context, path, unit)

@@ -18,11 +18,7 @@ def import_accessories(scene, project, settings, unit):
         return 0
     if not project.accessories:
         return 0
-    log.info(
-        "accessories: MME effects %s, effect density %.2f",
-        "on" if settings.mme_effects else "off",
-        settings.mme_density,
-    )
+    log.info("accessories: effect density %.2f", settings.mme_density)
     collection = accessory_collection(scene, True)
     entries = {e.key: e for e in settings.accessories}
     done = 0

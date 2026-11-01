@@ -12,6 +12,7 @@ from .common.state import (
     _mme_runtimes,
     _mme_state,
 )
+from .nodes.library_store import mme_library_sync
 from .runtime.build_effect import (
     mme_rebuild_needed,
     mme_run_rebuilds,
@@ -28,9 +29,6 @@ from .ui.relink import (
     schedule_relink,
     settings_outdated,
 )
-
-
-_state = {"legacy": False}
 
 
 # Frame-change handler. A busy flag stops an update from re-entering itself, and during a bake the depsgraph
@@ -61,8 +59,6 @@ def register_hooks():
 # relinks outdated settings.
 @bpy.app.handlers.persistent
 def mme_load_handler(*_args):
-    if _state["legacy"]:
-        return
     register_hooks()
     _mme_runtimes.clear()
     _mme_state["errors"].clear()
@@ -126,13 +122,13 @@ def remove_handlers():
             handlers.remove(handler)
 
 
-# One-shot timer after registration: relink if the scene still has outdated settings.
+# One-shot timer after registration: update the shared library, then relink if the scene still has outdated
+# settings.
 def startup_check():
+    mme_library_sync()
     try:
         scene = bpy.context.scene
     except AttributeError:
-        return None
-    if _state["legacy"]:
         return None
     if scene is not None and settings_outdated(scene):
         schedule_relink()

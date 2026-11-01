@@ -77,4 +77,5 @@ Packages import only from the ones above them: `common`, `xfile`, `fx`, `nodes`,
 
 | FX | core | hook API |
 |---|---|---|
+| 0.3.x | 0.3.x or none | 1 |
 | 0.2.x | 0.2.x or none | 1 |

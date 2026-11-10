@@ -128,17 +128,27 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Token limited to the Bundled repository
+        id: app
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.BUNDLED_APP_ID }}
+          private-key: ${{ secrets.BUNDLED_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: nine-sync-release
+          permission-contents: write
+
       - name: Notify Bundled of the stable release
         env:
           RELEASE_TOKEN: ${{ github.token }}
-          DISPATCH_TOKEN: ${{ secrets.BUNDLED_DISPATCH_TOKEN }}
+          DISPATCH_TOKEN: ${{ steps.app.outputs.token }}
           BUNDLED_REPOSITORY: ${{ vars.BUNDLED_REPOSITORY || 'sen-trie/nine-sync-release' }}
           VERSION: ${{ needs.build.outputs.version }}
           SOURCE_REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
           if [ -z "$DISPATCH_TOKEN" ] || [ -z "$BUNDLED_REPOSITORY" ]; then
-            echo "::error::BUNDLED_DISPATCH_TOKEN secret must be set"
+            echo "::error::the GitHub App token for Bundled was not created"
             exit 1
           fi
           if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
@@ -156,8 +166,8 @@ jobs:
             echo "::error::tag $tag resolves to $sha, expected $GITHUB_SHA"
             exit 1
           fi
-          jq -n --arg v "$VERSION" --arg t "$tag" --arg s "$sha" --arg r "$SOURCE_REPOSITORY" \
-            '{event_type: "component_released", client_payload: {component: "fx", version: $v, tag: $t, sha: $s, repository: $r}}' > payload.json
+          jq -n --arg v "$VERSION" --arg t "$tag" --arg c "$sha" --arg r "$SOURCE_REPOSITORY" \
+            '{event_type: "component_released", client_payload: {component: "fx", repository: $r, tag: $t, commit: $c, version: $v}}' > payload.json
           cat payload.json
           GH_TOKEN="$DISPATCH_TOKEN" gh api "repos/$BUNDLED_REPOSITORY/dispatches" --input payload.json
           echo "Notified $BUNDLED_REPOSITORY"

@@ -41,7 +41,7 @@ BLENDER = [
     ("accessory_keys", (), ()),
     ("cache", (), ()),
     ("labels", (), (THUNDER,)),
-    ("panels", ("--", "fx"), ()),
+    ("panels", ("--", "fx"), ("@core",)),
     ("cycle", (), ("@core",)),
     ("core_fx", (), ("@core", "meiling.pmm", THUNDER)),
 ]

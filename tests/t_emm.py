@@ -66,7 +66,7 @@ Acs3 = hide
 
 
 def acc(index, name, path, draw):
-    return types.SimpleNamespace(index=index, name=name, path=path.replace("/", "\\"), draw_order=draw, keys=[mb.AccessoryKey(0, 1, -1, 0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), 1.0, 0, 1.0)])
+    return types.SimpleNamespace(index=index, name=name, path=path.replace("/", os.sep), draw_order=draw, keys=[mb.AccessoryKey(0, 1, -1, 0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), 1.0, 0, 1.0)])
 
 
 synth_rec = os.path.join(effects, "synth.x")

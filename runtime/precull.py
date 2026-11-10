@@ -2,7 +2,6 @@ import hashlib
 import json
 import numpy as np
 import os
-import tempfile
 
 from ..common.constants import (
     MME_PRECULL_GROUPS,
@@ -10,6 +9,11 @@ from ..common.constants import (
 )
 from ..common.log import log
 from ..fx.loader import fx_files_stamp
+from .cache_store import (
+    mme_cache_path,
+    mme_cache_touch,
+    mme_cache_trim,
+)
 
 
 # Cache file for one pass, keyed by the effect and .x file stamps, pass identity, used vertices, gates and
@@ -34,8 +38,7 @@ def mme_precull_file(runtime, draw, used, gates, extra):
         sorted(gates),
         extra,
     ))
-    folder = os.path.join(tempfile.gettempdir(), "ninesync_cache")
-    return os.path.join(folder, "precull_" + hashlib.md5(text.encode("utf-8")).hexdigest() + ".npz")
+    return mme_cache_path("precull_" + hashlib.md5(text.encode("utf-8")).hexdigest() + ".npz")
 
 
 # Loads cached visibility groups; a file that is damaged or has a different vertex count counts as empty.
@@ -55,6 +58,7 @@ def mme_precull_load(path, per):
                 groups[item["key"]] = {"keep": keep, "opened": opened, "conditions": item["conditions"]}
     except (OSError, ValueError, KeyError):
         return empty
+    mme_cache_touch(path)
     return {"groups": groups, "reads": meta.get("reads")}
 
 
@@ -75,5 +79,6 @@ def mme_precull_save(path, cache):
         temp = path + ".tmp.npz"
         np.savez_compressed(temp, meta=np.array(json.dumps(meta)), **arrays)
         os.replace(temp, path)
+        mme_cache_trim()
     except OSError as error:
         log.debug("pre-cull cache not written: %s", error)

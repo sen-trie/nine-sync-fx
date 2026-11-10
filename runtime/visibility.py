@@ -14,9 +14,14 @@ from ..common.constants import (
     MME_GATE_TR,
     MME_PRUNE_TR,
 )
+from ..common.log import log
 from .frame_state import mme_prune_state
 from .progress import mme_progress_within
-from .variants import mme_apply_variant
+from .variants import (
+    mme_apply_variant,
+    mme_condition,
+    mme_condition_key,
+)
 from .vs_eval import (
     MmePassData,
     mme_clip_culled,
@@ -118,12 +123,15 @@ def mme_visibility_runs(runtime, data, state, tr_names, gates):
 
 # Runs the vertex shader for each probe state and marks vertices as kept when they are inside the clip volume
 # in any state, and as opened when an alpha gate lets them through.
-# Vertices already settled drop out of later runs. Returns the global names the shader read, used to narrow
-# cache keys.
+# Vertices already settled drop out of later runs, and a state equal to an evaluated one on every global that
+# one read is skipped: the shader is deterministic, so it would give the same answer. Returns the global names
+# the shader read, used to narrow cache keys.
 def mme_evaluate_visibility(runtime, data, runs, tr_names, gates, keep, opened, label=""):
     pending = np.arange(data.count)
     subset = data
     reads = set()
+    seen = {}
+    skipped = 0
     for step, (probe, value) in enumerate(runs):
         mme_progress_within(0.1 + 0.5 * (step + 1) / max(1, len(runs)), "%svisibility %d/%d" % (label, step + 1, len(runs)))
         if not len(pending):
@@ -131,8 +139,14 @@ def mme_evaluate_visibility(runtime, data, runs, tr_names, gates, keep, opened, 
         if value is not None:
             for name in tr_names:
                 probe.controls[name] = [value]
+        condition = mme_condition(probe, value, tr_names)
+        if any(mme_condition_key(condition, read, runtime.program) in keys for read, keys in seen.items()):
+            skipped += 1
+            continue
         outputs, ex = mme_run_vs(runtime, subset, probe, MME_ANALYSIS_DTYPE)
-        reads |= getattr(ex.env, "reads", set())
+        read = frozenset(getattr(ex.env, "reads", set()))
+        reads |= read
+        seen.setdefault(read, set()).add(mme_condition_key(condition, read, runtime.program))
         count = len(pending)
         keep[pending] |= ~mme_clip_culled(outputs, probe, count)
         for semantic, k in gates:
@@ -145,5 +159,7 @@ def mme_evaluate_visibility(runtime, data, runs, tr_names, gates, keep, opened, 
         settled = keep[pending] & opened[pending]
         if settled.any():
             pending = pending[~settled]
-            subset = MmePassData(data.draw, data.src[pending], data.inst[pending], {k: v[pending] for k, v in data.loop_values.items()}, runtime)
+            subset = data.subset(pending, runtime, subset, np.flatnonzero(~settled))
+    if skipped:
+        log.debug("%svisibility: %d of %d probe state(s) repeated an evaluated one and were skipped", label, skipped, len(runs))
     return reads

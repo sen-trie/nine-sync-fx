@@ -2,7 +2,6 @@ import bpy
 import json
 import os
 
-from ..common.animation import iter_fcurves
 from ..common.constants import (
     MME_CONTROL_PREFIX,
     MME_MANUAL_BONES_PROP,
@@ -225,19 +224,15 @@ def mme_scene_control(name, item):
     return None
 
 
-# Keys the morph weights from the PMM onto the control properties with linear interpolation.
-def mme_key_morph_props(root, morph_tracks):
-    anim = root.animation_data or root.animation_data_create()
+# Controller morph tracks as curves for the accessory's keying (written with its other keys), with each
+# property set to its first value so it exists before it is animated; tracks without keys hold 0.
+def mme_morph_curves(root, morph_tracks):
+    curves = []
     for prop, keys in morph_tracks.items():
         if not keys:
             root[prop] = 0.0
             continue
-        for key in keys:
-            root[prop] = float(key.weight)
-            root.keyframe_insert('["%s"]' % prop, frame=key.frame)
-    action = anim.action
-    if action is not None:
-        for fcurve in iter_fcurves(action):
-            if fcurve.data_path.startswith('["%s' % MME_CONTROL_PREFIX):
-                for point in fcurve.keyframe_points:
-                    point.interpolation = "LINEAR"
+        ordered = sorted(keys, key=lambda k: k.frame)
+        root[prop] = float(ordered[0].weight)
+        curves.append(('["%s"]' % prop, [k.frame for k in ordered], [float(k.weight) for k in ordered]))
+    return curves

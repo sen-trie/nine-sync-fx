@@ -35,6 +35,7 @@ class FxExec(FxStatements, FxExpressions, FxCalls):
         self.discard = 0.0
         self.depth = 0
         self.evaluating = set()
+        self.trace = []
 
     def zero(self, t):
         B = self.B

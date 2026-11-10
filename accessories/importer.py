@@ -30,38 +30,65 @@ from ..runtime.cleanup import (
     remove_accessory_children_single,
 )
 from ..runtime.controls_resolve import (
-    mme_key_morph_props,
+    mme_morph_curves,
     mme_resolve_controls,
 )
-from ..runtime.effect_files import mme_find_effect
+from ..runtime.effect_files import mme_effect_lookup
 from ..runtime.runtime import mme_effect_stamp
+from ..runtime.visibility import (
+    mme_capture_visibility,
+    mme_restore_visibility,
+)
 from ..xfile.cache import (
     parse_x_bytes,
     x_header_mode,
 )
 from .files import find_accessory_file
-from .keying import key_accessory
+from .keying import (
+    key_accessory,
+    link_fade,
+)
 from .mesh import (
     create_x_object,
     import_x_with_addon,
     remove_subset_faces,
 )
-from .parenting import apply_accessory_parent
+from .parenting import (
+    accessory_parent_plan,
+    apply_accessory_parent,
+    parent_influence_curves,
+    parent_signature,
+)
 
 
 # Locates and parses the accessory's effect and resolves its controllers. The first time it also decides
 # whether effects are used for the entry at all;
-# returns (fx_path, program, controls, morph tracks), or Nones when there is no effect or it cannot be read.
+# returns (fx_path, program, controls, morph tracks, shown), with no effect when there is none or it cannot be
+# read. shown is False when MME hides the accessory (.show = false in the .emm).
 def effect_setup(project, settings, acc, entry, path, root):
+    choice = mme_effect_lookup(acc, path, settings, entry, project)
+    if entry is not None and choice.source != "emm-missing" and entry.effect_note.startswith("Effect not found"):
+        entry.effect_note = ""
+    if choice.source == "emm-none":
+        log.info("accessory '%s': the PMM's .emm assigns no effect", acc.name)
+    elif choice.source == "emm-missing":
+        log.warning("accessory '%s': the PMM's .emm assigns %s, which was not found", acc.name, choice.value)
+    if not choice.shown:
+        log.info("accessory '%s' is hidden in MME (.emm show flag); hiding it", acc.name)
+    if choice.subsets:
+        log.info("accessory '%s': per-material effects in the .emm are not supported; the object's effect is used for every material", acc.name)
     if entry is not None and not entry.effect_checked:
         entry.effect_checked = True
-        entry.use_effect = True
-        entry.use_effect = bool(mme_find_effect(acc, path, settings, entry))
-        if not entry.use_effect:
+        entry.use_effect = bool(choice.path) or choice.source == "emm-missing"
+        if not entry.use_effect and choice.source != "emm-none":
             log.info("accessory '%s': no MME effect (.fx) found; effects are off for it", acc.name)
-    fx_path = mme_find_effect(acc, path, settings, entry)
+    elif entry is not None and not entry.use_effect and choice.path and choice.source.startswith("emm"):
+        log.info("accessory '%s': the .emm assigns %s, but Use Effect is off for it", acc.name, os.path.basename(choice.path))
+    fx_path = choice.path if entry is None or entry.use_effect else None
+    if entry is not None and entry.use_effect and choice.source == "emm-missing":
+        entry.effect_note = "Effect not found: %s" % short_text(choice.value.replace("\\", "/").rsplit("/", 1)[-1], 50)
     if not fx_path:
-        return None, None, {}, {}
+        return None, None, {}, {}, choice.shown
     try:
         program = fx_parse_file(fx_path)
         controls, tracks = mme_resolve_controls(program, project, settings, acc, root)
@@ -69,8 +96,8 @@ def effect_setup(project, settings, acc, entry, path, root):
         log.error("accessory '%s': effect %s could not be read: %s", acc.name, fx_path, error)
         if entry is not None:
             entry.effect_note = "Effect error: %s" % short_text(error, 60)
-        return None, None, {}, {}
-    return fx_path, program, controls, tracks
+        return None, None, {}, {}, choice.shown
+    return fx_path, program, controls, tracks, choice.shown
 
 
 # Imports or updates one accessory. A stamp (files, effect, backend, density, scale, controller kinds) says
@@ -97,8 +124,11 @@ def import_accessory(scene, collection, project, settings, acc, entry, unit):
         root["mmd_bridge_accessory"] = key
         collection.objects.link(root)
         log.info("created accessory root '%s'", root.name)
-    fx_path, program, controls, tracks = effect_setup(project, settings, acc, entry, path, root)
+    fx_path, program, controls, tracks, shown = effect_setup(project, settings, acc, entry, path, root)
+    additive = bool(getattr(acc, "additive", False))
     stamp = "%s|%s" % (path, os.path.getmtime(path))
+    if additive:
+        stamp += "|additive"
     if fx_path:
         stamp += "|%s|%s|density=%.4f|unit=%.6f|%s" % (
             mme_effect_stamp(fx_path, path, program),
@@ -107,7 +137,9 @@ def import_accessory(scene, collection, project, settings, acc, entry, unit):
             unit,
             json.dumps(sorted((k, v.get("kind")) for k, v in controls.items())),
         )
+    captured = None
     if root.get("mmd_bridge_stamp") != stamp or not root.children:
+        captured = mme_capture_visibility(root) if root.children else None
         remove_accessory_children(root)
         mme_clear_root_props(root)
         with open(path, "rb") as handle:
@@ -139,7 +171,7 @@ def import_accessory(scene, collection, project, settings, acc, entry, unit):
                 )
                 if uncovered:
                     static = create_x_object(
-                        short_name(acc.name, 40) + "_mesh", x_scene(), folder, settings
+                        short_name(acc.name, 40) + "_mesh", x_scene(), folder, settings, additive
                     )
                     collection.objects.link(static)
                     remove_subset_faces(static, set(range(len(static.data.materials))) - set(uncovered))
@@ -172,12 +204,12 @@ def import_accessory(scene, collection, project, settings, acc, entry, unit):
                 if entry is not None:
                     entry.effect_note = "Effect failed: %s" % short_text(error, 60)
                 children = None
-        elif entry is not None:
+        elif entry is not None and not entry.effect_note.startswith("Effect not found"):
             entry.effect_note = ""
         if children is None:
             if mode == "txt":
                 child = create_x_object(
-                    short_name(acc.name, 40) + "_mesh", x_scene(), folder, settings
+                    short_name(acc.name, 40) + "_mesh", x_scene(), folder, settings, additive
                 )
                 collection.objects.link(child)
                 children = [child]
@@ -195,19 +227,23 @@ def import_accessory(scene, collection, project, settings, acc, entry, unit):
                     collection.objects.link(child)
         for child in children:
             child.parent = root
+        if captured is not None:
+            mme_restore_visibility(children, captured)
         root["mmd_bridge_stamp"] = stamp
     for child in root.children:
         child.scale = (ACCESSORY_UNIT * unit,) * 3
-    key_accessory(root, acc, unit)
+    plan = accessory_parent_plan(project, settings, acc, entry)
+    apply_accessory_parent(root, acc, plan)
+    extra = mme_morph_curves(root, tracks) if root.get("mme_fx") else []
+    key_accessory(root, acc, unit, shown, parent_signature(plan), parent_influence_curves(plan, acc.keys), extra)
+    link_fade(root)
     if root.get("mme_fx"):
         root["mme_controls"] = json.dumps(controls)
         mme_ensure_use_props(root, controls)
         root["mme_unit"] = unit
-        mme_key_morph_props(root, tracks)
         runtime = _mme_runtimes.get(root.name)
         if runtime is not None:
             runtime.controls_runtime = {
                 name for name, desc in mme_load_controls(root).items() if desc.get("kind") != "const"
             }
-    apply_accessory_parent(root, project, settings, acc, entry)
     return True

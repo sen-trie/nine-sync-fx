@@ -11,7 +11,7 @@ core.MIN_BLENDER = fxm.MIN_BLENDER = (5, 2, 0)
 core.register()
 fxm.register()
 engine = importlib.import_module("ninesync.sync.engine")
-engine.import_scene_elements = lambda scene, project, settings: 0
+engine.import_scene_elements = lambda *a: 0
 engine.import_audio = lambda *a: False
 scene = bpy.context.scene
 for o in list(bpy.data.objects): bpy.data.objects.remove(o)

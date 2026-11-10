@@ -104,6 +104,7 @@ def mme_update_pass(runtime, obj, root, state, unit, depsgraph=None):
         except (TypeError, ValueError):
             varyings = []
         mme_write_outputs(obj, mesh, outputs, data.count, varyings)
+        mesh.update()
     uniforms = mme_handler_uniforms(obj)
     program = runtime.program
     for prop, gname, index in uniforms:
@@ -115,7 +116,6 @@ def mme_update_pass(runtime, obj, root, state, unit, depsgraph=None):
             continue
         values = state.values(source, g)
         obj[prop] = float(values[index]) if index < len(values) else 0.0
-    mesh.update()
     obj.update_tag()
     return True
 

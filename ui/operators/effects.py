@@ -1,6 +1,4 @@
 import bpy
-import os
-import tempfile
 import traceback
 from bpy.props import StringProperty
 from bpy.types import Operator
@@ -15,6 +13,7 @@ from ...common.state import (
     _mme_state,
 )
 from ...runtime.build_effect import mme_rebuild_effect
+from ...runtime.cache_store import mme_cache_clear
 from ...runtime.params import mme_reset_params
 from ...runtime.progress import mme_target_roots
 from ...runtime.update import mme_update_scene
@@ -48,21 +47,12 @@ class NINESYNC_FX_OT_refresh_effects(Operator):
 
 class NINESYNC_FX_OT_clear_precull(Operator):
     bl_idname = "ninesync_fx.clear_precull"
-    bl_label = "Clear Pre-cull Cache"
-    bl_description = "Delete the remembered never-drawn vertices for every effect. The next rebuild analyses each effect from scratch"
+    bl_label = "Clear Effect Caches"
+    bl_description = "Delete the effect caches: never-drawn vertices, simplified strips and parsed .x geometry. The next rebuild analyses each effect from scratch"
 
     def execute(self, context):
-        folder = os.path.join(tempfile.gettempdir(), "ninesync_cache")
-        removed = 0
-        if os.path.isdir(folder):
-            for name in os.listdir(folder):
-                if name.startswith("precull_"):
-                    try:
-                        os.remove(os.path.join(folder, name))
-                        removed += 1
-                    except OSError:
-                        pass
-        self.report({"INFO"}, "Removed %d pre-cull cache file(s)" % removed)
+        removed = mme_cache_clear()
+        self.report({"INFO"}, "Removed %d effect cache file(s)" % removed)
         return {"FINISHED"}
 
 

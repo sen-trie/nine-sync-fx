@@ -345,3 +345,27 @@ MME_RUNTIME_VALUES_PROP = "mme_runtime_values"
 
 MME_GROUP_LABEL = "MMEffects"
 
+
+
+MME_EMM_NO_EFFECT = ("none", "hide", "")
+
+
+MME_EMM_HIDE = "hide"
+
+
+MME_EMM_CACHE_SIZE = 8
+
+
+ACCESSORY_KEY_RECORD = "mme_key_record"
+
+
+ACCESSORY_FADE_PROP = "mme_fade"
+
+
+MME_CACHE_FOLDER = "cache"
+
+
+MME_CACHE_LEGACY_FOLDER = "ninesync_cache"
+
+
+MME_CACHE_LIMIT = 512 * 1024 * 1024

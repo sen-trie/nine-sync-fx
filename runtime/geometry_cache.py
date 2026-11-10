@@ -2,13 +2,17 @@ import hashlib
 import json
 import numpy as np
 import os
-import tempfile
 
 from ..common.constants import MME_CORE_VERSION
 from ..common.log import log
 from ..xfile.cache import parse_x_bytes
 from ..xfile.geometry import x_effect_geometry
 from ..xfile.model import XMaterial
+from .cache_store import (
+    mme_cache_folder,
+    mme_cache_touch,
+    mme_cache_trim,
+)
 
 
 # Cache location keyed by path, size, modified time and core version, so a changed .x or a new add-on version
@@ -16,7 +20,7 @@ from ..xfile.model import XMaterial
 def mme_geometry_cache_file(x_path):
     st = os.stat(x_path)
     text = "%s|%d|%d|%d" % (os.path.abspath(x_path), st.st_size, int(st.st_mtime * 1000), MME_CORE_VERSION)
-    folder = os.path.join(tempfile.gettempdir(), "ninesync_cache")
+    folder = mme_cache_folder()
     return folder, os.path.join(folder, hashlib.md5(text.encode("utf-8")).hexdigest() + ".npz")
 
 
@@ -36,6 +40,7 @@ def mme_x_effect_geometry(x_path):
                     faces.append(tuple(flat[at:at + size]))
                     at += size
                 materials = [XMaterial(**m) for m in json.loads(str(data["materials"]))]
+                mme_cache_touch(cache)
                 return "txt", (
                     data["positions"].copy(),
                     data["normals"].copy(),
@@ -64,6 +69,7 @@ def mme_x_effect_geometry(x_path):
             face_subsets=np.asarray(face_subsets, dtype=np.int64),
             materials=np.array(json.dumps([dict(m._asdict()) for m in materials])),
         )
+        mme_cache_trim()
     except OSError as error:
         log.debug("geometry cache %s not written: %s", cache, error)
     return "txt", geometry

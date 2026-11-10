@@ -1,5 +1,6 @@
 import bpy
 
+from ..common.constants import ACCESSORY_FADE_PROP
 from ..common.log import log
 from ..common.scene_utils import (
     node_input,
@@ -46,11 +47,50 @@ def add_sphere_map(nodes, links, image, additive, color_socket):
     )
 
 
+# MMD's Tr fades the whole accessory: each mesh carries 1 - Tr as an object property (mme_fade, driven from the
+# root), read through an Object attribute so materials need no driver and a mesh without it stays opaque.
+def add_fade(nodes, links, alpha):
+    fade = nodes.new("ShaderNodeAttribute")
+    fade.attribute_type = "OBJECT"
+    fade.attribute_name = ACCESSORY_FADE_PROP
+    fade.label = "Accessory fade (1 - Tr)"
+    keep = nodes.new("ShaderNodeMath")
+    keep.operation = "SUBTRACT"
+    keep.inputs[0].default_value = 1.0
+    links.new(fade.outputs["Fac"], keep.inputs[1])
+    scaled = nodes.new("ShaderNodeMath")
+    scaled.operation = "MULTIPLY"
+    scaled.use_clamp = True
+    if alpha.is_linked:
+        links.new(alpha.links[0].from_socket, scaled.inputs[0])
+    else:
+        scaled.inputs[0].default_value = alpha.default_value
+    links.new(keep.outputs[0], scaled.inputs[1])
+    links.new(scaled.outputs[0], alpha)
+    return scaled.outputs[0]
+
+
+# MMD's additive (加算) accessory: colour times alpha added onto what is behind, as emission plus a
+# transparent shader (the same blend effect passes use for ADD_ALPHA).
+def make_additive(mat, nodes, links, color, alpha):
+    emission = nodes.new("ShaderNodeEmission")
+    emission.inputs["Strength"].default_value = 1.0
+    scaled = add_color_mix(nodes, links, "MULTIPLY", color, alpha)
+    links.new(scaled, emission.inputs["Color"])
+    transparent = nodes.new("ShaderNodeBsdfTransparent")
+    shader = nodes.new("ShaderNodeAddShader")
+    links.new(transparent.outputs[0], shader.inputs[0])
+    links.new(emission.outputs[0], shader.inputs[1])
+    output = next((n for n in nodes if n.type == "OUTPUT_MATERIAL"), None) or nodes.new("ShaderNodeOutputMaterial")
+    links.new(shader.outputs[0], output.inputs["Surface"])
+    mat.surface_render_method = "BLENDED"
+
+
 # Principled material from a .x material: diffuse becomes base colour and alpha; specular level comes from the
 # material's specular, roughness is fixed and emission is weak.
 # Texture and sphere entries are split on '*' (MMD stores several), sphere maps only when enabled, and any
 # alpha or texture switches the material to blended.
-def build_x_material(name, xmat, folder, settings):
+def build_x_material(name, xmat, folder, settings, additive=False):
     mat = bpy.data.materials.new(name)
     tree = mat.node_tree
     nodes, links = tree.nodes, tree.links
@@ -125,6 +165,13 @@ def build_x_material(name, xmat, folder, settings):
         log.info("sphere maps disabled; skipping %s on %s", spheres, name)
     if color_socket is not None:
         links.new(color_socket, base)
+    faded = add_fade(nodes, links, alpha)
     if translucent:
         mat.surface_render_method = "BLENDED"
+    if additive:
+        if color_socket is None:
+            tint = nodes.new("ShaderNodeRGB")
+            tint.outputs[0].default_value = (r, g, b, 1.0)
+            color_socket = tint.outputs[0]
+        make_additive(mat, nodes, links, color_socket, faded)
     return mat

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+- Fix: effects assigned in MME (the PMM's `.emm`) are now used, including `none` and `Default`. A missing effect is reported instead of guessed, and accessories hidden in MME stay hidden.
+- Keys you edit on an accessory are kept on the next sync unless the PMM keys changed.
+- Accessories that switch parent bone between keys now follow each key's parent.
+- Tr (opacity) fades accessories without an effect.
+- Additive accessories get an additive material once NineSync: PMM Bridge reports the flag.
+
 ## 0.3.0
 
 - Shared node library: `mme_core.blend` now lives in a user folder that survives updates. New versions of the bundled library replace or merge into it, keeping groups grown from your own effects, with a backup of the previous file.

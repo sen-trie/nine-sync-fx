@@ -18,11 +18,13 @@ from ..fx.types import FxValue
 
 
 # The vertices of one pass as numpy arrays: source index, loop instance, per-vertex loop values and the
-# matching positions, normals and UVs.
+# matching positions, normals and UVs. A subset made while probing keeps the lane numbers of its vertices in
+# the full set and shares its memo, so texture samples carry over between probe states; inputs converted to
+# the analysis dtype are kept, not converted again for every state.
 class MmePassData:
-    __slots__ = ("draw", "src", "inst", "loop_values", "positions", "normals", "uvs", "count", "stamp")
+    __slots__ = ("draw", "src", "inst", "loop_values", "positions", "normals", "uvs", "count", "stamp", "lanes", "memo", "converted", "parent")
 
-    def __init__(self, draw, src, inst, loop_values, runtime):
+    def __init__(self, draw, src, inst, loop_values, runtime, lanes=None, memo=None, parent=None):
         self.draw = draw
         self.src = src
         self.inst = inst
@@ -32,6 +34,29 @@ class MmePassData:
         self.uvs = runtime.uvs[src]
         self.count = len(src)
         self.stamp = None
+        self.lanes = lanes
+        self.memo = memo if memo is not None else {}
+        self.converted = {}
+        self.parent = parent
+
+    def lane_ids(self, pending):
+        return pending if self.lanes is None else self.lanes[pending]
+
+    def subset(self, pending, runtime, previous=None, at=None):
+        parent = (previous.lanes, at) if previous is not None and at is not None else None
+        return MmePassData(self.draw, self.src[pending], self.inst[pending], {k: v[pending] for k, v in self.loop_values.items()}, runtime, self.lane_ids(pending), self.memo, parent)
+
+    def as_dtype(self, dtype):
+        found = self.converted.get(dtype)
+        if found is None:
+            found = (
+                self.positions.astype(dtype, copy=False),
+                self.normals.astype(dtype, copy=False),
+                self.uvs.astype(dtype, copy=False),
+                {var: values.astype(dtype) for var, values in self.loop_values.items()},
+            )
+            self.converted[dtype] = found
+        return found
 
 
 # Names of globals bound to the accessory's own opacity (tr), which pruning varies to find vertices that only
@@ -77,10 +102,11 @@ def mme_run_vs(runtime, data, state, dtype=np.float64):
     if function is None:
         raise FxUnsupported("pass %s has no vertex shader" % data.draw.fx_pass.name)
     runtime.material_state(state, data.draw.subset)
-    ex = FxExec(program, FxNumpyBackend(dtype), FxNumpyEnv(program, state, runtime.textures))
-    for var, values in data.loop_values.items():
-        ex.overrides[var] = FxValue(("i", ()), [values.astype(dtype)])
-    provide = fx_vertex_inputs(data.positions.astype(dtype, copy=False), data.normals.astype(dtype, copy=False), data.uvs.astype(dtype, copy=False), data.src)
+    ex = FxExec(program, FxNumpyBackend(dtype), FxNumpyEnv(program, state, runtime.textures, data.memo, data.lanes, data.parent))
+    positions, normals, uvs, loops = data.as_dtype(dtype)
+    for var, values in loops.items():
+        ex.overrides[var] = FxValue(("i", ()), [values])
+    provide = fx_vertex_inputs(positions, normals, uvs, data.src)
     with np.errstate(all="ignore"):
         outputs = fx_run_entry(ex, function, args, provide(ex))
     return outputs, ex

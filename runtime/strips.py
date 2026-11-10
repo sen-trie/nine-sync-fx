@@ -14,6 +14,10 @@ from ..common.constants import (
 )
 from ..common.log import log
 from ..fx.types import fx_is_numeric
+from .cache_store import (
+    mme_cache_touch,
+    mme_cache_trim,
+)
 from .progress import mme_progress_within
 from .variants import (
     mme_apply_variant,
@@ -165,15 +169,20 @@ def mme_simplify_rows(params, pos, var, cul, tolerance):
             continue
         span_param = max(params[b] - params[a], 1e-12)
         t = ((params[a + 1:b] - params[a]) / span_param).astype(np.float32)
-        pm = P[a + 1:b]
-        pred = P[a][None] + (P[b] - P[a])[None] * t[:, None, None]
-        perr = np.sqrt(((pred - pm) ** 2).sum(axis=-1))
-        local = np.minimum(np.minimum(T[a], T[b])[None], T[a + 1:b])
-        score = perr / local
+        pred = np.multiply((P[b] - P[a])[None], t[:, None, None])
+        pred += P[a][None]
+        pred -= P[a + 1:b]
+        np.square(pred, out=pred)
+        score = pred.sum(axis=-1)
+        np.sqrt(score, out=score)
+        score /= np.minimum(np.minimum(T[a], T[b])[None], T[a + 1:b])
         if V is not None:
-            vpred = V[a][None] + (V[b] - V[a])[None] * t[:, None, None]
-            score = np.maximum(score, np.abs(vpred - V[a + 1:b]).max(axis=-1))
-        score = np.where(C[a + 1:b], 0.0, score)
+            vpred = np.multiply((V[b] - V[a])[None], t[:, None, None])
+            vpred += V[a][None]
+            vpred -= V[a + 1:b]
+            np.abs(vpred, out=vpred)
+            np.maximum(score, vpred.max(axis=-1), out=score)
+        score[C[a + 1:b]] = 0.0
         worst = score.max(axis=1)
         k = int(np.argmax(worst))
         if worst[k] > 1.0:
@@ -191,6 +200,7 @@ def mme_strip_cache_load(path):
     try:
         with open(path, "r", encoding="utf-8") as handle:
             data = json.load(handle)
+        mme_cache_touch(path)
         return data if isinstance(data, dict) else {}
     except (OSError, ValueError):
         return {}
@@ -208,6 +218,7 @@ def mme_strip_cache_save(path, data):
         with open(temp, "w", encoding="utf-8") as handle:
             json.dump(data, handle)
         os.replace(temp, path)
+        mme_cache_trim()
     except OSError as error:
         log.debug("strip cache not written: %s", error)
 

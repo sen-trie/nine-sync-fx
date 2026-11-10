@@ -1,6 +1,6 @@
 import sys, os, glob, tempfile; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from harness_fx import *
-for f in glob.glob(os.path.join(tempfile.gettempdir(), "ninesync_cache", "precull_*")): os.remove(f)
+for f in glob.glob(os.path.join(mb.mme_cache_folder(), "precull_*")): os.remove(f)
 scene, col, root, cam = setup_scene()
 scene.frame_start, scene.frame_end = 0, 30
 settings = scene.ninesync_fx

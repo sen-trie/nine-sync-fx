@@ -46,7 +46,7 @@ class NINESYNC_FX_PT_effects(Panel):
             path.enabled = entry.use_effect
             path.scale_x = 1.4
             path.prop(entry, "effect_path", text="")
-            if entry.use_effect and entry.effect_note.startswith(("Effect failed", "Effect error", "File not found")):
+            if entry.use_effect and entry.effect_note.startswith(("Effect failed", "Effect error", "Effect not found", "File not found")):
                 note = layout.row()
                 note.scale_y = 0.8
                 note.alert = True

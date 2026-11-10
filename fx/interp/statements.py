@@ -150,7 +150,9 @@ class FxStatements:
         try:
             self.exec(init)
             frame.loops.append(loop)
-            for _ in range(FX_LOOP_LIMIT):
+            self.trace.append(-1)
+            for iteration in range(FX_LOOP_LIMIT):
+                self.trace[-1] = -2 - iteration
                 if self.inactive():
                     break
                 if cond is not None:
@@ -174,6 +176,7 @@ class FxStatements:
         finally:
             if frame.loops and frame.loops[-1] is loop:
                 frame.loops.pop()
+                self.trace.pop()
             frame.scopes.pop()
 
     def exec_do(self, node):
@@ -181,8 +184,10 @@ class FxStatements:
         frame = self.frames[-1]
         loop = FxLoop()
         frame.loops.append(loop)
+        self.trace.append(-1)
         try:
-            for _ in range(FX_LOOP_LIMIT):
+            for iteration in range(FX_LOOP_LIMIT):
+                self.trace[-1] = -2 - iteration
                 if self.inactive():
                     break
                 self.exec(body)
@@ -202,6 +207,7 @@ class FxStatements:
                         break
         finally:
             frame.loops.pop()
+            self.trace.pop()
 
     def exec_return(self, node):
         frame = self.frames[-1]

@@ -14,3 +14,6 @@ _mme_groups = {}
 
 
 _mme_core = {"names": None, "path": None, "synced": False, "fallback": None, "stats": {"built": 0, "file": 0, "library": 0}}
+
+
+_mme_emm = {}

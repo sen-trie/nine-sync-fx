@@ -6,6 +6,7 @@ import numpy as np
 from ..common.constants import X_IMPORT_OPTIONS, X_IMPORTER_BUNDLED_MODULE, X_IMPORTER_MODULES
 from ..common.log import log
 from ..common.scene_utils import loaded_addon_names
+from ..runtime.mesh_build import mme_build_mesh
 from ..xfile.geometry import merge_x_meshes
 from .materials import build_x_material
 
@@ -74,37 +75,33 @@ def x_importer_available():
 
 
 # Mesh object from a parsed .x without the importer add-on: axes swapped (Y/Z), face order reversed to match,
-# V flipped for UVs, per-vertex colours as an attribute.
-def create_x_object(name, xscene, folder, settings):
+# V flipped for UVs, per-vertex colours as an attribute. Built with bulk setters.
+def create_x_object(name, xscene, folder, settings, additive=False):
     vertices, faces, face_materials, uvs, colors, materials = merge_x_meshes(xscene)
-    points = [(x, z, y) for x, y, z in vertices]
+    points = np.asarray(vertices, dtype=np.float64).reshape(-1, 3)[:, (0, 2, 1)]
     flipped = [tuple(reversed(face)) for face in faces]
-    mesh = bpy.data.meshes.new(name)
-    mesh.from_pydata(points, [], flipped)
-    mesh.update()
+    mesh = mme_build_mesh(name, points, flipped)
     for index, xmat in enumerate(materials):
         try:
             mesh.materials.append(
-                build_x_material("%s_%d" % (name, index), xmat, folder, settings)
+                build_x_material("%s_%d" % (name, index), xmat, folder, settings, additive)
             )
         except Exception as error:
             log.warning("material %d of %s failed: %s", index, name, error)
             mesh.materials.append(bpy.data.materials.new("%s_%d" % (name, index)))
     if len(mesh.polygons) == len(face_materials):
         mesh.polygons.foreach_set("material_index", face_materials)
-    if uvs:
-        flat = []
-        for face in flipped:
-            for vertex in face:
-                u, v = uvs[vertex]
-                flat.extend((u, 1.0 - v))
-        if len(mesh.loops) * 2 == len(flat):
+    if uvs and flipped:
+        loops = np.concatenate([np.asarray(f, dtype=np.int64) for f in flipped])
+        coords = np.asarray(uvs, dtype=np.float64).reshape(-1, 2)[loops]
+        coords[:, 1] = 1.0 - coords[:, 1]
+        if len(mesh.loops) == len(coords):
             layer = mesh.uv_layers.new(name="UVMap")
-            layer.data.foreach_set("uv", flat)
+            layer.data.foreach_set("uv", coords.astype(np.float32).reshape(-1))
     if colors is not None:
         try:
             attribute = mesh.color_attributes.new("Col", "FLOAT_COLOR", "POINT")
-            attribute.data.foreach_set("color", [c for rgba in colors for c in rgba])
+            attribute.data.foreach_set("color", np.asarray(colors, dtype=np.float32).reshape(-1))
         except Exception as error:
             log.warning("vertex colors skipped for %s: %s", name, error)
     mesh.update()

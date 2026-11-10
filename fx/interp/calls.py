@@ -50,10 +50,19 @@ class FxCalls:
                 best, best_score = f, score
         return best
 
+    # Every call records its call site on the trace, so a call inside a shared function (getRandom in Thunder)
+    # has a different place in the trace for each caller.
+    def eval_call(self, node):
+        self.trace.append(id(node))
+        try:
+            return self.call_node(node)
+        finally:
+            self.trace.pop()
+
     # User functions run inline (or as a shared node group when the backend supports it). Intrinsics may
     # become native nodes or shared groups on node backends,
     # otherwise they run through the generic implementation.
-    def eval_call(self, node):
+    def call_node(self, node):
         name = node[1]
         arg_nodes = node[2]
         if name in self.program.functions:
@@ -85,6 +94,13 @@ class FxCalls:
 
     # DX10 style texture.Sample(sampler, uv) calls; only the sample family is supported.
     def eval_mcall(self, node):
+        self.trace.append(id(node))
+        try:
+            return self.method_call(node)
+        finally:
+            self.trace.pop()
+
+    def method_call(self, node):
         _kind, obj, name, args = node
         lower = name.lower()
         if lower in ("sample", "samplelevel", "samplebias", "samplegrad"):

@@ -16,17 +16,22 @@ from .types import (
 
 # Float RGBA pixels with HLSL-style point/bilinear sampling and wrap, clamp or mirror addressing.
 class FxImage:
-    __slots__ = ("pixels", "width", "height", "path")
+    __slots__ = ("pixels", "width", "height", "path", "single")
 
     def __init__(self, pixels, path):
         self.pixels = pixels
         self.height, self.width = pixels.shape[:2]
         self.path = path
+        self.single = None
 
-    # Vectorised over u/v arrays; bilinear uses texel centres (the -0.5 offset) like the GPU does.
-    def sample(self, u, v, point, address):
-        u = np.asarray(u, dtype=np.float64)
-        v = np.asarray(v, dtype=np.float64)
+    # Vectorised over u/v arrays; bilinear uses texel centres (the -0.5 offset) like the GPU does. Coordinates
+    # are always worked out in float64. A float32 caller gets point samples from a float32 copy of the
+    # pixels, the same values its next operation would have cast them to.
+    def sample(self, u, v, point, address, dtype=np.float64):
+        u = np.array(u, dtype=np.float64)
+        v = np.array(v, dtype=np.float64)
+        np.nan_to_num(u, copy=False)
+        np.nan_to_num(v, copy=False)
         shape = np.broadcast(u, v).shape
         u = np.broadcast_to(u, shape)
         v = np.broadcast_to(v, shape)
@@ -38,15 +43,24 @@ class FxImage:
             if address == "MIRROR":
                 period = np.mod(i, 2 * n)
                 return np.where(period >= n, 2 * n - 1 - period, period)
+            if n & (n - 1) == 0:
+                return np.bitwise_and(i, n - 1)
             return np.mod(i, n)
 
         if point:
-            x = wrap(np.floor(np.nan_to_num(u) * w).astype(np.int64), w)
-            y = wrap(np.floor(np.nan_to_num(v) * h).astype(np.int64), h)
+            x = wrap(np.floor(u * w).astype(np.int64), w)
+            y = wrap(np.floor(v * h).astype(np.int64), h)
+            if dtype == np.float32:
+                if self.single is None:
+                    self.single = self.pixels.astype(np.float32)
+                texel = self.single[y, x]
+                if texel.ndim == 1:
+                    return [np.float32(texel[k]) for k in range(4)]
+                return [texel[..., k] for k in range(4)]
             texel = self.pixels[y, x]
         else:
-            fx = np.nan_to_num(u) * w - 0.5
-            fy = np.nan_to_num(v) * h - 0.5
+            fx = u * w - 0.5
+            fy = v * h - 0.5
             x0 = np.floor(fx)
             y0 = np.floor(fy)
             tx = (fx - x0)[..., None]
@@ -127,14 +141,19 @@ def fx_find_file(folder, name):
 
 
 # Environment for the numpy backend: globals come from FxSceneState, textures from the store. It records which
-# globals were read.
+# globals were read. With a memo (one per pass analysis) texture samples are reused across probe states; lanes
+# names the analysed vertices of this run within that pass, parent the previous run's lanes and where this
+# run's vertices sit in them.
 class FxNumpyEnv:
-    def __init__(self, program, state, textures):
+    def __init__(self, program, state, textures, memo=None, lanes=None, parent=None):
         self.program = program
         self.state = state
         self.textures = textures
         self.sources = {}
         self.reads = set()
+        self.memo = memo
+        self.lanes = lanes
+        self.parent = parent
 
     def source(self, g):
         if g.name not in self.sources:
@@ -164,7 +183,63 @@ class FxNumpyEnv:
         image = self.textures.image(path)
         if image is None:
             return [ex.B.const(0.0)] * 4
-        return image.sample(u, v, info.point() if info else False, info.address() if info else "WRAP")
+        point = info.point() if info else False
+        address = info.address() if info else "WRAP"
+        dtype = getattr(ex.B, "dtype", np.float64)
+        if self.memo is None:
+            return image.sample(u, v, point, address, dtype)
+        key = (path, point, address, dtype, tuple(ex.trace))
+        u = np.asarray(u)
+        v = np.asarray(v)
+        found = fx_memo_lookup(self.memo.get(key), self.lanes, u, v, self.parent)
+        if found is None:
+            found = image.sample(u, v, point, address, dtype)
+        for array in [u, v] + list(found):
+            if isinstance(array, np.ndarray) and array.ndim:
+                array.flags.writeable = False
+        self.memo[key] = (self.lanes, u, v, found)
+        return found
+
+
+# Lanes of an earlier run that the current lanes occupy, or None when they are not a subset. None lanes mean
+# every vertex of the pass.
+def fx_memo_positions(old, new, parent=None):
+    if old is new:
+        return slice(None)
+    if parent is not None and parent[0] is old:
+        return parent[1]
+    if new is None:
+        return slice(None) if old is None else None
+    if old is None:
+        return new
+    if len(new) > len(old):
+        return None
+    at = np.searchsorted(old, new)
+    if len(at) and (at[-1] >= len(old) or not np.array_equal(old[np.minimum(at, len(old) - 1)], new)):
+        return None
+    return at
+
+
+def fx_memo_take(value, at):
+    if not isinstance(value, np.ndarray) or value.ndim == 0 or isinstance(at, slice):
+        return value
+    return value[at]
+
+
+# A sample is a pure function of the image, filter, address mode and coordinates, so an earlier result at the
+# same place in the shader is reused when the coordinates of the vertices still analysed are identical.
+def fx_memo_lookup(entry, lanes, u, v, parent=None):
+    if entry is None:
+        return None
+    old_lanes, old_u, old_v, result = entry
+    at = fx_memo_positions(old_lanes, lanes, parent)
+    if at is None:
+        return None
+    for old, new in ((old_u, u), (old_v, v)):
+        picked = fx_memo_take(old, at)
+        if np.shape(picked) != np.shape(new) or not np.array_equal(picked, new, equal_nan=True):
+            return None
+    return [fx_memo_take(comp, at) for comp in result]
 
 
 # Pillow is imported on use so the add-on loads without it.

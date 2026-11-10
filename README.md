@@ -27,6 +27,10 @@ When used with **PMM Bridge**, click **Sync Now** in PMM Bridge to import or upd
 - Full-screen and post-processing MME effects are not supported.
 - For older `.blend` projects, **Repair Legacy Data** and **Rebuild All Effects** are available in the add-on panels.
 
+## Reporting issues
+
+Report bugs and request features in the [NineSync release tracker](https://github.com/sen-trie/nine-sync-release/issues/new/choose), which covers both the combined extension and the standalone add-ons.
+
 ## License
 
 GPL-3.0-or-later. See `LICENSE`.

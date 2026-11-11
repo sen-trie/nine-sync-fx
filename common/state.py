@@ -7,7 +7,7 @@ _status_icons = {}
 _mme_runtimes = {}
 
 
-_mme_state = {"busy": False, "errors": set(), "only": None, "rebuild": set(), "progress": None, "stale": set()}
+_mme_state = {"busy": False, "errors": set(), "only": None, "rebuild": set(), "progress": None, "stale": set(), "bake_check": set()}
 
 
 _mme_groups = {}

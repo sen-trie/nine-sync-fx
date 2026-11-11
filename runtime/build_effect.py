@@ -42,6 +42,16 @@ from .build_pass import mme_build_pass
 from .cleanup import remove_accessory_children_single
 from .controls_resolve import mme_apply_manual_controls
 from .frame_state import mme_frame_state
+from .manifest import (
+    mme_build_decision,
+    mme_build_inputs,
+    mme_log_action,
+    mme_pass_by_key,
+    mme_pass_key,
+    mme_record_build,
+    mme_shared_inputs,
+    mme_sig,
+)
 from .params import (
     mme_built_values,
     mme_param_signature,
@@ -56,6 +66,7 @@ from .progress import (
 from .runtime import MmeRuntime
 from .variants import mme_build_variants
 from .visibility import (
+    mme_capture_pass,
     mme_capture_visibility,
     mme_link_visibility,
     mme_restore_visibility,
@@ -63,12 +74,14 @@ from .visibility import (
 from .vs_eval import mme_self_tr_globals
 
 
-# Builds a whole effect on a root: syncs parameters and controls, samples keyed variants, then builds every
-# geometry draw without a render target as a pass object.
+# Builds a whole effect on a root: syncs parameters and controls, samples keyed variants, then reconciles every
+# geometry draw without a render target with the pass objects in 'existing' (by logical pass key). A pass whose
+# build signature is unchanged keeps its object, node tree and bake; a changed one is replaced alone; a draw that
+# is gone loses its object. Without 'existing' (or with force) every pass is built.
 # Passes that fail are skipped. Shared groups are saved to the library if new ones were built and autosave is
-# on.
+# on. The runtime's build_report lists reused, built, removed and failed passes.
 # Returns the pass objects, the uncovered material subsets and the number of draws.
-def mme_build_effect(scene, collection, settings, acc, root, x_path, fx_path, unit, controls):
+def mme_build_effect(scene, collection, settings, acc, root, x_path, fx_path, unit, controls, existing=None, force=False):
     _mme_runtimes.pop(root.name, None)
     program = fx_parse_file(fx_path)
     mme_sync_params(root, program)
@@ -105,6 +118,21 @@ def mme_build_effect(scene, collection, settings, acc, root, x_path, fx_path, un
     library_before = _mme_core["stats"]["library"]
     file_before = _mme_core["stats"]["file"]
     children = []
+    report = {"reused": [], "built": [], "removed": 0, "failed": 0, "empty": 0}
+    runtime.build_report = report
+    existing = {} if existing is None else existing
+    scene_controls = mme_load_controls(root)
+    shared = mme_shared_inputs(runtime, root, settings, backend, unit, scene_controls, [variants, combos, highs])
+    try:
+        empties = json.loads(root.get("mme_empty_passes", "{}"))
+    except (TypeError, ValueError):
+        empties = {}
+    empties_now = {}
+    seen = {}
+    produced = set()
+    analysis_seconds = 0.0
+    detail = bool(getattr(settings, "mme_log_detail", False))
+    effect_started = time.time()
     base = short_name(root.get("mme_acc_name", acc.name if acc is not None else root.name), 24)
     emitted = [d for d in runtime.draws if d.target == "" and d.kind == "geometry"]
     owns = mme_progress_begin(bpy.context, "NineSync building %s" % base, len(emitted))
@@ -113,19 +141,60 @@ def mme_build_effect(scene, collection, settings, acc, root, x_path, fx_path, un
             label = "%s_%s_%s" % (base, draw.technique.name or "tech", draw.fx_pass.name or str(draw.order))
             if owns:
                 mme_progress_step(index, draw.fx_pass.name or label)
+            key = mme_pass_key(root, draw, seen)
             if draw.fx_pass.vs is None:
                 log.info("effect pass %s uses fixed-function drawing; skipped", label)
                 continue
+            analysis_started = time.time()
+            inputs, _reads = mme_build_inputs(shared, runtime, draw, root, scene_controls)
+            sig = mme_sig(inputs)
+            old = existing.get(key)
+            action, reason, changes = mme_build_decision(old, sig, inputs, force)
+            if action == "BUILD" and old is None and not force and empties.get(key) == sig:
+                action, reason = "SKIP BUILD", "build signature unchanged; pass is known to draw nothing"
+            analysis_seconds += time.time() - analysis_started
+            if action == "SKIP BUILD":
+                if old is not None:
+                    children.append(old)
+                    report["reused"].append(old)
+                    produced.add(key)
+                else:
+                    empties_now[key] = sig
+                    report["empty"] += 1
+                mme_log_action(action, label, reason, old.get(MME_BACKEND_PROP, "") if old is not None else "", changes=changes, detail=detail)
+                continue
+            own = None
+            if old is not None:
+                own = mme_capture_pass(old)
+                remove_accessory_children_single(old)
+                existing.pop(key, None)
+            started = time.time()
             try:
                 obj = mme_build_pass(runtime, draw, state, root, collection, unit, density, label, backend, scene)
             except FxError as error:
                 log.warning("effect pass %s skipped: %s", label, error)
+                mme_log_action("FAILED", label, str(error), backend)
+                report["failed"] += 1
                 continue
-            if obj is not None:
-                children.append(obj)
+            if obj is None:
+                empties_now[key] = sig
+                report["empty"] += 1
+                mme_log_action("BUILD", label, "%s; draws nothing visible" % reason, backend, time.time() - started, changes, detail)
+                continue
+            mme_record_build(obj, key, sig, inputs, obj.get(MME_BACKEND_PROP, backend))
+            children.append(obj)
+            produced.add(key)
+            report["built"].append((obj, own))
+            mme_log_action("BUILD", label, reason, obj.get(MME_BACKEND_PROP, backend), time.time() - started, changes, detail)
+        for key, old in list(existing.items()):
+            if key not in produced:
+                mme_log_action("REMOVE", old.name, "draw is no longer planned or draws nothing", old.get(MME_BACKEND_PROP, ""))
+                remove_accessory_children_single(old)
+                report["removed"] += 1
     finally:
         if owns:
             mme_progress_end()
+    root["mme_empty_passes"] = json.dumps(empties_now)
     root["mme_structural"] = json.dumps(fx_structural_params(runtime.program))
     root["mme_overrides"] = json.dumps(fx_overridden_params(runtime.program))
     root.update_tag()
@@ -162,13 +231,32 @@ def mme_build_effect(scene, collection, settings, acc, root, x_path, fx_path, un
             len(skipped),
             skipped,
         )
+    stage = {name: sum(t.get(name, 0.0) for t in runtime.timing.values()) for name in ("analysis", "alpha", "precull", "strips", "graph")}
+    log.info(
+        "[NineSync FX] effect %s: %d draw(s); build reused=%d rebuilt=%d removed=%d failed=%d empty=%d; elapsed=%.1fs (dependency analysis %.2fs, pass analysis %.2fs, alpha gates %.2fs, pre-cull %.2fs, strips %.2fs, graph/material %.2fs)",
+        base,
+        len(emitted),
+        len(report["reused"]),
+        len(report["built"]),
+        report["removed"],
+        report["failed"],
+        report["empty"],
+        time.time() - effect_started,
+        analysis_seconds,
+        stage["analysis"],
+        stage["alpha"],
+        stage["precull"],
+        stage["strips"],
+        stage["graph"],
+    )
     _mme_runtimes[root.name] = runtime
     return children, uncovered, None, len(emitted)
 
 
-# Rebuilds an existing effect in place from the values stored on its root, keeping the visibility settings and
-# keys of the old pass objects.
-def mme_rebuild_effect(scene, root):
+# Rebuilds an existing effect in place from the values stored on its root. Only passes whose build signature changed
+# are rebuilt (all of them with force); the others keep their objects, node trees, visibility, keys and bakes. Pass
+# objects from before manifests existed are replaced once.
+def mme_rebuild_effect(scene, root, force=False):
     _mme_state["stale"].discard(root.name)
     settings = scene.ninesync_fx
     collection = next((c for c in root.users_collection), None) or accessory_collection(scene, True)
@@ -179,17 +267,28 @@ def mme_rebuild_effect(scene, root):
     passes = [c for c in root.children if c.get(MME_DRAW_PROP)]
     mme_link_visibility(root)
     captured = mme_capture_visibility(root)
+    keyed = {} if force else mme_pass_by_key(root)
     for child in passes:
-        remove_accessory_children_single(child)
+        if child not in keyed.values():
+            remove_accessory_children_single(child)
     started = time.time()
     children, _uncovered, _tracks, total = mme_build_effect(
-        scene, collection, settings, None, root, x_path, fx_path, unit, mme_apply_manual_controls(root, mme_load_controls_raw(root))
+        scene, collection, settings, None, root, x_path, fx_path, unit, mme_apply_manual_controls(root, mme_load_controls_raw(root)), keyed, force
     )
-    for child in children:
+    report = getattr(_mme_runtimes.get(root.name), "build_report", {"built": [], "reused": []})
+    for child, own in report["built"]:
         child.scale = (ACCESSORY_UNIT * unit,) * 3
-    mme_restore_visibility(children, captured)
+        mme_restore_visibility([child], own or captured)
     root.update_tag()
-    log.info("effect '%s' rebuilt in %.1fs: %d of %d pass(es)", root.name, time.time() - started, len(children), total)
+    log.info(
+        "effect '%s' rebuilt in %.1fs: %d of %d pass(es) present, %d rebuilt, %d reused",
+        root.name,
+        time.time() - started,
+        len(children),
+        total,
+        len(report["built"]),
+        len(report["reused"]),
+    )
     return len(children)
 
 

@@ -3,6 +3,7 @@ from harness_fx import *
 import math
 scene, col, root, cam = setup_scene()
 settings = scene.ninesync_fx
+settings.mme_auto_rebuild = True
 controls = {"Tr": {"kind": "self", "item": "Tr"}, "Si": {"kind": "self", "item": "Si"}}
 meta_probe = mb.fx_parse_file(FX)
 mb.mme_sync_params(root, meta_probe)

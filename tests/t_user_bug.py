@@ -3,6 +3,7 @@ from harness_fx import *
 import math
 scene, col, root, cam = setup_scene()
 settings = scene.ninesync_fx
+settings.mme_auto_rebuild = True
 controls = {"Tr": {"kind": "self", "item": "Tr"}, "Si": {"kind": "self", "item": "Si"}}
 def build(r):
     kids, *_ = mb.mme_build_effect(scene, col, settings, Acc(), r, XP, FX, 1.0, controls)

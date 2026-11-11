@@ -42,6 +42,7 @@ class MmeRuntime:
         self.values = dict(values or {})
         self.draws = fx_plan_draws(self.program, max(1, len(self.materials)), self.values)
         self.passes = {}
+        self.timing = {}
         self.controls_runtime = set()
         self.stamp = mme_effect_stamp(fx_path, x_path, self.program)
 

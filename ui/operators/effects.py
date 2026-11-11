@@ -1,6 +1,6 @@
 import bpy
 import traceback
-from bpy.props import StringProperty
+from bpy.props import BoolProperty, StringProperty
 from bpy.types import Operator
 
 from ...common.log import log
@@ -23,9 +23,10 @@ from ..relink import refuse_if_outdated
 class NINESYNC_FX_OT_refresh_effects(Operator):
     bl_idname = "ninesync_fx.refresh_effects"
     bl_label = "Refresh Effects"
-    bl_description = "Reload effect files and rebuild every effect pass with the current backend, density and parameters. Bakes are cleared"
+    bl_description = "Reload effect files and rebuild the effect passes whose inputs changed (backend, density, parameters, files). Unchanged passes keep their objects and bakes; a rebuilt pass loses its bake"
 
     root_name: StringProperty(options={"HIDDEN", "SKIP_SAVE"})
+    force: BoolProperty(options={"HIDDEN", "SKIP_SAVE"})
 
     def execute(self, context):
         if refuse_if_outdated(self, context):
@@ -33,14 +34,16 @@ class NINESYNC_FX_OT_refresh_effects(Operator):
         _mme_runtimes.clear()
         _mme_state["errors"].clear()
         built = 0
+        reused = 0
         for root in mme_target_roots(context.scene, self.root_name):
             try:
-                built += mme_rebuild_effect(context.scene, root)
+                built += mme_rebuild_effect(context.scene, root, self.force)
+                reused += len(getattr(_mme_runtimes.get(root.name), "build_report", {}).get("reused", ()))
             except Exception as error:
                 log.error("effect '%s' rebuild failed: %s\n%s", root.name, error, traceback.format_exc())
                 self.report({"WARNING"}, "%s: %s" % (root.name, short_text(error, 80)))
         mme_update_scene(context.scene, context.evaluated_depsgraph_get(), force=True)
-        self.report({"INFO"}, "Rebuilt %d effect pass(es)" % built)
+        self.report({"INFO"}, "%d effect pass(es) present, %d reused unchanged" % (built, reused))
         redraw_all()
         return {"FINISHED"}
 

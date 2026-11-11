@@ -95,8 +95,13 @@ class NineSyncFXSettings(PropertyGroup):
     )
     mme_auto_rebuild: BoolProperty(
         name="Auto Rebuild",
-        description="Rebuild an effect automatically after you edit a parameter that changes its geometry (wrench icon). Turn off for heavy effects: edits then only mark the effect as out of date until you press Rebuild",
-        default=True,
+        description="Rebuild an effect automatically after you edit a parameter that changes its geometry (wrench icon). Off by default because heavy effects take minutes: edits then only mark the effect as out of date until you press Rebuild Changed",
+        default=False,
+    )
+    mme_log_detail: BoolProperty(
+        name="Detailed Build Log",
+        description="Log every changed input (before and after) behind each rebuild, rebake and skip decision, not just the reason",
+        default=False,
     )
     mme_live: BoolProperty(
         name="Live Effect Preview",

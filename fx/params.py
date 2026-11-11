@@ -109,7 +109,7 @@ def fx_find_params(program):
 # Names of globals the vertex shader entry points can read, found by walking the function bodies, called
 # functions and global initialisers.
 # Used to know which parameters change geometry.
-def fx_vs_globals(program, passes=None):
+def fx_vs_globals(program, passes=None, stages=("vs",)):
     names = set()
     seen = set()
     stack = []
@@ -117,13 +117,15 @@ def fx_vs_globals(program, passes=None):
         passes = [fx_pass for technique in program.techniques for fx_pass in technique.passes]
     for technique in [None]:
         for fx_pass in passes:
-            if fx_pass.vs is None:
-                continue
-            function, args = fx_entry(program, fx_pass.vs)
-            if function is not None and id(function) not in seen:
-                seen.add(id(function))
-                stack.append(function.body)
-            stack.append(args)
+            for stage in stages:
+                entry = getattr(fx_pass, stage, None)
+                if entry is None:
+                    continue
+                function, args = fx_entry(program, entry)
+                if function is not None and id(function) not in seen:
+                    seen.add(id(function))
+                    stack.append(function.body)
+                stack.append(args)
 
     def walk(node):
         if isinstance(node, tuple):

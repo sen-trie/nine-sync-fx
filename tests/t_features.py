@@ -2,6 +2,7 @@ import os, sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from harness_fx import *
 scene, col, root, cam = setup_scene()
 settings = scene.ninesync_fx
+settings.mme_auto_rebuild = True
 settings.mme_backend = "GEONODES"
 controls = {"Tr": {"kind": "self", "item": "Tr"}, "Si": {"kind": "self", "item": "Si"}}
 children, *_ = mb.mme_build_effect(scene, col, settings, Acc(), root, XP, FX, 1.0, controls)

@@ -33,6 +33,7 @@ class NINESYNC_FX_PT_main(Panel):
         col.prop(settings, "mme_density", slider=True)
         col.prop(settings, "mme_tolerance")
         col.prop(settings, "mme_auto_rebuild")
+        col.prop(settings, "mme_log_detail")
         precull = col.row(align=True)
         precull.prop(settings, "mme_precull")
         precull.operator("ninesync_fx.clear_precull", text="", icon="TRASH")
@@ -41,4 +42,6 @@ class NINESYNC_FX_PT_main(Panel):
         row = layout.row()
         row.scale_y = 1.3
         row.alert = bool(_mme_state["stale"])
-        row.operator("ninesync_fx.refresh_effects", text="Rebuild All Effects", icon="SHADERFX")
+        row.operator("ninesync_fx.refresh_effects", text="Rebuild Changed Effects", icon="SHADERFX")
+        force = layout.operator("ninesync_fx.refresh_effects", text="Force Rebuild All", icon="FILE_REFRESH")
+        force.force = True

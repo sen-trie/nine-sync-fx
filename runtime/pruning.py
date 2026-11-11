@@ -57,6 +57,7 @@ def mme_prune_mask(runtime, data, state, tr_names, gates=(), cache_path=None, pe
         return keep, opened
     conditions = [mme_condition(probe, value, tr_names, count_params) for probe, value in runs]
     cache = mme_precull_load(cache_path, per)
+    had_cache = bool(cache["groups"])
     include = set(cache["reads"]) if cache.get("reads") is not None and cache["groups"] else None
     program = runtime.program
     reads = set(include or ())
@@ -128,7 +129,8 @@ def mme_prune_mask(runtime, data, state, tr_names, gates=(), cache_path=None, pe
         result_keep |= keep[:instances]
         result_open |= opened[:instances]
     log.info(
-        "pre-cull cache: %d of %d visibility state(s) already known%s",
+        "pre-cull cache (%s): %d of %d visibility state(s) already known%s",
+        "file had %d group(s)" % len(cache["groups"]) if had_cache else "no usable cache file",
         known_total,
         len(conditions),
         ", %d new instance(s) evaluated" % grown_total if grown_total else "",

@@ -131,6 +131,7 @@ def mme_finish_pass(obj, runtime, draw, root, scene, counts, density, mat, varyi
 # evaluated by numpy each frame.
 def mme_build_pass(runtime, draw, state, root, collection, unit, density, label, backend="GEONODES", scene=None):
     scene = scene or bpy.context.scene
+    analysis_started = time.time()
     geometry = mme_pass_geometry(runtime, draw, density)
     if geometry is None:
         return None
@@ -146,7 +147,11 @@ def mme_build_pass(runtime, draw, state, root, collection, unit, density, label,
     probe_varyings = {k: len(v.c) for k, v in probe_outputs.items() if k != "POSITION0" and fx_is_numeric(v.t)}
     reduce_started = time.time()
     mme_progress_within(0.05, "finding alpha gates")
+    stage = runtime.timing.setdefault(label, {"analysis": 0.0, "alpha": 0.0, "precull": 0.0, "strips": 0.0, "graph": 0.0})
+    stage["analysis"] += reduce_started - analysis_started
+    mark = time.time()
     gates = mme_alpha_gates(runtime, draw, state, probe_varyings, tr_names, instances)
+    stage["alpha"] += time.time() - mark
     cache_path = None
     count_params = ()
     if getattr(scene.ninesync_fx, "mme_precull", True):
@@ -155,7 +160,9 @@ def mme_build_pass(runtime, draw, state, root, collection, unit, density, label,
             vs_reads = fx_vs_globals(runtime.program, [draw.fx_pass])
             count_params = tuple(sorted(name for _var, _count, name in draw.loops if name and name not in vs_reads))
         cache_path = mme_precull_file(runtime, draw, used, gates, None if single else instances)
+    mark = time.time()
     keep, opened = mme_prune_mask(runtime, data, state, tr_names, gates, cache_path, per, instances, count_params)
+    stage["precull"] += time.time() - mark
     owner = "%s|%s" % (root.get("mmd_bridge_accessory"), label)
     keep_src = keep.reshape(instances, per).any(axis=0)
     open_src = opened.reshape(instances, per).any(axis=0)
@@ -167,13 +174,16 @@ def mme_build_pass(runtime, draw, state, root, collection, unit, density, label,
     gated_faces = len(local_faces)
     tolerance = float(getattr(scene.ninesync_fx, "mme_tolerance", 0.0))
     mme_progress_within(0.65, "simplifying strips")
+    mark = time.time()
     try:
         local_faces = mme_simplify_strip(runtime, draw, state, used, local_faces, instances, tr_names, density, tolerance, cache_path)
     except Exception as error:
         log.debug("strip simplification for %s failed: %s", label, error)
+    stage["strips"] += time.time() - mark
+    graph_started = time.time()
     if before != len(local_faces):
         log.info(
-            "effect pass %s: %d of %d faces kept (%d never drawn, %d always transparent%s, %d merged along strips) in %.1fs",
+            "effect pass %s: %d of %d faces kept (%d never drawn, %d always transparent%s, %d merged along strips) in %.1fs (alpha gates %.1fs, pre-cull %.1fs, strips %.1fs)",
             label,
             len(local_faces),
             before,
@@ -182,6 +192,9 @@ def mme_build_pass(runtime, draw, state, root, collection, unit, density, label,
             " via " + ", ".join("%s.%s" % (sem, "xyzw"[k] if k < 4 else k) for sem, k in gates) if gates else "",
             gated_faces - len(local_faces),
             time.time() - reduce_started,
+            stage["alpha"],
+            stage["precull"],
+            stage["strips"],
         )
     if backend == "GEONODES":
         faces = local_faces
@@ -226,6 +239,7 @@ def mme_build_pass(runtime, draw, state, root, collection, unit, density, label,
             time.time() - started,
             note,
         )
+        stage["graph"] += time.time() - graph_started
         return obj
     faces = []
     for k in range(instances):
@@ -265,4 +279,5 @@ def mme_build_pass(runtime, draw, state, root, collection, unit, density, label,
         instances,
         note,
     )
+    stage["graph"] += time.time() - graph_started
     return obj

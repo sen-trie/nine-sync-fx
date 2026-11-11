@@ -59,7 +59,7 @@ def draw_fx_selected(layout, context, root, active):
     rebuild_cell.alert = stale
     rebuild = rebuild_cell.operator("ninesync_fx.refresh_effects", text="Rebuild (out of date)" if stale else "Rebuild", icon="FILE_REFRESH")
     rebuild.root_name = root.name
-    bake = row.operator("ninesync_fx.bake_effects", text="Bake", icon="RENDER_ANIMATION")
+    bake = row.operator("ninesync_fx.bake_effects", text="Bake Changed", icon="RENDER_ANIMATION")
     bake.root_name = root.name
     clear = row.operator("ninesync_fx.bake_effects", text="Clear Bake", icon="TRASH")
     clear.root_name = root.name

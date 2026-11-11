@@ -25,7 +25,7 @@ When used with **PMM Bridge**, click **Sync Now** in PMM Bridge to import or upd
 
 - **EEVEE** is recommended for rendering effects. **Cycles** can also be used, but some effects may require manual shader and transparency settings adjustments.
 - Full-screen and post-processing MME effects are not supported.
-- For older `.blend` projects, **Repair Legacy Data** and **Rebuild All Effects** are available in the add-on panels.
+- For older `.blend` projects, **Rebuild All Effects** is available in the add-on panels.
 
 ## Reporting issues
 

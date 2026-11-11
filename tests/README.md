@@ -26,5 +26,3 @@ Environment:
 Scripts that use `harness_fx.py` register only FX and print values to compare against earlier runs. Scripts that import both packages: `t_core.py` (`-- core` or `-- both`), `t_panels.py` (`-- core|fx|both`), `t_cycle.py`, `t_import.py` (`-- ninesync ninesync_fx`).
 
 `harness_fx.py` points the user library, and with it the effect cache folder, at a temp folder. `t_emm.py` covers `.emm` effect assignments, `t_accessory_keys.py` accessory key edits, parent switching, Tr and additive materials, and `t_cache.py` the cache folder; each prints `FAILED: none` on success. `t_library.py` covers library upgrade, merge, downgrade, nested groups, backup, failure fallback and the open operator; it prints `FAILED: none` on success. `t_manual_controls.py` covers controller assignment. `t_thunder_rings.py` covers the strip culling fix; its real-effect half runs when the lv2 files are found.
-
-`manual/legacy_blend_make.py` needs the old combined add-on; it writes a `.blend` that `manual/legacy_blend_check.py` then opens with FX only to test Repair Legacy Data.

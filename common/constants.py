@@ -229,6 +229,15 @@ MME_PRUNED_PROP = "mme_pruned"
 MME_BAKED_PROP = "mme_baked"
 
 
+MME_MANIFEST_PROP = "mme_manifest"
+
+
+MME_PASS_KEY_PROP = "mme_pass_key"
+
+
+MME_MANIFEST_VERSION = 1
+
+
 MME_DRIVEN_PROP = "mme_driven"
 
 

@@ -12,7 +12,6 @@ from .operators.effects import (
     NINESYNC_FX_OT_refresh_effects,
     NINESYNC_FX_OT_reset_params,
 )
-from .operators.legacy import NINESYNC_FX_OT_repair_legacy
 from .operators.library import (
     NINESYNC_FX_OT_open_core_library,
     NINESYNC_FX_OT_rebuild_core_library,
@@ -48,7 +47,6 @@ CLASSES = (
     NINESYNC_FX_OT_assign_control,
     NINESYNC_FX_OT_clean,
     NINESYNC_FX_OT_copy_report,
-    NINESYNC_FX_OT_repair_legacy,
     NINESYNC_FX_PT_accessories,
     NINESYNC_FX_PT_main,
     NINESYNC_FX_PT_selected,

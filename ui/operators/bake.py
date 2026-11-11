@@ -23,10 +23,11 @@ from ..relink import refuse_if_outdated
 class NINESYNC_FX_OT_bake_effects(Operator):
     bl_idname = "ninesync_fx.bake_effects"
     bl_label = "Bake Effects"
-    bl_description = "Bake effect geometry over the scene frame range so playback and rendering read stored geometry instead of running shaders"
+    bl_description = "Bake effect geometry over the scene frame range so playback and rendering read stored geometry instead of running shaders. Passes whose inputs and stored bake are unchanged are skipped; Ctrl-click Force Rebake All to redo every pass"
 
     root_name: StringProperty(options={"HIDDEN", "SKIP_SAVE"})
     clear: BoolProperty(options={"HIDDEN", "SKIP_SAVE"})
+    force: BoolProperty(options={"HIDDEN", "SKIP_SAVE"})
 
     def execute(self, context):
         if refuse_if_outdated(self, context):
@@ -43,6 +44,7 @@ class NINESYNC_FX_OT_bake_effects(Operator):
             return {"CANCELLED"}
         frame = scene.frame_current
         done = 0
+        counts = {"baked": 0, "skipped": 0, "failed": 0}
         started = time.time()
         if not self.clear:
             mme_progress_begin(context, "NineSync baking", len(passes), scene.frame_start, scene.frame_end)
@@ -53,8 +55,9 @@ class NINESYNC_FX_OT_bake_effects(Operator):
                     if self.clear:
                         done += mme_clear_bake(context, obj)
                     else:
-                        done += mme_bake_pass(context, obj, scene.frame_start, scene.frame_end, settings)
+                        counts[mme_bake_pass(context, obj, scene.frame_start, scene.frame_end, settings, self.force)] += 1
                 except Exception as error:
+                    counts["failed"] += 1
                     log.error("bake of '%s' failed: %s\n%s", obj.name, error, traceback.format_exc())
         finally:
             mme_progress_end()
@@ -62,10 +65,20 @@ class NINESYNC_FX_OT_bake_effects(Operator):
         if self.clear:
             self.report({"INFO"}, "Cleared %d effect bake(s)" % done)
         else:
+            log.info(
+                "[NineSync FX] bake summary: %d pass(es); bake reused=%d rebaked=%d failed=%d; frames %d-%d; elapsed=%.1fs",
+                len(passes),
+                counts["skipped"],
+                counts["baked"],
+                counts["failed"],
+                scene.frame_start,
+                scene.frame_end,
+                time.time() - started,
+            )
             self.report(
-                {"INFO"},
-                "Baked %d of %d effect pass(es), frames %d-%d, in %.1fs"
-                % (done, len(passes), scene.frame_start, scene.frame_end, time.time() - started),
+                {"WARNING" if counts["failed"] else "INFO"},
+                "Baked %d, reused %d, failed %d of %d effect pass(es), frames %d-%d, in %.1fs"
+                % (counts["baked"], counts["skipped"], counts["failed"], len(passes), scene.frame_start, scene.frame_end, time.time() - started),
             )
         redraw_all()
         return {"FINISHED"}

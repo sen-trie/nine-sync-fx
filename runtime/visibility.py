@@ -77,6 +77,12 @@ def mme_capture_visibility(root):
     return None, False, False
 
 
+# The hide flags and action of one pass object, in the form mme_restore_visibility takes.
+def mme_capture_pass(child):
+    action = child.animation_data.action if child.animation_data is not None else None
+    return action, child.hide_viewport, child.hide_render
+
+
 # Applies what mme_capture_visibility saved to freshly built children.
 def mme_restore_visibility(children, captured):
     action, hide_viewport, hide_render = captured

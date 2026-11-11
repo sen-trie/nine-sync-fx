@@ -2,7 +2,9 @@ import bpy
 from . import hooks
 
 from .common.constants import (
+    MME_BAKED_PROP,
     MME_PARAMS_PROP,
+    MME_PASS_KEY_PROP,
     MME_REBUILD_DELAY,
 )
 from .common.controls import mme_effect_roots
@@ -17,6 +19,7 @@ from .runtime.build_effect import (
     mme_rebuild_needed,
     mme_run_rebuilds,
 )
+from .runtime.bake import mme_queue_bake_check
 from .runtime.drivers import mme_revive_drivers
 from .runtime.progress import mme_progress_tick
 from .runtime.update import mme_update_scene
@@ -94,8 +97,12 @@ def mme_param_watch(scene, depsgraph=None):
         return
     for update in depsgraph.updates:
         obj = update.id.original if isinstance(update.id, bpy.types.Object) else None
+        if obj is not None and obj.get(MME_PASS_KEY_PROP) and obj.get(MME_BAKED_PROP) and obj.parent is not None:
+            mme_queue_bake_check(obj.parent)
         if obj is None or not obj.get(MME_PARAMS_PROP):
             continue
+        if any(child.get(MME_BAKED_PROP) for child in obj.children):
+            mme_queue_bake_check(obj)
         if obj.name in _mme_state["rebuild"]:
             continue
         if mme_rebuild_needed(obj):

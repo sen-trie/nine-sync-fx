@@ -36,7 +36,7 @@ BLENDER = [
     ("x_importer", (), ()),
     ("mixed", (), ()),
     ("version", (), ()),
-    ("legacy", (), ()),
+    ("user_path", (), ()),
     ("emm", (), ()),
     ("accessory_keys", (), ()),
     ("cache", (), ()),

@@ -25,6 +25,8 @@ class NINESYNC_FX_PT_bake(Panel):
         if settings.mme_bake_target == "DISK":
             layout.prop(settings, "mme_bake_dir", text="")
         row = layout.row(align=True)
-        row.operator("ninesync_fx.bake_effects", text="Bake All", icon="RENDER_ANIMATION")
+        row.operator("ninesync_fx.bake_effects", text="Bake Changed", icon="RENDER_ANIMATION")
         clear = row.operator("ninesync_fx.bake_effects", text="Clear All", icon="TRASH")
         clear.clear = True
+        force = layout.operator("ninesync_fx.bake_effects", text="Force Rebake All", icon="FILE_REFRESH")
+        force.force = True

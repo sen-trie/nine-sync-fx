@@ -27,10 +27,6 @@ from ..common.scene_utils import (
     accessory_collection,
     find_accessory_root,
 )
-from ..standalone.legacy_repair import (
-    legacy_group,
-    legacy_markers,
-)
 
 
 def draw_wrapped(layout, text, width=None):
@@ -186,20 +182,8 @@ def draw_fx_dependency_notices(layout):
         draw_wrapped(layout, "mmd_tools is not enabled: parent bone matching and morph names use plain bone names only.")
 
 
-# True when the file still has settings from an older NineSync and the repair has not been done.
-def legacy_data_present(scene):
-    if scene.get("ninesync_fx_legacy_repaired"):
-        return False
-    raw = legacy_group(scene)
-    return raw is not None and bool(legacy_markers(raw))
-
-
 def draw_standalone_block(layout, context, settings):
     draw_fx_dependency_notices(layout)
-    if legacy_data_present(context.scene):
-        box = layout.box()
-        draw_wrapped(box, "This file has effect settings from an older NineSync version.")
-        box.operator("ninesync_fx.repair_legacy", icon="RECOVER_LAST")
     if hooks.core_installed():
         draw_wrapped(layout, "PMM accessories are synced by NineSync: PMM Bridge. Press Sync Now there.")
         return

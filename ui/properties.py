@@ -139,6 +139,16 @@ class NineSyncFXSettings(PropertyGroup):
         ],
         default="PACKED",
     )
+    mme_memory_budget: EnumProperty(
+        name="Build Memory",
+        description="How much memory effect analysis may use for temporary arrays while building. Lower settings build large effects in smaller batches: slower, same result",
+        items=[
+            ("LOW", "Low", "Small batches; for machines with 8-16 GB of RAM"),
+            ("BALANCED", "Balanced", "Default batches"),
+            ("HIGH", "High", "Large batches; fastest on machines with plenty of RAM"),
+        ],
+        default="BALANCED",
+    )
     mme_bake_dir: StringProperty(
         name="Bake Folder",
         description="Folder for effect bakes stored on disk",

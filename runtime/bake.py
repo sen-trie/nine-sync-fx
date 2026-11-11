@@ -78,7 +78,7 @@ def mme_bake_pass(context, obj, start, end, settings, force=False):
         _mme_state["only"] = None
     if "FINISHED" not in result:
         return _fail(context, obj, "Blender returned %s" % sorted(result), started)
-    ok, detail_text = mme_bake_storage(obj, settings)
+    ok, detail_text = mme_bake_storage(obj, settings, (start, end))
     if ok is False:
         return _fail(context, obj, "bake finished but %s" % detail_text, started)
     obj[MME_BAKED_PROP] = True

@@ -32,6 +32,7 @@ class NINESYNC_FX_PT_main(Panel):
         col.prop(settings, "mme_backend")
         col.prop(settings, "mme_density", slider=True)
         col.prop(settings, "mme_tolerance")
+        col.prop(settings, "mme_memory_budget")
         col.prop(settings, "mme_auto_rebuild")
         col.prop(settings, "mme_log_detail")
         precull = col.row(align=True)

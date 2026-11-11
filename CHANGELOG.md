@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1
+
+- Lower peak build memory. Baked effects use less memory per frame, vertex shader inputs are no longer stored with the bake.
+- Build Memory: Low trades build time for less RAM.
+
 ## 0.5.0
 
 - Incremental rebuilds: Rebuild Changed Effects rebuilds only passes that were changed.

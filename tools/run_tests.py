@@ -32,6 +32,8 @@ BLENDER = [
     ("library", (), ()),
     ("manual_controls", (), (THUNDER,)),
     ("thunder_rings", (), ()),
+    ("strip_stream", (), ()),
+    ("incremental", (), ()),
     ("plain_fixture", (), ()),
     ("x_importer", (), ()),
     ("mixed", (), ()),

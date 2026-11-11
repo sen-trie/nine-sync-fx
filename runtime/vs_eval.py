@@ -1,5 +1,6 @@
 import numpy as np
 
+from ..common.constants import MME_MEMORY_BUDGETS
 from ..common.controls import mme_load_controls
 from ..fx.entry import (
     fx_entry,
@@ -57,6 +58,11 @@ class MmePassData:
             )
             self.converted[dtype] = found
         return found
+
+
+# Batch sizes of the memory budget chosen for the build that is running.
+def mme_budget(runtime):
+    return MME_MEMORY_BUDGETS.get(getattr(runtime, "memory_budget", "BALANCED"), MME_MEMORY_BUDGETS["BALANCED"])
 
 
 # Names of globals bound to the accessory's own opacity (tr), which pruning varies to find vertices that only

@@ -131,6 +131,7 @@ def mme_finish_pass(obj, runtime, draw, root, scene, counts, density, mat, varyi
 # evaluated by numpy each frame.
 def mme_build_pass(runtime, draw, state, root, collection, unit, density, label, backend="GEONODES", scene=None):
     scene = scene or bpy.context.scene
+    runtime.memory_budget = getattr(scene.ninesync_fx, "mme_memory_budget", "BALANCED")
     analysis_started = time.time()
     geometry = mme_pass_geometry(runtime, draw, density)
     if geometry is None:

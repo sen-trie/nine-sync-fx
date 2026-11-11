@@ -32,6 +32,7 @@ from ..common.log import log
 from ..common.scene_utils import scene_fps
 from ..fx.params import fx_vs_globals
 from ..xfile.textures import resolve_x_texture
+from .bake_paths import mme_disk_frames
 from .drivers import mme_handler_uniforms
 
 MME_TRANSFORM_PATHS = (
@@ -411,8 +412,10 @@ def mme_bake_inputs(obj, root, scene, settings):
 
 
 # Whether Blender still holds the bake this pass recorded. Returns (True, ...) when confirmed, (False, reason) when it is
-# known to be missing or stored somewhere else, and (None, ...) when this Blender exposes nothing to ask.
-def mme_bake_storage(obj, settings):
+# known to be missing or stored somewhere else, and (None, ...) when this Blender exposes nothing to ask. A disk bake is
+# checked frame by frame in the pass's own folder: Blender 5.3 reports a finished bake even when it could not resolve
+# the folder and fell back to packed storage.
+def mme_bake_storage(obj, settings, frames=None):
     modifier = obj.modifiers.get(MME_GN_MODIFIER)
     if modifier is None or not len(modifier.bakes):
         return False, "no bake node"
@@ -421,17 +424,18 @@ def mme_bake_storage(obj, settings):
         if hasattr(bake, name):
             ok = bool(getattr(bake, name))
             return ok, "Blender reports %s=%s" % (name, ok)
-    recorded = ((mme_read_manifest(obj) or {}).get("bake") or {}).get("target")
+    record = (mme_read_manifest(obj) or {}).get("bake") or {}
+    recorded = record.get("target")
     if recorded and recorded != getattr(modifier, "bake_target", recorded):
         return False, "bake target is no longer %s" % recorded
     if getattr(modifier, "bake_target", "") == "DISK":
-        folder = bpy.path.abspath(getattr(modifier, "bake_directory", "") or "")
-        if not folder or not os.path.isdir(folder):
-            return False, "bake folder is missing"
-        for _root, _dirs, files in os.walk(folder):
-            if files:
-                return True, "bake folder has files"
-        return False, "bake folder is empty"
+        start, end = frames or record.get("frames") or (None, None)
+        if start is None:
+            return False, "no frame range recorded"
+        found, total, folder = mme_disk_frames(obj, int(start), int(end))
+        if found < total:
+            return False, "only %d of %d frames are stored in %s" % (found, total, folder or "the bake folder")
+        return True, "all %d frames stored on disk" % total
     return None, "packed bake not queryable through the API; recorded state trusted"
 
 

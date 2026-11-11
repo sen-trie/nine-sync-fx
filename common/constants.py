@@ -259,6 +259,11 @@ MME_ATTR_NRM = "mme_n"
 MME_ATTR_UV = "mme_uv"
 
 
+# Mesh attributes only the vertex shader reads; Geometry Nodes passes drop them before the Bake node. The source index
+# and loop instance stay: they identify each output vertex, which backend comparisons rely on.
+MME_SHADER_ONLY_ATTRS = (MME_ATTR_POS, MME_ATTR_NRM, MME_ATTR_UV)
+
+
 MME_REBUILD_DELAY = 0.6
 
 
@@ -326,6 +331,22 @@ MME_STRIP_CACHE_VERSION = 2
 
 
 MME_ANALYSIS_DTYPE = np.float32
+
+
+# Memory budgets for build analysis: vertices per shader batch in pre-cull and in strip analysis, bytes per scoring
+# block, and whether large strip buffers are file-backed. They bound the temporary arrays of the analysis; Blender's
+# own memory and the built meshes come on top. Every budget gives the same result.
+MME_MEMORY_BUDGETS = {
+    "LOW": {"precull": 262144, "strips": 65536, "block": 64 << 20, "spill": True},
+    "BALANCED": {"precull": 4194304, "strips": 262144, "block": 256 << 20, "spill": False},
+    "HIGH": {"precull": 1 << 40, "strips": 1048576, "block": 1024 << 20, "spill": False},
+}
+
+
+MME_SPILL_FOLDER = "ninesync_fx_buffers"
+
+
+MME_SPILL_MIN_BYTES = 32 << 20
 
 
 MME_PRECULL_VERSION = 2

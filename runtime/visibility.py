@@ -24,6 +24,7 @@ from .variants import (
 )
 from .vs_eval import (
     MmePassData,
+    mme_budget,
     mme_clip_culled,
     mme_run_vs,
 )
@@ -132,9 +133,14 @@ def mme_visibility_runs(runtime, data, state, tr_names, gates):
 # Vertices already settled drop out of later runs, and a state equal to an evaluated one on every global that
 # one read is skipped: the shader is deterministic, so it would give the same answer. Returns the global names
 # the shader read, used to narrow cache keys.
+# A pass larger than the memory budget's batch is evaluated in fixed ranges of its vertices, each with its own
+# texture memo, so a later state still finds the samples of the same vertices from an earlier one.
 def mme_evaluate_visibility(runtime, data, runs, tr_names, gates, keep, opened, label=""):
     pending = np.arange(data.count)
     subset = data
+    cap = mme_budget(runtime)["precull"]
+    batched = data.count > cap
+    memos = {}
     reads = set()
     seen = {}
     skipped = 0
@@ -149,23 +155,38 @@ def mme_evaluate_visibility(runtime, data, runs, tr_names, gates, keep, opened, 
         if any(mme_condition_key(condition, read, runtime.program) in keys for read, keys in seen.items()):
             skipped += 1
             continue
-        outputs, ex = mme_run_vs(runtime, subset, probe, MME_ANALYSIS_DTYPE)
-        read = frozenset(getattr(ex.env, "reads", set()))
+        read = set()
+        if batched:
+            bounds = np.searchsorted(pending, np.arange(0, data.count + cap, cap))
+            parts = [(k, pending[bounds[k]:bounds[k + 1]]) for k in range(len(bounds) - 1) if bounds[k + 1] > bounds[k]]
+        else:
+            parts = [(0, pending)]
+        for k, lanes in parts:
+            if batched:
+                part = data.subset(lanes, runtime)
+                part.memo = memos.setdefault(k, {})
+            else:
+                part = subset
+            outputs, ex = mme_run_vs(runtime, part, probe, MME_ANALYSIS_DTYPE)
+            read |= getattr(ex.env, "reads", set())
+            count = len(lanes)
+            keep[lanes] |= ~mme_clip_culled(outputs, probe, count)
+            for semantic, c in gates:
+                found = outputs.get(semantic)
+                if found is None or c >= len(found.c):
+                    opened[lanes] = True
+                    continue
+                values = np.broadcast_to(np.asarray(found.c[c]), (count,))
+                opened[lanes] |= ~(np.abs(values) <= MME_GATE_EPS)
+            del part, outputs, ex
+        read = frozenset(read)
         reads |= read
         seen.setdefault(read, set()).add(mme_condition_key(condition, read, runtime.program))
-        count = len(pending)
-        keep[pending] |= ~mme_clip_culled(outputs, probe, count)
-        for semantic, k in gates:
-            found = outputs.get(semantic)
-            if found is None or k >= len(found.c):
-                opened[pending] = True
-                continue
-            values = np.broadcast_to(np.asarray(found.c[k]), (count,))
-            opened[pending] |= ~(np.abs(values) <= MME_GATE_EPS)
         settled = keep[pending] & opened[pending]
         if settled.any():
+            if not batched:
+                subset = data.subset(pending[~settled], runtime, subset, np.flatnonzero(~settled))
             pending = pending[~settled]
-            subset = data.subset(pending, runtime, subset, np.flatnonzero(~settled))
     if skipped:
         log.debug("%svisibility: %d of %d probe state(s) repeated an evaluated one and were skipped", label, skipped, len(runs))
     return reads

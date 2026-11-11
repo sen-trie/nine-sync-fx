@@ -6,6 +6,7 @@ from ..common.constants import (
     MME_GROUP_LABEL,
     MME_LOOP_PREFIX,
     MME_OWNER_PROP,
+    MME_SHADER_ONLY_ATTRS,
     MME_VARYING_PREFIX,
 )
 from ..common.controls import mme_load_controls
@@ -41,6 +42,17 @@ def mme_bake_node(S, geometry):
     bake.bake_items.new("GEOMETRY", "Geometry")
     S.link(geometry, bake.inputs[0])
     return bake.outputs[0]
+
+
+# Removes the per-vertex inputs only the vertex shader reads (source position, normal and UV) before the Bake node. The material reads varyings, loop values and the cull flag only, so the picture is unchanged,
+# while every evaluated and baked frame is smaller: Blender keeps all baked frames of a pass in memory.
+def mme_drop_shader_inputs(S, geometry):
+    for name in MME_SHADER_ONLY_ATTRS:
+        node = S.node("GeometryNodeRemoveAttribute", "drop " + name)
+        node.inputs["Name"].default_value = name
+        S.link(geometry, node.inputs["Geometry"])
+        geometry = node.outputs[0]
+    return geometry
 
 
 # Builds the Geometry Nodes tree for one pass: the vertex shader as an inner group; a top group that makes one
@@ -181,6 +193,8 @@ def mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_a
         for name in loop_attrs:
             var = name[len(MME_LOOP_PREFIX):]
             store(name, S.cache.get(("loopvar", var), 0.0))
+        T.statement("Drop vertex shader inputs the material never reads")
+        geometry = mme_drop_shader_inputs(S, geometry)
         T.statement("Output")
         geometry = mme_bake_node(S, geometry)
         group_out = T.new("NodeGroupOutput")

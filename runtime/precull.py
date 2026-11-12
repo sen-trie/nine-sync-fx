@@ -1,5 +1,6 @@
 import hashlib
 import json
+import bpy
 import numpy as np
 import os
 
@@ -7,28 +8,31 @@ from ..common.constants import (
     MME_PRECULL_GROUPS,
     MME_PRECULL_VERSION,
 )
+from ..common.digest import file_digest
 from ..common.log import log
-from ..fx.loader import fx_files_stamp
+from .manifest import mme_texture_digest
 from .cache_store import (
+    mme_cache_count,
     mme_cache_path,
     mme_cache_touch,
     mme_cache_trim,
 )
 
 
-# Cache file for one pass, keyed by the effect and .x file stamps, pass identity, used vertices, gates and
-# instance count, so any change selects a new file.
+# Cache file for one pass, keyed by the contents of the effect files, the .x and the textures the effect names (a vertex shader
+# can sample them), the Blender version, pass identity, used
+# vertices, gates and instance count, so any change selects a new file and a copy of the same files elsewhere shares it.
 def mme_precull_file(runtime, draw, used, gates, extra):
-    stamp = fx_files_stamp(runtime.program.files) or ()
-    try:
-        st = os.stat(runtime.x_path)
-        xstamp = (os.path.abspath(runtime.x_path), st.st_size, st.st_mtime_ns)
-    except OSError:
+    stamp = tuple(file_digest(name) for name in runtime.program.files)
+    xstamp = file_digest(runtime.x_path)
+    if "missing" in stamp or xstamp == "missing":
         return None
     text = repr((
         MME_PRECULL_VERSION,
+        tuple(bpy.app.version),
         stamp,
         xstamp,
+        mme_texture_digest(runtime),
         draw.technique.name,
         draw.fx_pass.name,
         draw.subset,
@@ -45,6 +49,7 @@ def mme_precull_file(runtime, draw, used, gates, extra):
 def mme_precull_load(path, per):
     empty = {"groups": {}, "reads": None}
     if path is None or not os.path.isfile(path):
+        mme_cache_count("precull", False)
         return empty
     try:
         with np.load(path, allow_pickle=False) as data:
@@ -59,6 +64,7 @@ def mme_precull_load(path, per):
     except (OSError, ValueError, KeyError):
         return empty
     mme_cache_touch(path)
+    mme_cache_count("precull", bool(groups))
     return {"groups": groups, "reads": meta.get("reads")}
 
 

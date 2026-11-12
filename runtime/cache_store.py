@@ -1,7 +1,10 @@
+import bpy
 import os
 import tempfile
 
 from ..common.constants import (
+    ADDON_PACKAGE,
+    MME_BAKE_STORE_LIMIT,
     MME_CACHE_FOLDER,
     MME_CACHE_LIMIT,
     MME_CACHE_LEGACY_FOLDER,
@@ -10,13 +13,47 @@ from ..common.log import log
 from ..nodes.library_store import mme_user_folder
 
 
-# Pre-cull, strip and geometry caches live beside the user's node library (the extension's user folder), so a
-# temp clean-up does not bring back cold builds; the system temp folder is the fallback without one.
+def _preferences():
+    try:
+        entry = bpy.context.preferences.addons.get(ADDON_PACKAGE)
+    except (AttributeError, RuntimeError):
+        return None
+    return entry.preferences if entry is not None else None
+
+
+# Pre-cull, strip and geometry caches live in the folder set in the add-on preferences (so the standalone and the bundled
+# add-on can share one), otherwise beside the user's node library, so a temp clean-up does not bring back cold builds; the
+# system temp folder is the fallback without one.
 def mme_cache_folder():
+    prefs = _preferences()
+    custom = getattr(prefs, "cache_dir", "") if prefs is not None else ""
+    if custom:
+        return os.path.normpath(bpy.path.abspath(custom))
     base = mme_user_folder()
     if base:
         return os.path.join(base, MME_CACHE_FOLDER)
     return os.path.join(tempfile.gettempdir(), MME_CACHE_LEGACY_FOLDER)
+
+
+def mme_cache_limit():
+    prefs = _preferences()
+    megabytes = getattr(prefs, "cache_limit_mb", 0) if prefs is not None else 0
+    return megabytes << 20 if megabytes else MME_CACHE_LIMIT
+
+
+def mme_bake_limit():
+    prefs = _preferences()
+    megabytes = getattr(prefs, "bake_limit_mb", 0) if prefs is not None else 0
+    return megabytes << 20 if megabytes else MME_BAKE_STORE_LIMIT
+
+
+# Hits and misses per cache kind this session, for the benchmark and the log.
+CACHE_STATS = {}
+
+
+def mme_cache_count(kind, hit):
+    entry = CACHE_STATS.setdefault(kind, [0, 0])
+    entry[0 if hit else 1] += 1
 
 
 def mme_cache_path(name):
@@ -54,7 +91,8 @@ def mme_cache_touch(path):
 
 
 # Keeps the cache folder under MME_CACHE_LIMIT bytes by deleting the least recently used files.
-def mme_cache_trim(limit=MME_CACHE_LIMIT):
+def mme_cache_trim(limit=None):
+    limit = mme_cache_limit() if limit is None else limit
     entries = sorted(mme_cache_entries(mme_cache_folder()))
     total = sum(size for _time, size, _path in entries)
     removed = 0

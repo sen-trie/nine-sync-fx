@@ -60,7 +60,7 @@ def mme_drop_shader_inputs(S, geometry):
 # runs the shader, maps clip space back to object space, collapses culled vertices and stores
 # culled/varying/loop values as attributes for the material.
 # Returns the tree, its drivers and defaults, and the node count.
-def mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_attrs, scene):
+def mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_attrs, scene, empty_at_zero_tr=False):
     program = runtime.program
     function, args = fx_entry(program, draw.fx_pass.vs)
     if function is None:
@@ -195,6 +195,16 @@ def mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_a
             store(name, S.cache.get(("loopvar", var), 0.0))
         T.statement("Drop vertex shader inputs the material never reads")
         geometry = mme_drop_shader_inputs(S, geometry)
+        if empty_at_zero_tr:
+            T.statement("Empty geometry while Tr is 0 (proved when the pass was built)")
+            tr = S.object_items(root, "tr", "", 1, False)[0]
+            off = S.node("FunctionNodeCompare", "Tr <= 0", data_type="FLOAT", operation="LESS_EQUAL")
+            T.feed(off.inputs["A"], tr)
+            off.inputs["B"].default_value = 0.0
+            switch = S.node("GeometryNodeSwitch", "Hide at Tr = 0", input_type="GEOMETRY")
+            S.link(off.outputs[0], switch.inputs["Switch"])
+            S.link(geometry, switch.inputs["False"])
+            geometry = switch.outputs[0]
         T.statement("Output")
         geometry = mme_bake_node(S, geometry)
         group_out = T.new("NodeGroupOutput")

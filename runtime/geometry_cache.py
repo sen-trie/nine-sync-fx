@@ -4,24 +4,25 @@ import numpy as np
 import os
 
 from ..common.constants import MME_CORE_VERSION
+from ..common.digest import file_digest
 from ..common.log import log
 from ..xfile.cache import parse_x_bytes
 from ..xfile.geometry import x_effect_geometry
 from ..xfile.model import XMaterial
 from .cache_store import (
+    mme_cache_count,
     mme_cache_folder,
     mme_cache_touch,
     mme_cache_trim,
 )
 
 
-# Cache location keyed by path, size, modified time and core version, so a changed .x or a new add-on version
-# never reads stale data.
+# Cache location keyed by the file's content and the core version, so a changed .x or a new add-on version never reads
+# stale data, while a copy of the same .x in another folder or project reuses it.
 def mme_geometry_cache_file(x_path):
-    st = os.stat(x_path)
-    text = "%s|%d|%d|%d" % (os.path.abspath(x_path), st.st_size, int(st.st_mtime * 1000), MME_CORE_VERSION)
+    text = "%s|%d" % (file_digest(x_path), MME_CORE_VERSION)
     folder = mme_cache_folder()
-    return folder, os.path.join(folder, hashlib.md5(text.encode("utf-8")).hexdigest() + ".npz")
+    return folder, os.path.join(folder, "x_" + hashlib.md5(text.encode("utf-8")).hexdigest() + ".npz")
 
 
 # Merged effect geometry for an .x file, from the on-disk cache when present. Parsing and merging a large .x
@@ -41,6 +42,7 @@ def mme_x_effect_geometry(x_path):
                     at += size
                 materials = [XMaterial(**m) for m in json.loads(str(data["materials"]))]
                 mme_cache_touch(cache)
+                mme_cache_count("x", True)
                 return "txt", (
                     data["positions"].copy(),
                     data["normals"].copy(),
@@ -51,6 +53,7 @@ def mme_x_effect_geometry(x_path):
                 )
         except (OSError, ValueError, KeyError, TypeError) as error:
             log.debug("geometry cache %s unreadable: %s", cache, error)
+    mme_cache_count("x", False)
     with open(x_path, "rb") as handle:
         xscene = parse_x_bytes(handle.read())
     if xscene.mode != "txt":

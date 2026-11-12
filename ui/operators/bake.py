@@ -44,7 +44,7 @@ class NINESYNC_FX_OT_bake_effects(Operator):
             return {"CANCELLED"}
         frame = scene.frame_current
         done = 0
-        counts = {"baked": 0, "skipped": 0, "failed": 0}
+        counts = {"baked": 0, "skipped": 0, "shared": 0, "failed": 0}
         started = time.time()
         if not self.clear:
             mme_progress_begin(context, "NineSync baking", len(passes), scene.frame_start, scene.frame_end)
@@ -66,9 +66,10 @@ class NINESYNC_FX_OT_bake_effects(Operator):
             self.report({"INFO"}, "Cleared %d effect bake(s)" % done)
         else:
             log.info(
-                "[NineSync FX] bake summary: %d pass(es); bake reused=%d rebaked=%d failed=%d; frames %d-%d; elapsed=%.1fs",
+                "[NineSync FX] bake summary: %d pass(es); bake reused=%d shared=%d rebaked=%d failed=%d; frames %d-%d; elapsed=%.1fs",
                 len(passes),
                 counts["skipped"],
+                counts["shared"],
                 counts["baked"],
                 counts["failed"],
                 scene.frame_start,
@@ -77,8 +78,8 @@ class NINESYNC_FX_OT_bake_effects(Operator):
             )
             self.report(
                 {"WARNING" if counts["failed"] else "INFO"},
-                "Baked %d, reused %d, failed %d of %d effect pass(es), frames %d-%d, in %.1fs"
-                % (counts["baked"], counts["skipped"], counts["failed"], len(passes), scene.frame_start, scene.frame_end, time.time() - started),
+                "Baked %d, reused %d, shared %d, failed %d of %d effect pass(es), frames %d-%d, in %.1fs"
+                % (counts["baked"], counts["skipped"], counts["shared"], counts["failed"], len(passes), scene.frame_start, scene.frame_end, time.time() - started),
             )
         redraw_all()
         return {"FINISHED"}

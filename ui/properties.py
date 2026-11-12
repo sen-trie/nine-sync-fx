@@ -155,6 +155,16 @@ class NineSyncFXSettings(PropertyGroup):
         default="//mme_bake/",
         subtype="DIR_PATH",
     )
+    mme_bake_pass_folders: BoolProperty(
+        name="Folder per Pass",
+        description="Store each effect pass's disk bake in its own folder, named by the .blend file and the pass, so copies of the file never overwrite each other's bakes and rebuilt passes leave no stale bake behind",
+        default=False,
+    )
+    mme_bake_shared: BoolProperty(
+        name="Share Bakes",
+        description="Keep disk bakes in the shared cache, named by what they were baked from, so another project or file with the same effect and animation reuses them instead of baking again. Stored in the cache folder from the add-on preferences, not beside the .blend",
+        default=False,
+    )
     retime_fps: BoolProperty(
         name="Retime to Scene FPS",
         description="PMM keyframes are 30 fps. Scale every key frame by scene fps / 30 so motion keeps its real speed in a scene with a different frame rate",

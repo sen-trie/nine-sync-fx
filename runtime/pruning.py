@@ -270,3 +270,50 @@ def mme_compact(src, faces):
     new_index = -np.ones(len(src), dtype=np.int64)
     new_index[alive] = np.arange(int(alive.sum()))
     return alive, [tuple(int(new_index[v]) for v in face) for face in faces]
+
+
+# Whether the blend state makes a pixel of alpha 0 contribute nothing: standard source-alpha blending, added with ONE or
+# inverse source alpha. Opaque, multiply and other states ignore alpha, so alpha 0 proves nothing there.
+def mme_alpha_scaled(states):
+    def state(name, default):
+        value = states.get(name)
+        return default if value is None else str(value).replace(" ", "").upper()
+
+    return (
+        state("alphablendenable", "TRUE") not in ("FALSE", "0")
+        and state("srcblend", "SRCALPHA") == "SRCALPHA"
+        and state("destblend", "INVSRCALPHA") in ("INVSRCALPHA", "ONE")
+        and state("blendop", "ADD") in ("ADD", "1")
+    )
+
+
+# Decides whether a pass that reads the accessory's opacity draws nothing at Tr = 0, by two tests: every vertex is clipped
+# when the vertex shader runs with Tr = 0, or the pixel shader returns alpha 0 for random inputs (several seeds) under a
+# blend state where alpha 0 draws nothing. Returns the reason, or "" when neither holds (or anything fails), so only
+# passes that pass a test ever get the Tr = 0 switch.
+def mme_empty_at_zero_tr(runtime, draw, state, data, vs_outputs, tr_names, instances):
+    if not tr_names:
+        return ""
+    probe = mme_prune_state(state)
+    for name in tr_names:
+        probe.controls[name] = [0.0]
+    try:
+        keep = np.zeros(data.count, dtype=bool)
+        opened = np.ones(data.count, dtype=bool)
+        mme_evaluate_visibility(runtime, data, [(probe, 0.0)], tr_names, (), keep, opened)
+        if not keep.any():
+            return "every vertex is clipped at Tr = 0"
+        if draw.fx_pass.ps is None or not mme_alpha_scaled(draw.fx_pass.states) or not vs_outputs:
+            return ""
+        count = MME_GATE_PROBES
+        for seed in (11, 23, 37):
+            rng = np.random.default_rng(seed)
+            base = {sem: [rng.uniform(0.0, 1.0, count) for _ in range(n)] for sem, n in vs_outputs.items()}
+            inst = rng.integers(0, max(1, instances), count)
+            alpha = mme_ps_numpy_alpha(runtime, draw, probe, base, mme_loop_values(draw, inst, 1.0), count)
+            if alpha is None or (alpha > MME_GATE_ALPHA).any():
+                return ""
+        return "alpha is 0 at Tr = 0"
+    except Exception as error:
+        log.debug("Tr = 0 proof for %s failed: %s", draw.fx_pass.name, error)
+        return ""

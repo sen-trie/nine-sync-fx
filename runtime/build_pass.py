@@ -49,6 +49,7 @@ from .mesh_build import (
 from .precull import mme_precull_file
 from .progress import mme_progress_within
 from .pruning import (
+    mme_empty_at_zero_tr,
     mme_alpha_gates,
     mme_compact,
     mme_grow_faces,
@@ -213,7 +214,12 @@ def mme_build_pass(runtime, draw, state, root, collection, unit, density, label,
         mme_progress_within(0.9, "node tree")
         try:
             started = time.time()
-            tree, drivers, defaults, node_count = mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_attrs, scene)
+            mark = time.time()
+            empty_reason = mme_empty_at_zero_tr(runtime, draw, state, data, probe_varyings, tr_names, instances)
+            stage["alpha"] += time.time() - mark
+            if empty_reason:
+                log.info("effect pass %s: empty while Tr = 0 (%s)", label, empty_reason)
+            tree, drivers, defaults, node_count = mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_attrs, scene, bool(empty_reason))
         except FxError as error:
             log.warning("effect pass %s: vertex shader cannot run in Geometry Nodes (%s); using the Python backend", label, error)
             return mme_build_pass(runtime, draw, state, root, collection, unit, density, label, "PYTHON", scene)

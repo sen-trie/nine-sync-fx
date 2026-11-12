@@ -24,6 +24,11 @@ class NINESYNC_FX_PT_bake(Panel):
         layout.prop(settings, "mme_bake_target", text="Store")
         if settings.mme_bake_target == "DISK":
             layout.prop(settings, "mme_bake_dir", text="")
+            layout.prop(settings, "mme_bake_shared")
+            if settings.mme_bake_shared:
+                layout.operator("ninesync_fx.clear_precull", text="Clear Shared Bakes", icon="TRASH").bakes = True
+            if not settings.mme_bake_shared:
+                layout.prop(settings, "mme_bake_pass_folders")
         row = layout.row(align=True)
         row.operator("ninesync_fx.bake_effects", text="Bake Changed", icon="RENDER_ANIMATION")
         clear = row.operator("ninesync_fx.bake_effects", text="Clear All", icon="TRASH")

@@ -33,6 +33,8 @@ BLENDER = [
     ("manual_controls", (), (THUNDER,)),
     ("thunder_rings", (), ()),
     ("strip_stream", (), ()),
+    ("tr_zero", (), ()),
+    ("bake_store", (), ()),
     ("incremental", (), ()),
     ("plain_fixture", (), ()),
     ("x_importer", (), ()),

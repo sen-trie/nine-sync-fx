@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.2
+
+- Store bakes on disk: baked effects can be kept in a shared on-disk store, so other projects with the same effect and animation reuse them.
+
 ## 0.5.1
 
 - Lower peak build memory. Baked effects use less memory per frame, vertex shader inputs are no longer stored with the bake.

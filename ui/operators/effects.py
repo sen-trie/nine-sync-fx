@@ -13,6 +13,7 @@ from ...common.state import (
     _mme_state,
 )
 from ...runtime.build_effect import mme_rebuild_effect
+from ...runtime.bake_store import mme_store_clear
 from ...runtime.cache_store import mme_cache_clear
 from ...runtime.params import mme_reset_params
 from ...runtime.progress import mme_target_roots
@@ -53,7 +54,12 @@ class NINESYNC_FX_OT_clear_precull(Operator):
     bl_label = "Clear Effect Caches"
     bl_description = "Delete the effect caches: never-drawn vertices, simplified strips and parsed .x geometry. The next rebuild analyses each effect from scratch"
 
+    bakes: BoolProperty(options={"HIDDEN", "SKIP_SAVE"}, description="Delete the shared bake store instead; projects that use those bakes bake again")
+
     def execute(self, context):
+        if self.bakes:
+            self.report({"INFO"}, "Removed %d shared bake(s)" % mme_store_clear())
+            return {"FINISHED"}
         removed = mme_cache_clear()
         self.report({"INFO"}, "Removed %d effect cache file(s)" % removed)
         return {"FINISHED"}

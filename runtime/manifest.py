@@ -8,6 +8,8 @@ import time
 from ..common.animation import iter_fcurves
 from ..common.constants import (
     MME_BACKEND_PROP,
+    MME_BAKE_STORE_VERSION,
+    MME_CORE_VERSION,
     MME_BAKED_PROP,
     MME_GN_MODIFIER,
     MME_MANIFEST_PROP,
@@ -188,6 +190,10 @@ def mme_write_manifest(obj, manifest):
     obj[MME_MANIFEST_PROP] = canonical(manifest)
 
 
+def mme_texture_digest(runtime):
+    return digest(_texture_files(runtime))
+
+
 def _texture_files(runtime):
     out = {}
     for g in runtime.program.globals.values():
@@ -361,7 +367,11 @@ def mme_bake_inputs(obj, root, scene, settings):
     if manifest is None or inputs["build"] is None:
         unverifiable.append("build manifest")
     if settings.mme_bake_target == "DISK":
-        inputs["directory"] = digest(settings.mme_bake_dir)
+        if getattr(settings, "mme_bake_shared", False):
+            inputs["layout"] = "shared"
+        else:
+            inputs["directory"] = digest(settings.mme_bake_dir)
+            inputs["layout"] = "pass" if getattr(settings, "mme_bake_pass_folders", False) else "modifier"
     _add_chain(inputs, unverifiable, obj, root)
     modifier = obj.modifiers.get(MME_GN_MODIFIER)
     anim = obj.animation_data
@@ -409,6 +419,19 @@ def mme_bake_inputs(obj, root, scene, settings):
     if unverifiable:
         inputs["unverifiable"] = sorted(set(unverifiable))
     return inputs
+
+
+# Address of a bake in the shared store: the bake inputs with everything that is only a place or a name left out (bake folder,
+# layout, the pass and root object names), plus the Blender, add-on and store versions, so the same effect baked over the same
+# frames from the same animation gets the same address in any project and in either add-on. None when an input cannot be
+# verified, which never shares.
+def mme_portable_bake_sig(obj, root, inputs):
+    if inputs.get("unverifiable"):
+        return None
+    text = canonical({name: value for name, value in inputs.items() if name not in ("directory", "layout", "target")})
+    for name, token in sorted(((obj.name, "<pass>"), (root.name, "<root>")), key=lambda item: -len(item[0])):
+        text = text.replace(name, token)
+    return digest([text, list(bpy.app.version), MME_CORE_VERSION, MME_BAKE_STORE_VERSION])
 
 
 # Whether Blender still holds the bake this pass recorded. Returns (True, ...) when confirmed, (False, reason) when it is

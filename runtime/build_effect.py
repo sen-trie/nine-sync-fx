@@ -39,6 +39,7 @@ from ..fx.params import (
 )
 from ..nodes.standard_groups import mme_save_core_library
 from .build_pass import mme_build_pass
+from .bake_paths import mme_drop_pass_bake
 from .cleanup import remove_accessory_children_single
 from .controls_resolve import mme_apply_manual_controls
 from .frame_state import mme_frame_state
@@ -166,6 +167,7 @@ def mme_build_effect(scene, collection, settings, acc, root, x_path, fx_path, un
             own = None
             if old is not None:
                 own = mme_capture_pass(old)
+                mme_drop_pass_bake(old)
                 remove_accessory_children_single(old)
                 existing.pop(key, None)
             started = time.time()
@@ -189,6 +191,7 @@ def mme_build_effect(scene, collection, settings, acc, root, x_path, fx_path, un
         for key, old in list(existing.items()):
             if key not in produced:
                 mme_log_action("REMOVE", old.name, "draw is no longer planned or draws nothing", old.get(MME_BACKEND_PROP, ""))
+                mme_drop_pass_bake(old)
                 remove_accessory_children_single(old)
                 report["removed"] += 1
     finally:
@@ -270,6 +273,7 @@ def mme_rebuild_effect(scene, root, force=False):
     keyed = {} if force else mme_pass_by_key(root)
     for child in passes:
         if child not in keyed.values():
+            mme_drop_pass_bake(child)
             remove_accessory_children_single(child)
     started = time.time()
     children, _uncovered, _tracks, total = mme_build_effect(

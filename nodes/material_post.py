@@ -4,6 +4,9 @@ from ..common.constants import (
 )
 from .material_env import MME_MODE_LABELS
 
+MME_GAMMA_LABEL = "MMD gamma"
+MME_EMISSION_LABEL = "MMD emission"
+
 
 # Helper to add a Math node with constant or linked inputs.
 def mme_math_node(nodes, op, label, a=None, b=None, clamp=False):
@@ -61,7 +64,7 @@ def mme_shader_post(tree, group_node, mode, x0):
         links.new(visible.outputs[0], scaled.inputs["B"])
         color = scaled.outputs["Result"]
     gamma = put(nodes.new("ShaderNodeGamma"), 640, 80)
-    gamma.label = "MMD gamma"
+    gamma.label = MME_GAMMA_LABEL
     gamma.inputs["Gamma"].default_value = MME_GAMMA
     links.new(color, gamma.inputs["Color"])
     output = nodes.new("ShaderNodeOutputMaterial")
@@ -73,6 +76,7 @@ def mme_shader_post(tree, group_node, mode, x0):
     else:
         emission = put(nodes.new("ShaderNodeEmission"), 860, 80)
         emission.inputs["Strength"].default_value = 1.0
+        emission.label = MME_EMISSION_LABEL
         links.new(gamma.outputs[0], emission.inputs["Color"])
         if mode == "OPAQUE":
             links.new(emission.outputs[0], output.inputs["Surface"])

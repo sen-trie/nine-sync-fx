@@ -3,10 +3,11 @@ import bpy
 from ..common.constants import (
     MME_ATTR_CULL,
     MME_ATTR_INST,
+    MME_BAKE_NODE,
     MME_GROUP_LABEL,
     MME_LOOP_PREFIX,
     MME_OWNER_PROP,
-    MME_SHADER_ONLY_ATTRS,
+    MME_PASS_PREFIX,
     MME_VARYING_PREFIX,
 )
 from ..common.controls import mme_load_controls
@@ -29,6 +30,11 @@ from .geo_groups import (
     MmeGeoScene,
     mme_geo_clip_group,
 )
+from .geo_sprites import (
+    mme_store_outputs,
+    mme_strip_inputs,
+    mme_wrap_pass,
+)
 from .layout import (
     mme_layout,
     mme_prune_tree,
@@ -36,23 +42,14 @@ from .layout import (
 from .socket import MmeSock
 
 
-# Bake node at the end of the tree so Effects > Bake can freeze the result per frame.
+# The pass's one Bake node, named so Effects > Bake can find it among any Bake nodes the user adds. It freezes the result
+# per frame.
 def mme_bake_node(S, geometry):
     bake = S.node("GeometryNodeBake", "Bake (Effects > Bake)")
+    bake.name = MME_BAKE_NODE
     bake.bake_items.new("GEOMETRY", "Geometry")
     S.link(geometry, bake.inputs[0])
     return bake.outputs[0]
-
-
-# Removes the per-vertex inputs only the vertex shader reads (source position, normal and UV) before the Bake node. The material reads varyings, loop values and the cull flag only, so the picture is unchanged,
-# while every evaluated and baked frame is smaller: Blender keeps all baked frames of a pass in memory.
-def mme_drop_shader_inputs(S, geometry):
-    for name in MME_SHADER_ONLY_ATTRS:
-        node = S.node("GeometryNodeRemoveAttribute", "drop " + name)
-        node.inputs["Name"].default_value = name
-        S.link(geometry, node.inputs["Geometry"])
-        geometry = node.outputs[0]
-    return geometry
 
 
 # Builds the Geometry Nodes tree for one pass: the vertex shader as an inner group; a top group that makes one
@@ -60,7 +57,7 @@ def mme_drop_shader_inputs(S, geometry):
 # runs the shader, maps clip space back to object space, collapses culled vertices and stores
 # culled/varying/loop values as attributes for the material.
 # Returns the tree, its drivers and defaults, and the node count.
-def mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_attrs, scene, empty_at_zero_tr=False):
+def mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_attrs, scene, empty_at_zero_tr=False, sprites=False):
     program = runtime.program
     function, args = fx_entry(program, draw.fx_pass.vs)
     if function is None:
@@ -71,6 +68,7 @@ def mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_a
     inner = bpy.data.node_groups.new("MME VS " + label, "GeometryNodeTree")
     inner[MME_OWNER_PROP] = owner
     top = None
+    outer = None
     try:
         needs = {}
         B = MmeGeoBackend(inner)
@@ -100,7 +98,7 @@ def mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_a
         B.statement("vertex shader outputs")
         B.finish(outs)
         inner_inputs = {key: B.input_identifier(key) for key in list(B.inputs)}
-        top = bpy.data.node_groups.new("MME " + label, "GeometryNodeTree")
+        top = bpy.data.node_groups.new(MME_PASS_PREFIX + label, "GeometryNodeTree")
         top[MME_OWNER_PROP] = owner
         top.interface.new_socket("Geometry", in_out="INPUT", socket_type="NodeSocketGeometry")
         top.interface.new_socket("Geometry", in_out="OUTPUT", socket_type="NodeSocketGeometry")
@@ -187,14 +185,13 @@ def mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_a
             geometry = node.outputs[0]
 
         store(MME_ATTR_CULL, culled)
-        for name in varyings:
-            value = MmeSock(vs.outputs[name])
-            store(name, T.select(T.cmp("==", value, value), value, 0.0))
+        if varyings:
+            geometry = mme_store_outputs(S, geometry, list(varyings), [MmeSock(vs.outputs[name]) for name in varyings])
         for name in loop_attrs:
             var = name[len(MME_LOOP_PREFIX):]
             store(name, S.cache.get(("loopvar", var), 0.0))
         T.statement("Drop vertex shader inputs the material never reads")
-        geometry = mme_drop_shader_inputs(S, geometry)
+        geometry = mme_strip_inputs(S, geometry)
         if empty_at_zero_tr:
             T.statement("Empty geometry while Tr is 0 (proved when the pass was built)")
             tr = S.object_items(root, "tr", "", 1, False)[0]
@@ -216,10 +213,14 @@ def mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_a
                 for socket in node.outputs:
                     socket.hide = not socket.is_linked
         mme_layout(top, T.block_of, T.blocks)
-        return top, S.drivers, S.defaults, len(inner.nodes) + len(top.nodes)
+        outer, mapping = mme_wrap_pass(top, "MME " + label, owner, sprites)
+        drivers = [(mapping.get(identifier, identifier), spec) for identifier, spec in S.drivers]
+        defaults = {mapping.get(identifier, identifier): value for identifier, value in S.defaults.items()}
+        return outer, drivers, defaults, len(inner.nodes) + len(top.nodes) + len(outer.nodes)
     except Exception:
-        if top is not None:
-            bpy.data.node_groups.remove(top)
+        for group in (outer, top):
+            if group is not None:
+                bpy.data.node_groups.remove(group)
         bpy.data.node_groups.remove(inner)
         raise
 

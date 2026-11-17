@@ -31,7 +31,7 @@ def build(label, x, fx):
 def switch_of(obj):
     modifier = obj.modifiers.get(mb.MME_GN_MODIFIER)
     group = modifier.node_group if modifier else None
-    return bool(group and any(n.label == "Hide at Tr = 0" for n in group.nodes))
+    return bool(group and any(n.label == "Hide at Tr = 0" for tree in all_trees(group) for n in tree.nodes))
 
 
 def evaluated(obj, frame=None):

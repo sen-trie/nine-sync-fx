@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0
+
+- Each pass is one node group with a `NineSync Bake` node inside it, and baking, restoring and clean-up touch only that node.
+- Exposed particle passes in geometry nodes.
+
 ## 0.5.2
 
 - Store bakes on disk: baked effects can be kept in a shared on-disk store, so other projects with the same effect and animation reuse them.

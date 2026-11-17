@@ -264,6 +264,24 @@ MME_ATTR_UV = "mme_uv"
 MME_SHADER_ONLY_ATTRS = (MME_ATTR_POS, MME_ATTR_NRM, MME_ATTR_UV)
 
 
+# Name of the one Bake node a pass owns. Effects > Bake, cache restoration and clean-up act on this node only, so a Bake
+# node the user adds to the tree is never touched. Older trees named it by label.
+MME_BAKE_NODE = "NineSync Bake"
+
+
+MME_BAKE_NODE_LEGACY_LABEL = "Bake (Effects > Bake)"
+
+
+MME_ATTR_SPRITE = "mme_sprite"
+
+
+MME_PARTICLE_MESH_INPUT = "Particle Mesh"
+MME_EDIT_INPUT = "Enable Instance Editing"
+
+
+MME_PASS_PREFIX = "MME Pass "
+
+
 MME_REBUILD_DELAY = 0.6
 
 

@@ -8,6 +8,7 @@ from ..common.constants import (
     MME_PASS_KEY_PROP,
 )
 from ..common.log import log
+from .bake_node import mme_managed_bake
 
 
 # Blender 5.3 resolves only {blend_name} in a bake directory (object, modifier, node and scene names make it fall back to
@@ -44,9 +45,9 @@ def mme_resolve_bake_path(path):
 # of the modifier folder plus the bake id.
 def mme_pass_bake_folder(obj):
     modifier = obj.modifiers.get(MME_GN_MODIFIER)
-    if modifier is None or not len(modifier.bakes):
+    bake = mme_managed_bake(modifier)
+    if bake is None:
         return ""
-    bake = modifier.bakes[0]
     if bake.use_custom_path:
         return mme_resolve_bake_path(bake.directory)
     base = mme_resolve_bake_path(modifier.bake_directory)
@@ -70,9 +71,10 @@ def mme_disk_frames(obj, start, end):
 def mme_drop_pass_bake(obj):
     modifier = obj.modifiers.get(MME_GN_MODIFIER)
     key = obj.get(MME_PASS_KEY_PROP)
-    if modifier is None or not len(modifier.bakes) or not key or not modifier.bakes[0].use_custom_path:
+    bake = mme_managed_bake(modifier)
+    if bake is None or not key or not bake.use_custom_path:
         return False
-    folder = mme_resolve_bake_path(modifier.bakes[0].directory)
+    folder = mme_resolve_bake_path(bake.directory)
     if not folder or os.path.basename(folder) != key or os.path.basename(os.path.dirname(folder)) != MME_BAKE_LAYOUT_FOLDER:
         return False
     if not os.path.isdir(folder):

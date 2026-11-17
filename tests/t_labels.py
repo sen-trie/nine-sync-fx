@@ -40,7 +40,7 @@ group_nodes = []
 for obj in passes:
     for mod in obj.modifiers:
         if mod.type == "NODES" and mod.node_group is not None:
-            group_nodes += [(mod.node_group, n) for n in mod.node_group.nodes if n.bl_idname == "GeometryNodeGroup" and n.node_tree is not None and n.node_tree.name.startswith("MME VS")]
+            group_nodes += [(tree, n) for tree in all_trees(mod.node_group) for n in tree.nodes if n.bl_idname == "GeometryNodeGroup" and n.node_tree is not None and n.node_tree.name.startswith("MME VS")]
     for slot in obj.material_slots:
         if slot.material is not None and slot.material.node_tree is not None:
             group_nodes += [(slot.material.node_tree, n) for n in slot.material.node_tree.nodes if n.bl_idname == "ShaderNodeGroup" and n.node_tree is not None and n.node_tree.name.startswith("MME PS")]

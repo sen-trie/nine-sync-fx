@@ -15,10 +15,18 @@ def remove_accessory_children(root):
         remove_accessory_children_single(child)
 
 
-# The effect node groups a pass object depends on: its top group and the groups nested in it that carry the
+# The effect node groups a pass object depends on: its top group and the groups nested in it, at any depth, that carry the
 # owner tag. Shared library groups are left alone.
 def mme_pass_groups(obj):
     groups = []
+
+    def collect(tree):
+        for node in tree.nodes:
+            if node.bl_idname == "GeometryNodeGroup" and node.node_tree is not None and node.node_tree.get(MME_OWNER_PROP) is not None:
+                if node.node_tree not in groups:
+                    groups.append(node.node_tree)
+                    collect(node.node_tree)
+
     for modifier in getattr(obj, "modifiers", []):
         if modifier.type != "NODES" or modifier.node_group is None:
             continue
@@ -26,9 +34,7 @@ def mme_pass_groups(obj):
         if top.get(MME_OWNER_PROP) is None:
             continue
         groups.append(top)
-        for node in top.nodes:
-            if node.bl_idname == "GeometryNodeGroup" and node.node_tree is not None and node.node_tree.get(MME_OWNER_PROP) is not None:
-                groups.append(node.node_tree)
+        collect(top)
     return groups
 
 

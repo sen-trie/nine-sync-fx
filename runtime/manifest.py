@@ -34,7 +34,9 @@ from ..common.log import log
 from ..common.scene_utils import scene_fps
 from ..fx.params import fx_vs_globals
 from ..xfile.textures import resolve_x_texture
+from .bake_node import mme_managed_bake
 from .bake_paths import mme_disk_frames
+from .bake_scope import mme_bake_scope
 from .drivers import mme_handler_uniforms
 
 MME_TRANSFORM_PATHS = (
@@ -377,11 +379,16 @@ def mme_bake_inputs(obj, root, scene, settings):
     anim = obj.animation_data
     driven = [fc.data_path for fc in anim.drivers] if anim is not None else []
     group = modifier.node_group if modifier is not None else None
+    graph, reach = mme_bake_scope(modifier)
+    if graph is not None:
+        inputs["graph"] = graph
     if group is not None:
         held = modifier.properties.inputs
         for item in group.interface.items_tree:
             key = getattr(item, "identifier", None)
             if item.item_type != "SOCKET" or item.in_out != "INPUT" or not key:
+                continue
+            if reach is not None and key not in reach:
                 continue
             if any(re.search(r"(?<!\w)%s(?!\w)" % re.escape(key), path) for path in driven):
                 continue
@@ -440,9 +447,9 @@ def mme_portable_bake_sig(obj, root, inputs):
 # the folder and fell back to packed storage.
 def mme_bake_storage(obj, settings, frames=None):
     modifier = obj.modifiers.get(MME_GN_MODIFIER)
-    if modifier is None or not len(modifier.bakes):
+    bake = mme_managed_bake(modifier)
+    if bake is None:
         return False, "no bake node"
-    bake = modifier.bakes[0]
     for name in ("is_baked", "is_bake_valid", "has_baked_data"):
         if hasattr(bake, name):
             ok = bool(getattr(bake, name))

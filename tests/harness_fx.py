@@ -49,6 +49,16 @@ class Acc:
     def __init__(self):
         self.name = "Thunder_lv1"; self.keys = [Key(0)]; self.path = XP; self.index = 0
 
+def all_trees(group, seen=None):
+    seen = [] if seen is None else seen
+    if group in seen:
+        return seen
+    seen.append(group)
+    for node in group.nodes:
+        if node.bl_idname == "GeometryNodeGroup" and node.node_tree is not None:
+            all_trees(node.node_tree, seen)
+    return seen
+
 def setup_scene():
     scene = bpy.context.scene
     for o in list(bpy.data.objects):

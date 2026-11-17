@@ -9,6 +9,7 @@ from ..common.constants import (
 from ..common.digest import brief_inputs
 from ..common.log import log
 from ..common.state import _mme_state
+from .bake_node import mme_managed_bake
 from .bake_paths import (
     mme_pass_bake_folder,
     mme_pass_bake_template,
@@ -88,7 +89,8 @@ def _record_bake(obj, settings, sig, inputs, start, end, seconds, shared):
 # Returns "baked", "skipped", "shared" (attached from the store) or "failed".
 def mme_bake_pass(context, obj, start, end, settings, force=False):
     modifier = obj.modifiers.get(MME_GN_MODIFIER)
-    if modifier is None or not len(modifier.bakes):
+    bake = mme_managed_bake(modifier)
+    if bake is None:
         return "failed"
     started = time.time()
     scene = context.scene
@@ -100,7 +102,6 @@ def mme_bake_pass(context, obj, start, end, settings, force=False):
         mme_set_bake_record(obj, stale=False, stale_reason="")
         mme_log_action("SKIP BAKE", obj.name, reason, backend, analysis)
         return "skipped"
-    bake = modifier.bakes[0]
     shared = settings.mme_bake_target == "DISK" and getattr(settings, "mme_bake_shared", False)
     address = mme_portable_bake_sig(obj, obj.parent, inputs) if shared else None
     if address and not force:
@@ -133,6 +134,7 @@ def mme_bake_pass(context, obj, start, end, settings, force=False):
     else:
         modifier.bake_target = "PACKED"
         bake.bake_target = "PACKED"
+    mme_set_bake_record(obj, target=settings.mme_bake_target)
     _mme_state["only"] = {obj.name}
     baking = time.time()
     try:
@@ -167,9 +169,9 @@ def mme_bake_pass(context, obj, start, end, settings, force=False):
 # unlinked: Blender's delete would remove the files other projects read.
 def mme_clear_bake(context, obj):
     modifier = obj.modifiers.get(MME_GN_MODIFIER)
-    if modifier is None or not len(modifier.bakes):
+    bake = mme_managed_bake(modifier)
+    if bake is None:
         return False
-    bake = modifier.bakes[0]
     if mme_in_store(mme_pass_bake_folder(obj)):
         bake.use_custom_path = False
         bake.directory = ""

@@ -22,10 +22,10 @@ from ...common.controls import (
 from ...common.state import _mme_state
 from ..helpers import (
     draw_wrapped,
-    fx_entry_for,
     fx_pass_summary,
     mme_overriding_sources,
 )
+from ...nodes.material_post import MME_EMISSION_LABEL, MME_GAMMA_LABEL
 
 
 # One-line description of a resolved controller for the Controls tab.
@@ -99,13 +99,44 @@ def draw_fx_selected(layout, context, root, active):
         hint.label(text="Greyed: set by %s" % ", ".join(sorted(overriders)), icon="LINKED")
     if structural & set(meta):
         draw_wrapped(layout, "Wrench parameters change the geometry and can be keyframed: the build covers every keyed value, and editing the keys rebuilds the effect.")
+    if active is not None and active.get(MME_DRAW_PROP) and active.parent == root:
+        draw_pass_material(layout, active)
     header, body = layout.panel("ninesync_fx_details", default_closed=False)
     header.label(text="Effect Details", icon="INFO")
     if body is not None:
         draw_fx_details(body, settings, root, active)
-    entry = fx_entry_for(settings, root)
-    if entry is not None:
-        layout.prop(entry, "effect_path", text="Effect File")
+
+
+# Gamma and emission strength of a pass's output stage, edited on the node sockets themselves so the material
+# stays the single source of truth (a rebuild restores the defaults). The diffuse-ray toggle is the object's own
+# visibility flag (Cycles), so the pass can light nearby surfaces when the scene has diffuse bounces.
+def draw_pass_material(layout, obj):
+    if obj.data is None:
+        return
+    info, _backend, _loops, _flags = fx_pass_summary(obj)
+    mats = [m for m in dict.fromkeys(obj.data.materials) if m is not None and m.node_tree is not None]
+    shown = []
+    for mat in mats:
+        nodes = mat.node_tree.nodes
+        gamma = next((n for n in nodes if n.type == "GAMMA" and n.label == MME_GAMMA_LABEL), None)
+        emission = next((n for n in nodes if n.type == "EMISSION" and n.label == MME_EMISSION_LABEL), None)
+        if gamma is not None or emission is not None:
+            shown.append((mat, gamma, emission))
+    if not shown:
+        return
+    pass_name = info.get("pass") or info.get("technique") or obj.name
+    col = layout.column(align=True)
+    col.label(text="Pass Material (%s)" % pass_name, icon="MATERIAL")
+    col.separator(factor=0.4)
+    for mat, gamma, emission in shown:
+        if len(shown) > 1:
+            col.label(text=mat.name)
+        if gamma is not None:
+            col.prop(gamma.inputs["Gamma"], "default_value", text="Gamma")
+        if emission is not None:
+            col.prop(emission.inputs["Strength"], "default_value", text="Emission")
+    col.separator(factor=0.4)
+    col.prop(obj, "visible_diffuse", text="Produce Diffuse Rays")
 
 
 def draw_fx_details(layout, settings, root, active):

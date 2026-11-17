@@ -25,6 +25,7 @@ from ..fx.errors import FxError
 from ..fx.params import fx_vs_globals
 from ..fx.types import fx_is_numeric
 from ..nodes.drivers import mme_set_drivers
+from ..nodes.geo_sprites import mme_is_sprite_mesh
 from ..nodes.geo_tree import (
     mme_bake_only_tree,
     mme_build_geo_tree,
@@ -219,7 +220,8 @@ def mme_build_pass(runtime, draw, state, root, collection, unit, density, label,
             stage["alpha"] += time.time() - mark
             if empty_reason:
                 log.info("effect pass %s: empty while Tr = 0 (%s)", label, empty_reason)
-            tree, drivers, defaults, node_count = mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_attrs, scene, bool(empty_reason))
+            sprites = mme_is_sprite_mesh(runtime.positions[src_one], faces)
+            tree, drivers, defaults, node_count = mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_attrs, scene, bool(empty_reason), sprites)
         except FxError as error:
             log.warning("effect pass %s: vertex shader cannot run in Geometry Nodes (%s); using the Python backend", label, error)
             return mme_build_pass(runtime, draw, state, root, collection, unit, density, label, "PYTHON", scene)

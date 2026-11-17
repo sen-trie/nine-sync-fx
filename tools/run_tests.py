@@ -35,6 +35,7 @@ BLENDER = [
     ("strip_stream", (), ()),
     ("tr_zero", (), ()),
     ("bake_store", (), ()),
+    ("bake_node", (), ()),
     ("incremental", (), ()),
     ("plain_fixture", (), ()),
     ("x_importer", (), ()),

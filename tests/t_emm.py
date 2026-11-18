@@ -137,7 +137,7 @@ done = mb.sync_accessories(ctx)
 col = mb.accessory_collection(scene)
 roots = {e.key: mb.find_accessory_root(col, e.key) for e in settings.accessories}
 off, on = roots["1:synth.x"], roots["0:synth.x"]
-check("sync: both imported", done == 2 and off is not None and on is not None)
+check("sync: both imported", done["imported"] == 2 and off is not None and on is not None)
 check("sync: 'none' accessory built no effect", not mb.mme_effect_passes(off) and not off.get("mme_fx"))
 check("sync: assigned accessory built its effect", len(mb.mme_effect_passes(on)) > 0)
 print("FAILED: %s" % (", ".join(failed) if failed else "none"))

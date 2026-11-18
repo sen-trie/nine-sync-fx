@@ -3,6 +3,7 @@
 ## 0.7.0
 
 - Upgrading: every existing bake reads as stale once after this update and is rebaked on the next bake or sync (this is not backward-compatible bake reuse), and the accessory key record becomes version 2. Bakes made by 0.7.0 are shared and reused as before.
+- The NineSyncLog text block saved in the .blend now shows the home folder as `~` (for example `~\Projects\song.pmm`), so the account name is not stored. Logs saved by earlier versions are not rewritten and may still contain full paths.
 - Not included: library pruning (the second half of the library-size work) is not done yet.
 - A sync after the effect files changed only in modified time or path now goes through the incremental builder: unchanged passes keep their objects and bakes. A replaced pass is removed only after its replacement was built, and a failed rebuild or an unreadable effect keeps the working passes.
 - Bake validity and the shared-store address now include Core-owned animation: Child Of / parent bones and their ancestors, bones read by transform drivers, constraints, and the scene camera and light rig. Every existing bake reads as stale once, then only real changes rebake. Every sync re-checks bakes.

@@ -72,7 +72,7 @@ def mme_quiet_redraw():
 # Starts the shared progress state; returns False if another operation already owns it, so nested operations
 # do not fight over the status bar.
 def mme_progress_begin(context, title, count, start=0, end=0):
-    if _mme_state.get("progress") is not None:
+    if _mme_state.get("progress") is not None or _mme_state.get("integrated"):
         return False
     _mme_state["progress"] = {
         "title": title,

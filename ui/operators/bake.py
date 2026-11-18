@@ -11,6 +11,10 @@ from ...runtime.bake import (
     mme_bake_pass,
     mme_clear_bake,
 )
+from ...runtime.bake_store import (
+    mme_store_batch_begin,
+    mme_store_batch_end,
+)
 from ...runtime.progress import (
     mme_progress_begin,
     mme_progress_end,
@@ -48,6 +52,7 @@ class NINESYNC_FX_OT_bake_effects(Operator):
         started = time.time()
         if not self.clear:
             mme_progress_begin(context, "NineSync baking", len(passes), scene.frame_start, scene.frame_end)
+        mme_store_batch_begin()
         try:
             for index, obj in enumerate(passes):
                 mme_progress_step(index, obj.name)
@@ -61,6 +66,7 @@ class NINESYNC_FX_OT_bake_effects(Operator):
                     log.error("bake of '%s' failed: %s\n%s", obj.name, error, traceback.format_exc())
         finally:
             mme_progress_end()
+            mme_store_batch_end()
         scene.frame_set(frame)
         if self.clear:
             self.report({"INFO"}, "Cleared %d effect bake(s)" % done)

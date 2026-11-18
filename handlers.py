@@ -42,6 +42,8 @@ def mme_frame_handler(scene, depsgraph=None):
         mme_progress_tick(scene.frame_current)
     if _mme_state["busy"]:
         return
+    if _mme_state.get("only") is None and int(hooks.registry()["shared"].get("internal_frames") or 0) > 0:
+        return
     _mme_state["busy"] = True
     try:
         updated = mme_update_scene(scene, depsgraph)

@@ -1,12 +1,16 @@
 import importlib
 import json
 import os
+import traceback
 from .. import hooks
 
 from ..accessories.clean import clean_accessory_objects
 from ..accessories.dependencies import fx_mmd_tools_available
 from ..accessories.mesh import x_importer_available
-from ..accessories.sync import sync_accessories
+from ..accessories.sync import (
+    sync_accessories,
+    sync_accessories_steps,
+)
 from ..common.constants import (
     ADDON_PACKAGE,
     MME_BACKEND_PROP,
@@ -17,12 +21,32 @@ from ..common.controls import (
     mme_effect_passes,
     mme_effect_roots,
 )
+from ..common.log import log
 from ..common.scene_utils import current_scale
 
 
-# Core's post_sync hook: run the accessory sync with core's context.
+# Core's post_sync hook. A core that offers ctx.cancelled drives it as a generator, one step per tick, so Esc is heard between
+# effect passes and the result dict reaches the sync summary; an older core gets the work done in one call and the imported
+# count as an int (API 1 as shipped). Failures never escape: they are logged and returned as a failed count with a warning.
 def post_sync_hook(ctx):
-    return sync_accessories(ctx)
+    if hasattr(ctx, "cancelled"):
+        return guarded_steps(ctx)
+    try:
+        result = sync_accessories(ctx)
+    except Exception as error:
+        log.error("FX sync failed: %s\n%s", error, traceback.format_exc())
+        return 0
+    for warning in result["warnings"]:
+        log.warning("FX sync: %s", warning)
+    return result["imported"]
+
+
+def guarded_steps(ctx):
+    try:
+        return (yield from sync_accessories_steps(ctx))
+    except Exception as error:
+        log.error("FX sync failed: %s\n%s", error, traceback.format_exc())
+        return {"imported": 0, "failed": 1, "warnings": ["FX sync failed: %s" % error]}
 
 
 # Core's clean hook: remove accessories and the standalone entries, which make no sense without their objects.

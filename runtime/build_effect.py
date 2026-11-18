@@ -42,6 +42,7 @@ from .build_pass import mme_build_pass
 from .bake_paths import mme_drop_pass_bake
 from .cleanup import remove_accessory_children_single
 from .controls_resolve import mme_apply_manual_controls
+from .steps import run_steps
 from .frame_state import mme_frame_state
 from .manifest import (
     mme_build_decision,
@@ -75,6 +76,27 @@ from .visibility import (
 from .vs_eval import mme_self_tr_globals
 
 
+# Writes the user library once; a sync holds the writes back with library_batch and saves a single time when it ends, so ten new
+# effects cost one merge and rewrite of the library, not ten. The library keeps its lock, backup and atomic replace.
+def mme_save_library():
+    try:
+        count = mme_save_core_library()
+        log.info("%s updated: %d shared group(s)", MME_CORE_FILE, count)
+    except (OSError, RuntimeError) as error:
+        log.warning("%s could not be updated: %s", MME_CORE_FILE, error)
+
+
+def mme_library_batch_begin():
+    _mme_state["library_batch"] = False
+
+
+def mme_library_batch_end():
+    dirty = _mme_state.get("library_batch")
+    _mme_state["library_batch"] = None
+    if dirty:
+        mme_save_library()
+
+
 # Builds a whole effect on a root: syncs parameters and controls, samples keyed variants, then reconciles every
 # geometry draw without a render target with the pass objects in 'existing' (by logical pass key). A pass whose
 # build signature is unchanged keeps its object, node tree and bake; a changed one is replaced alone; a draw that
@@ -82,7 +104,15 @@ from .vs_eval import mme_self_tr_globals
 # Passes that fail are skipped. Shared groups are saved to the library if new ones were built and autosave is
 # on. The runtime's build_report lists reused, built, removed and failed passes.
 # Returns the pass objects, the uncovered material subsets and the number of draws.
-def mme_build_effect(scene, collection, settings, acc, root, x_path, fx_path, unit, controls, existing=None, force=False):
+def mme_build_effect(*args, **kwargs):
+    return run_steps(mme_build_effect_steps(*args, **kwargs))
+
+
+# The same build as a generator: it yields (fraction, text) before each pass, between passes, where every pass is either its
+# old self or its finished replacement, so a caller can report progress and stop cleanly.
+# A replaced pass is removed only after its replacement was built; when the replacement fails the working pass stays and the
+# failure is counted in the report.
+def mme_build_effect_steps(scene, collection, settings, acc, root, x_path, fx_path, unit, controls, existing=None, force=False):
     _mme_runtimes.pop(root.name, None)
     program = fx_parse_file(fx_path)
     mme_sync_params(root, program)
@@ -119,7 +149,7 @@ def mme_build_effect(scene, collection, settings, acc, root, x_path, fx_path, un
     library_before = _mme_core["stats"]["library"]
     file_before = _mme_core["stats"]["file"]
     children = []
-    report = {"reused": [], "built": [], "removed": 0, "failed": 0, "empty": 0}
+    report = {"reused": [], "built": [], "removed": 0, "failed": 0, "empty": 0, "kept": [], "errors": []}
     runtime.build_report = report
     existing = {} if existing is None else existing
     scene_controls = mme_load_controls(root)
@@ -140,6 +170,7 @@ def mme_build_effect(scene, collection, settings, acc, root, x_path, fx_path, un
     try:
         for index, draw in enumerate(emitted):
             label = "%s_%s_%s" % (base, draw.technique.name or "tech", draw.fx_pass.name or str(draw.order))
+            yield index / max(len(emitted), 1), "%s: %s" % (base, draw.fx_pass.name or label)
             if owns:
                 mme_progress_step(index, draw.fx_pass.name or label)
             key = mme_pass_key(root, draw, seen)
@@ -164,20 +195,38 @@ def mme_build_effect(scene, collection, settings, acc, root, x_path, fx_path, un
                     report["empty"] += 1
                 mme_log_action(action, label, reason, old.get(MME_BACKEND_PROP, "") if old is not None else "", changes=changes, detail=detail)
                 continue
-            own = None
-            if old is not None:
-                own = mme_capture_pass(old)
-                mme_drop_pass_bake(old)
-                remove_accessory_children_single(old)
-                existing.pop(key, None)
+            own = mme_capture_pass(old) if old is not None else None
             started = time.time()
             try:
                 obj = mme_build_pass(runtime, draw, state, root, collection, unit, density, label, backend, scene)
-            except FxError as error:
-                log.warning("effect pass %s skipped: %s", label, error)
+            except Exception as error:
+                if old is None and not isinstance(error, FxError):
+                    raise
+                if isinstance(error, FxError):
+                    log.warning("effect pass %s skipped: %s", label, error)
+                else:
+                    log.error("effect pass %s failed: %s\n%s", label, error, traceback.format_exc())
                 mme_log_action("FAILED", label, str(error), backend)
                 report["failed"] += 1
+                report["errors"].append("%s: %s" % (label, error))
+                if old is not None:
+                    children.append(old)
+                    produced.add(key)
+                    report["kept"].append(old)
+                    log.warning("effect pass %s: the previous build is kept", label)
                 continue
+            if old is not None:
+                names = (old.name, old.data.name if old.data is not None else "")
+                mme_drop_pass_bake(old)
+                remove_accessory_children_single(old)
+                existing.pop(key, None)
+                if obj is not None:
+                    try:
+                        obj.name = names[0]
+                        if names[1] and obj.data is not None:
+                            obj.data.name = names[1]
+                    except (RuntimeError, ReferenceError):
+                        pass
             if obj is None:
                 empties_now[key] = sig
                 report["empty"] += 1
@@ -211,11 +260,10 @@ def mme_build_effect(scene, collection, settings, acc, root, x_path, fx_path, un
         stats["file"] - file_before,
     )
     if stats["built"] > built_before and settings.mme_core_autosave:
-        try:
-            count = mme_save_core_library()
-            log.info("%s updated: %d shared group(s)", MME_CORE_FILE, count)
-        except (OSError, RuntimeError) as error:
-            log.warning("%s could not be updated: %s", MME_CORE_FILE, error)
+        if _mme_state.get("library_batch") is not None:
+            _mme_state["library_batch"] = True
+        else:
+            mme_save_library()
     covered = {d.subset for d in runtime.draws}
     uncovered = [s for s in range(len(runtime.materials)) if s not in covered]
     offscreen = sorted({d.target for d in runtime.draws if d.target})

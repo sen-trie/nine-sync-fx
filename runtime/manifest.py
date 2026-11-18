@@ -7,6 +7,7 @@ import time
 
 from ..common.animation import iter_fcurves
 from ..common.constants import (
+    LIGHT_COLLECTION,
     MME_BACKEND_PROP,
     MME_BAKE_STORE_VERSION,
     MME_CORE_VERSION,
@@ -31,7 +32,11 @@ from ..common.digest import (
     file_digest,
 )
 from ..common.log import log
-from ..common.scene_utils import scene_fps
+from ..common.scene_utils import (
+    child_of_type,
+    find_rig_root,
+    scene_fps,
+)
 from ..fx.params import fx_vs_globals
 from ..xfile.textures import resolve_x_texture
 from .bake_node import mme_managed_bake
@@ -148,22 +153,223 @@ def mme_add_source(inputs, unverifiable, name, idblock, path):
         unverifiable.append(name)
 
 
-def _add_transform(inputs, unverifiable, role, obj):
+MME_DEPENDENCY_DEPTH = 6
+
+MME_BONE_CHANNELS = ("location", "rotation_quaternion", "rotation_euler", "rotation_axis_angle", "scale", "rotation_mode")
+
+_CONSTRAINT_SKIP = {"influence", "is_valid", "active", "show_expanded", "error_location", "error_rotation"}
+
+
+def _plain_value(value):
+    if isinstance(value, float):
+        return round(value, 6)
+    if value is None or isinstance(value, (bool, int, str)):
+        return value
+    if isinstance(value, bpy.types.ID):
+        return "id:" + value.name
+    try:
+        return [_plain_value(v) for v in value]
+    except TypeError:
+        return str(value)
+
+
+def _struct_values(struct, skip=()):
+    out = []
+    for prop in struct.bl_rna.properties:
+        if prop.identifier in skip or prop.identifier == "rna_type" or prop.type in ("POINTER", "COLLECTION"):
+            continue
+        try:
+            out.append([prop.identifier, _plain_value(getattr(struct, prop.identifier))])
+        except (AttributeError, RuntimeError):
+            continue
+    return out
+
+
+# The one way an external Blender ID that a pass reads (a parent, a constraint or driver target, the camera, the light) enters
+# a dependency set. An object contributes its transform sources with their animation, its parent (and parent bone), its
+# constraints and its drivers, and the helper recurses into everything those point at. An armature with named bones
+# contributes those bones and their ancestors: pose channels with their animation, rest matrices, bone constraints and drivers.
+# Anything that cannot be read, or lies deeper than MME_DEPENDENCY_DEPTH, is listed as unverifiable, which never matches and
+# never shares.
+def mme_dependency_digest(inputs, unverifiable, role, idblock, bones=None, seen=None, depth=0, drivers=True):
+    seen = set() if seen is None else seen
+    if idblock is None:
+        unverifiable.append(role)
+        return
+    token = (idblock.as_pointer(), tuple(sorted(bones or ())))
+    if token in seen:
+        return
+    seen.add(token)
+    if depth > MME_DEPENDENCY_DEPTH:
+        unverifiable.append("%s (too deep)" % role)
+        return
+    if not isinstance(idblock, bpy.types.Object):
+        unverifiable.append(role)
+        return
+    obj = idblock
     for path in MME_TRANSFORM_PATHS:
         mme_add_source(inputs, unverifiable, "%s.%s" % (role, path), obj, path)
-    inputs["%s.parent" % role] = [obj.parent.name if obj.parent else "", obj.parent_type, [list(row) for row in obj.matrix_parent_inverse]]
+    parent_bone = obj.parent_bone if obj.parent_type == "BONE" else ""
+    inputs["%s.parent" % role] = [obj.parent.name if obj.parent else "", obj.parent_type, parent_bone, _plain_value(obj.matrix_parent_inverse)]
+    if obj.parent is not None:
+        mme_dependency_digest(inputs, unverifiable, "%s^" % role, obj.parent, {parent_bone} if parent_bone else None, seen, depth + 1)
+    _dependency_constraints(inputs, unverifiable, role, obj, "", obj.constraints, seen, depth)
+    anim = obj.animation_data
+    if drivers and anim is not None:
+        for fcurve in anim.drivers:
+            if not fcurve.data_path.startswith("pose.bones["):
+                _dependency_driver(inputs, unverifiable, role, fcurve, seen, depth)
+    if obj.type == "ARMATURE" and bones:
+        _dependency_bones(inputs, unverifiable, role, obj, bones, seen, depth)
+
+
+def _dependency_constraints(inputs, unverifiable, role, owner, prefix, constraints, seen, depth):
+    for constraint in constraints:
+        base = "%s.constraint.%s" % (role, constraint.name)
+        inputs[base] = [constraint.type, _struct_values(constraint, _CONSTRAINT_SKIP)]
+        mme_add_source(inputs, unverifiable, base + ".influence", owner, '%sconstraints["%s"].influence' % (prefix, constraint.name))
+        targets = []
+        if hasattr(constraint, "targets"):
+            targets.extend((t.target, getattr(t, "subtarget", "")) for t in constraint.targets)
+        elif hasattr(constraint, "target"):
+            targets.append((constraint.target, getattr(constraint, "subtarget", "")))
+        inputs[base + ".targets"] = [[t.name if t is not None else "", sub] for t, sub in targets]
+        for target, sub in targets:
+            if target is not None:
+                mme_dependency_digest(inputs, unverifiable, "%s>%s" % (base, target.name), target, {sub} if sub and target.type == "ARMATURE" else None, seen, depth + 1)
+
+
+def _dependency_bones(inputs, unverifiable, role, arm, bones, seen, depth):
+    closure = []
+    for name in sorted(bones):
+        pose_bone = arm.pose.bones.get(name)
+        if pose_bone is None:
+            unverifiable.append("%s.bone.%s" % (role, name))
+        while pose_bone is not None:
+            if pose_bone.name not in closure:
+                closure.append(pose_bone.name)
+            pose_bone = pose_bone.parent
+    anim = arm.animation_data
+    for name in sorted(closure):
+        pose_bone = arm.pose.bones[name]
+        base = "%s.bone.%s" % (role, name)
+        data_bone = pose_bone.bone
+        inputs[base] = [
+            _plain_value(data_bone.matrix_local),
+            [bool(getattr(data_bone, attr, False)) for attr in ("use_connect", "use_inherit_rotation", "use_local_location")],
+            str(getattr(data_bone, "inherit_scale", "")),
+        ]
+        prefix = 'pose.bones["%s"].' % name
+        for channel in MME_BONE_CHANNELS:
+            mme_add_source(inputs, unverifiable, "%s.%s" % (base, channel), arm, prefix + channel)
+        _dependency_constraints(inputs, unverifiable, base, arm, prefix, pose_bone.constraints, seen, depth)
+        if anim is not None:
+            for fcurve in anim.drivers:
+                if fcurve.data_path.startswith(prefix[:-1]):
+                    _dependency_driver(inputs, unverifiable, base, fcurve, seen, depth)
+
+
+def _dependency_driver(inputs, unverifiable, role, fcurve, seen, depth):
+    driver = fcurve.driver
+    where = "%s.driver.%s" % (role, fcurve.data_path)
+    inputs[where] = [driver.type, driver.expression, bool(fcurve.mute)]
+    for var in driver.variables:
+        driver_variable(inputs, unverifiable, where, var, seen, depth)
+
+
+# One driver variable: a property read is fingerprinted with its animation, a transform channel through the target object's
+# whole dependency set (and bone), anything else is unverifiable.
+def driver_variable(inputs, unverifiable, where, var, seen, depth=0):
+    count = 2 if var.type in ("LOC_DIFF", "ROTATION_DIFF") else 1
+    for index, target in enumerate(list(var.targets)[:count]):
+        name = "%s.%s%s" % (where, var.name, "" if index == 0 else ".%d" % index)
+        if target.id is None:
+            unverifiable.append(name)
+        elif var.type == "SINGLE_PROP":
+            mme_add_source(inputs, unverifiable, "%s.%s%s" % (name, target.id.name, target.data_path), target.id, target.data_path)
+        elif var.type in ("TRANSFORMS", "LOC_DIFF", "ROTATION_DIFF") and isinstance(target.id, bpy.types.Object):
+            bone = target.bone_target if target.id.type == "ARMATURE" else ""
+            inputs[name + ".mode"] = [target.transform_type, target.transform_space, target.rotation_mode, bone]
+            mme_dependency_digest(inputs, unverifiable, "%s.%s" % (name, target.id.name), target.id, {bone} if bone else None, seen, depth + 1)
+        else:
+            unverifiable.append(name)
 
 
 def _add_chain(inputs, unverifiable, obj, root):
-    chain = [("pass", obj)]
-    parent = obj.parent
-    depth = 0
-    while parent is not None and depth < 8:
-        chain.append(("root" if parent == root else "ancestor%d" % depth, parent))
-        parent = parent.parent
-        depth += 1
-    for role, ob in chain:
-        _add_transform(inputs, unverifiable, role, ob)
+    mme_dependency_digest(inputs, unverifiable, "pass", obj, None, set(), 0, drivers=False)
+
+
+def _reads_node(tree, idname, memo):
+    pointer = tree.as_pointer()
+    if pointer in memo:
+        return memo[pointer]
+    memo[pointer] = False
+    for node in tree.nodes:
+        if node.bl_idname == idname or (node.bl_idname == "GeometryNodeGroup" and node.node_tree is not None and _reads_node(node.node_tree, idname, memo)):
+            memo[pointer] = True
+            break
+    return memo[pointer]
+
+
+# The scene camera as a pass sees it: the object with its rig (parents, constraints, bone animation), the lens data with its
+# animation and the render size that sets the aspect.
+def _camera_dependency(inputs, unverifiable, scene, seen):
+    camera = scene.camera
+    render = scene.render
+    inputs["camera.render"] = [render.resolution_x, render.resolution_y, render.resolution_percentage, render.pixel_aspect_x, render.pixel_aspect_y]
+    if camera is None:
+        inputs["camera"] = "none"
+        return
+    inputs["camera"] = camera.name
+    mme_dependency_digest(inputs, unverifiable, "camera", camera, None, seen)
+    data = camera.data
+    if data is None:
+        unverifiable.append("camera.data")
+        return
+    for path in ("type", "lens", "sensor_width", "sensor_height", "sensor_fit", "shift_x", "shift_y", "clip_start", "clip_end", "ortho_scale"):
+        mme_add_source(inputs, unverifiable, "camera.data.%s" % path, data, path)
+
+
+def light_object():
+    collection = bpy.data.collections.get(LIGHT_COLLECTION)
+    rig = find_rig_root(collection, "LIGHT") if collection else None
+    return child_of_type(rig, "LIGHT") if rig else None
+
+
+# Identity of the Core light a build binds its uniforms to; a recreated light under another name is a changed input.
+def mme_light_binding(light=None):
+    light = light if light is not None else light_object()
+    if light is None:
+        return None
+    return [light.name, light.data.name if light.data is not None else ""]
+
+
+def _light_dependency(inputs, unverifiable, seen):
+    light = light_object()
+    if light is None:
+        inputs["light"] = "none"
+        return
+    inputs["light"] = mme_light_binding(light)
+    mme_dependency_digest(inputs, unverifiable, "light", light, None, seen)
+    if light.data is None:
+        unverifiable.append("light.data")
+    else:
+        mme_add_source(inputs, unverifiable, "light.data.color", light.data, "color")
+
+
+# Driver variables on a pass whose target is gone; such a driver evaluates to 0 until the pass is rebuilt (the light rig
+# recreated by a clean and sync, a deleted controller object).
+def mme_broken_bindings(obj):
+    anim = getattr(obj, "animation_data", None)
+    if anim is None:
+        return []
+    broken = []
+    for fcurve in anim.drivers:
+        for var in fcurve.driver.variables:
+            count = 2 if var.type in ("LOC_DIFF", "ROTATION_DIFF") else 1
+            if any(target.id is None for target in list(var.targets)[:count]):
+                broken.append("%s.%s" % (fcurve.data_path, var.name))
+    return broken
 
 
 # Stable identity of a draw inside an effect root: root identity, technique, pass, material subset and draw order, plus a
@@ -222,6 +428,7 @@ def mme_shared_inputs(runtime, root, settings, backend, unit, controls, variants
         "controls": controls,
         "tr": float(root.get("mme_tr", 1.0)),
         "si": float(root.get("mme_si", 1.0)),
+        "light": mme_light_binding(),
     }
 
 
@@ -262,6 +469,7 @@ def mme_build_inputs(shared, runtime, draw, root, scene_controls):
         "variants": shared["variants"],
         "tr": shared["tr"],
         "si": shared["si"],
+        "light": shared["light"],
         "material": _material_inputs(runtime, draw.subset),
     }
     unverifiable = []
@@ -277,7 +485,7 @@ def mme_build_inputs(shared, runtime, draw, root, scene_controls):
                     mme_add_source(inputs, unverifiable, "controlprop.%s" % prop, root, '["%s"]' % prop)
     if shared["backend"] == "PYTHON":
         inputs["world"] = [list(row) for row in root.matrix_basis]
-        _add_transform(inputs, unverifiable, "root", root)
+        mme_dependency_digest(inputs, unverifiable, "root", root, None, set(), 0)
     if unverifiable:
         inputs["unverifiable"] = sorted(unverifiable)
     return inputs, reads
@@ -314,6 +522,9 @@ def mme_build_decision(existing, sig, inputs, force):
     build = manifest.get("build") or {}
     if existing.modifiers.get(MME_GN_MODIFIER) is None or existing.data is None:
         return "BUILD", "pass object lost its Geometry Nodes modifier or mesh", []
+    broken = mme_broken_bindings(existing)
+    if broken:
+        return "BUILD", "driver target missing (%s); rebinding" % ", ".join(broken[:3]), []
     if build.get("sig") == sig:
         return "SKIP BUILD", "build signature unchanged; reused object and node tree", []
     changes = diff_inputs(build.get("inputs", {}), inputs)
@@ -408,21 +619,16 @@ def mme_bake_inputs(obj, root, scene, settings):
     wide = obj.get(MME_BACKEND_PROP, "PYTHON") == "PYTHON" or bool(mme_handler_uniforms(obj))
     if wide:
         _root_wide(inputs, unverifiable, root)
+    seen = set()
     if anim is not None:
         for fcurve in anim.drivers:
-            driver = fcurve.driver
-            inputs["driver.%s" % fcurve.data_path] = driver.expression
-            for var in driver.variables:
-                for target in var.targets:
-                    where = "driver.%s.%s" % (fcurve.data_path, var.name)
-                    if target.id is None:
-                        unverifiable.append(where)
-                    elif var.type == "SINGLE_PROP":
-                        mme_add_source(inputs, unverifiable, "%s.%s%s" % (where, target.id.name, target.data_path), target.id, target.data_path)
-                    elif var.type == "TRANSFORMS" and isinstance(target.id, bpy.types.Object):
-                        _add_transform(inputs, unverifiable, "%s.%s" % (where, target.id.name), target.id)
-                    else:
-                        unverifiable.append(where)
+            inputs["driver.%s" % fcurve.data_path] = fcurve.driver.expression
+            for var in fcurve.driver.variables:
+                driver_variable(inputs, unverifiable, "driver.%s" % fcurve.data_path, var, seen)
+    if wide or (group is not None and _reads_node(group, "GeometryNodeInputActiveCamera", {})):
+        _camera_dependency(inputs, unverifiable, scene, seen)
+    if wide:
+        _light_dependency(inputs, unverifiable, seen)
     if unverifiable:
         inputs["unverifiable"] = sorted(set(unverifiable))
     return inputs

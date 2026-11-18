@@ -23,7 +23,7 @@ from ..common.scene_utils import (
 from ..common.state import _mme_runtimes
 from ..fx.errors import FxError
 from ..fx.loader import fx_parse_file
-from ..runtime.build_effect import mme_build_effect
+from ..runtime.build_effect import mme_build_effect_steps
 from ..runtime.cleanup import (
     mme_clear_root_props,
     remove_accessory_children,
@@ -34,7 +34,13 @@ from ..runtime.controls_resolve import (
     mme_resolve_controls,
 )
 from ..runtime.effect_files import mme_effect_lookup
+from ..runtime.manifest import (
+    mme_broken_bindings,
+    mme_light_binding,
+    mme_pass_by_key,
+)
 from ..runtime.runtime import mme_effect_stamp
+from ..runtime.steps import run_steps
 from ..runtime.visibility import (
     mme_capture_visibility,
     mme_restore_visibility,
@@ -100,11 +106,20 @@ def effect_setup(project, settings, acc, entry, path, root):
     return fx_path, program, controls, tracks, choice.shown
 
 
-# Imports or updates one accessory. A stamp (files, effect, backend, density, scale, controller kinds) says
-# whether anything needs rebuilding; if not, only keys,
-# parent and controls are refreshed. The effect build is tried first and any failure falls back to the plain
-# mesh, so a bad effect never loses the accessory.
-def import_accessory(scene, collection, project, settings, acc, entry, unit):
+# Imports or updates one accessory; see import_accessory_steps. 'report' collects "warnings" and sets "failed" when the
+# accessory did not get what was asked for.
+def import_accessory(scene, collection, project, settings, acc, entry, unit, report=None):
+    return run_steps(import_accessory_steps(scene, collection, project, settings, acc, entry, unit, report))
+
+
+# Imports or updates one accessory as a generator that yields (fraction, text) between effect passes. A stamp (files, effect,
+# backend, density, scale, controller kinds, light binding) says whether anything needs rebuilding; if not, only keys,
+# parent and controls are refreshed. When an effect is already built on the root, a changed stamp goes through the
+# same incremental builder as Refresh Effects: passes whose own signature is unchanged keep their objects and bakes, a replaced
+# pass is removed only once its replacement exists, and a failure keeps what was working. Without a built effect the effect
+# build is tried first and any failure falls back to the plain mesh, so a bad effect never loses the accessory.
+def import_accessory_steps(scene, collection, project, settings, acc, entry, unit, report=None):
+    report = {"warnings": [], "failed": False} if report is None else report
     path = find_accessory_file(acc, settings)
     if path is None:
         log.warning(
@@ -114,6 +129,8 @@ def import_accessory(scene, collection, project, settings, acc, entry, unit):
         )
         if entry is not None:
             entry.effect_note = "File not found"
+        report["warnings"].append("accessory '%s': file not found" % acc.name)
+        report["failed"] = True
         return False
     key = accessory_key(acc)
     root = find_accessory_root(collection, key)
@@ -130,18 +147,24 @@ def import_accessory(scene, collection, project, settings, acc, entry, unit):
     if additive:
         stamp += "|additive"
     if fx_path:
-        stamp += "|%s|%s|density=%.4f|unit=%.6f|%s" % (
+        stamp += "|%s|%s|density=%.4f|unit=%.6f|%s|light=%s" % (
             mme_effect_stamp(fx_path, path, program),
             settings.mme_backend,
             settings.mme_density,
             unit,
             json.dumps(sorted((k, v.get("kind")) for k, v in controls.items())),
+            json.dumps(mme_light_binding()),
         )
-    captured = None
-    if root.get("mmd_bridge_stamp") != stamp or not root.children:
-        captured = mme_capture_visibility(root) if root.children else None
-        remove_accessory_children(root)
-        mme_clear_root_props(root)
+    old_passes = mme_pass_by_key(root) if root.get("mme_fx") else {}
+    broken = [name for old in old_passes.values() for name in mme_broken_bindings(old)]
+    if broken:
+        log.info("accessory '%s': %d effect driver target(s) are gone (%s); rebinding", acc.name, len(broken), broken[0])
+    keep = bool(old_passes) and not fx_path and entry is not None and entry.effect_note.startswith("Effect error")
+    withheld = False
+    if keep and root.get("mmd_bridge_stamp") != stamp:
+        report["warnings"].append("accessory '%s': the effect could not be read; the previous build is kept" % acc.name)
+        report["failed"] = True
+    elif not keep and (root.get("mmd_bridge_stamp") != stamp or not root.children or broken):
         with open(path, "rb") as handle:
             raw = handle.read()
         parsed = {}
@@ -155,7 +178,18 @@ def import_accessory(scene, collection, project, settings, acc, entry, unit):
 
         mode = x_header_mode(raw)
         folder = os.path.dirname(path)
+        incremental = bool(old_passes) and bool(fx_path) and mode == "txt"
+        captured = mme_capture_visibility(root) if root.children else None
+        if incremental:
+            kept_children = set(old_passes.values())
+            for child in [c for c in root.children if c not in kept_children]:
+                remove_accessory_children_single(child)
+        else:
+            remove_accessory_children(root)
+            mme_clear_root_props(root)
         children = None
+        built = {}
+        untouched = set()
         if fx_path and mode != "txt":
             log.warning(
                 "accessory '%s': effects need a text .x file; %s is %s, so it is imported without its effect",
@@ -166,9 +200,12 @@ def import_accessory(scene, collection, project, settings, acc, entry, unit):
         elif fx_path:
             started = time.time()
             try:
-                children, uncovered, _tracks, total = mme_build_effect(
-                    scene, collection, settings, acc, root, path, fx_path, unit, controls
+                children, uncovered, _tracks, total = yield from mme_build_effect_steps(
+                    scene, collection, settings, acc, root, path, fx_path, unit, controls, old_passes if incremental else None
                 )
+                effect_report = getattr(_mme_runtimes.get(root.name), "build_report", {})
+                built = {child: own for child, own in effect_report.get("built", [])}
+                untouched = set(effect_report.get("reused", [])) | set(effect_report.get("kept", []))
                 if uncovered:
                     static = create_x_object(
                         short_name(acc.name, 40) + "_mesh", x_scene(), folder, settings, additive
@@ -188,22 +225,37 @@ def import_accessory(scene, collection, project, settings, acc, entry, unit):
                     time.time() - started,
                     note,
                 )
+                if effect_report.get("kept"):
+                    withheld = True
+                    note += "; %d pass(es) kept from the previous build after an error" % len(effect_report["kept"])
+                if effect_report.get("kept") or (effect_report.get("failed") and not incremental):
+                    report["failed"] = True
+                    report["warnings"].append(
+                        "accessory '%s': %d effect pass(es) failed (%s)" % (acc.name, effect_report.get("failed", 0), "; ".join(effect_report.get("errors", [])[:2]))
+                    )
                 if entry is not None:
                     entry.effect_note = note
             except Exception as error:
                 log.error(
-                    "accessory '%s': effect %s failed, importing the plain mesh instead: %s\n%s",
+                    "accessory '%s': effect %s failed%s: %s\n%s",
                     acc.name,
                     fx_path,
+                    "; the previous build is kept" if incremental else ", importing the plain mesh instead",
                     error,
                     traceback.format_exc(),
                 )
-                for child in list(root.children):
-                    remove_accessory_children_single(child)
-                mme_clear_root_props(root)
+                report["failed"] = True
+                report["warnings"].append("accessory '%s': effect failed: %s" % (acc.name, short_text(error, 80)))
                 if entry is not None:
                     entry.effect_note = "Effect failed: %s" % short_text(error, 60)
-                children = None
+                if incremental:
+                    withheld = True
+                    children = [c for c in root.children]
+                else:
+                    for child in list(root.children):
+                        remove_accessory_children_single(child)
+                    mme_clear_root_props(root)
+                    children = None
         elif entry is not None and not entry.effect_note.startswith("Effect not found"):
             entry.effect_note = ""
         if children is None:
@@ -228,8 +280,12 @@ def import_accessory(scene, collection, project, settings, acc, entry, unit):
         for child in children:
             child.parent = root
         if captured is not None:
-            mme_restore_visibility(children, captured)
-        root["mmd_bridge_stamp"] = stamp
+            for child in children:
+                if child in untouched:
+                    continue
+                mme_restore_visibility([child], built.get(child) or captured)
+        if not withheld:
+            root["mmd_bridge_stamp"] = stamp
     for child in root.children:
         child.scale = (ACCESSORY_UNIT * unit,) * 3
     plan = accessory_parent_plan(project, settings, acc, entry)

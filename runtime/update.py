@@ -90,7 +90,9 @@ def mme_update_pass(runtime, obj, root, state, unit, depsgraph=None):
     child = mme_np_matrix(evaluated.matrix_world)
     state.world = mme_world_row(child, unit)
     mesh = obj.data
+    changed = False
     if obj.get(MME_BACKEND_PROP, "PYTHON") == "PYTHON" and not obj.get(MME_BAKED_PROP):
+        changed = True
         data = mme_pass_data(runtime, obj)
         if data is None:
             return False
@@ -115,8 +117,12 @@ def mme_update_pass(runtime, obj, root, state, unit, depsgraph=None):
         if source is None:
             continue
         values = state.values(source, g)
-        obj[prop] = float(values[index]) if index < len(values) else 0.0
-    obj.update_tag()
+        value = float(values[index]) if index < len(values) else 0.0
+        if obj.get(prop) != value:
+            obj[prop] = value
+            changed = True
+    if changed:
+        obj.update_tag()
     return True
 
 

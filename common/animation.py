@@ -14,11 +14,11 @@ from .scene_utils import (
 
 # Blender 5 keeps fcurves in layers/strips/channelbags; older versions expose action.fcurves directly.
 def iter_fcurves(action):
-    fcurves = getattr(action, "fcurves", None)
-    if fcurves is not None:
-        return list(fcurves)
+    layers = getattr(action, "layers", None)
+    if layers is None:
+        return list(action.fcurves)
     found = []
-    for layer in action.layers:
+    for layer in layers:
         for strip in layer.strips:
             for bag in getattr(strip, "channelbags", []):
                 found.extend(bag.fcurves)
@@ -27,11 +27,11 @@ def iter_fcurves(action):
 
 # Counterpart of iter_fcurves for the layered action layout.
 def remove_fcurve(action, fcurve):
-    fcurves = getattr(action, "fcurves", None)
-    if fcurves is not None:
-        fcurves.remove(fcurve)
+    layers = getattr(action, "layers", None)
+    if layers is None:
+        action.fcurves.remove(fcurve)
         return True
-    for layer in action.layers:
+    for layer in layers:
         for strip in layer.strips:
             for bag in getattr(strip, "channelbags", []):
                 if any(f == fcurve for f in bag.fcurves):

@@ -94,8 +94,32 @@ def mme_store_publish(folder, key, start, end):
     except OSError as error:
         log.warning("shared bake %s could not be stored: %s", key, error)
         return None
-    mme_store_trim()
+    if _batch["depth"]:
+        _batch["dirty"] = True
+        _batch["keep"].add(key)
+    else:
+        mme_store_trim()
     return final
+
+
+_batch = {"depth": 0, "dirty": False, "keep": set()}
+
+
+# A bake batch (one operator run over many passes) trims the store once when it ends, not after every published bake, and never
+# evicts a bake it published itself, because a pass of this project is using it. Call end in a finally block.
+def mme_store_batch_begin():
+    _batch["depth"] += 1
+
+
+def mme_store_batch_end():
+    _batch["depth"] = max(_batch["depth"] - 1, 0)
+    if _batch["depth"]:
+        return
+    dirty, keep = _batch["dirty"], set(_batch["keep"])
+    _batch["dirty"] = False
+    _batch["keep"].clear()
+    if dirty:
+        mme_store_trim(keep=keep)
 
 
 def _tree_size(folder):
@@ -111,7 +135,7 @@ def _tree_size(folder):
 
 # Deletes the least recently used shared bakes until the store fits its limit, and temp folders left by interrupted bakes.
 # A project that still points at a deleted bake finds its frames missing and rebakes.
-def mme_store_trim(limit=None):
+def mme_store_trim(limit=None, keep=()):
     limit = mme_bake_limit() if limit is None else limit
     root = mme_store_folder()
     try:
@@ -136,12 +160,15 @@ def mme_store_trim(limit=None):
         except OSError:
             used = os.stat(folder).st_mtime
         entries.append((used, name, folder))
+    keep = set(keep)
     sizes = {folder: _tree_size(folder) for _used, _name, folder in entries}
     total = sum(sizes.values())
     removed = 0
-    for _used, _name, folder in sorted(entries):
+    for _used, name, folder in sorted(entries):
         if total <= limit:
             break
+        if name in keep:
+            continue
         mme_store_discard(folder)
         total -= sizes[folder]
         removed += 1

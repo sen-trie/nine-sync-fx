@@ -1,4 +1,4 @@
-ADDON_VERSION = (0, 6, 0)
+ADDON_VERSION = (0, 7, 0)
 
 bl_info = {
     "name": "NineSync: FX Importer",
@@ -43,11 +43,19 @@ from .runtime.visibility import (
     accessory_visible_set,
 )
 from .ui import CLASSES
+from .ui.preferences import NineSyncFXPreferences
 from .ui.properties import NineSyncFXSettings
 from .ui.operators.accessories import menu_import_accessory
 
 
-_install = {"registered": False}
+_install = {"registered": False, "classes": []}
+
+
+# In the combined build the bundle registers the one preferences class on its own id (Core's and FX's properties together) and
+# marks its root package NINESYNC_PREFERENCES_OWNER; FX then adds no second class for the same id.
+def preferences_owned_elsewhere():
+    parent = __name__.rsplit(".", 1)[0] if "." in __name__ else ""
+    return bool(getattr(_sys.modules.get(parent), "NINESYNC_PREFERENCES_OWNER", False))
 
 
 # A second copy of this add-on (a legacy zip next to the extension, or a renamed folder) would register the
@@ -67,7 +75,8 @@ def register():
             % (MIN_BLENDER[0], MIN_BLENDER[1], bpy.app.version_string)
         )
     setup_logging()
-    for cls in CLASSES:
+    _install["classes"] = [cls for cls in CLASSES if not (cls is NineSyncFXPreferences and preferences_owned_elsewhere())]
+    for cls in _install["classes"]:
         bpy.utils.register_class(cls)
     bpy.types.Scene.ninesync_fx = PointerProperty(type=NineSyncFXSettings)
     bpy.types.Object.ninesync_visible = BoolProperty(
@@ -105,8 +114,9 @@ def unregister():
         del bpy.types.Object.ninesync_visible
     if hasattr(bpy.types.Scene, "ninesync_fx"):
         del bpy.types.Scene.ninesync_fx
-    for cls in reversed(CLASSES):
+    for cls in reversed(_install["classes"]):
         bpy.utils.unregister_class(cls)
+    _install["classes"] = []
 
 
 def reload_in_place():

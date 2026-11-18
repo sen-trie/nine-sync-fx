@@ -13,6 +13,7 @@ from ..common.animation import (
 from ..common.constants import (
     ACCESSORY_FADE_PROP,
     ACCESSORY_KEY_RECORD,
+    ACCESSORY_RECORD_VERSION,
     ACCESSORY_OWNED_PATHS,
     ACTION_PREFIX,
     MME_CONTROL_PREFIX,
@@ -92,6 +93,8 @@ def compare_record(root, record):
     action = owned_action(root)
     if record is None or action is None:
         return "missing"
+    if record.get("v") != ACCESSORY_RECORD_VERSION:
+        return "ok" if action.name == record.get("action") else "edited"
     if action.name != record.get("action") or action_digest(action) != record.get("digest"):
         return "edited"
     if visibility_state(root) != record.get("visible"):
@@ -222,17 +225,26 @@ def key_accessory(root, acc, unit, shown=True, parent_signature=None, influence=
     if message:
         getattr(log, level)("accessory '%s': %s", acc.name, message)
     if not write:
+        if record is not None and record.get("v") != ACCESSORY_RECORD_VERSION and owned_action(root) is not None:
+            record_keys(root, source, settings)
         return False
     write_root_keys(root, acc, keys, unit, influence, extra)
     write_visibility(root, acc, keys, shown)
+    record_keys(root, source, settings)
+    return True
+
+
+# Digests changed when action traversal became slot-aware (version 2), so a version 1 record is adopted as it stands instead of
+# being read as an edit.
+def record_keys(root, source, settings):
     root[ACCESSORY_KEY_RECORD] = json.dumps({
+        "v": ACCESSORY_RECORD_VERSION,
         "source": source,
         "settings": settings,
         "action": owned_action(root).name,
         "digest": action_digest(owned_action(root)),
         "visible": visibility_state(root),
     })
-    return True
 
 
 # Passes the root's opacity (mme_tr) to the plain meshes as 1 - Tr (mme_fade), which their materials read. A

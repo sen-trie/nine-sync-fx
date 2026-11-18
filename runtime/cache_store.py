@@ -13,12 +13,22 @@ from ..common.log import log
 from ..nodes.library_store import mme_user_folder
 
 
+# The add-on's preferences: standalone this is FX's own class under its own id; in the combined build it is the one class the
+# bundle registers on its id (Core's properties plus FX's under FX's names). The package and its parents are tried, nearest
+# the root id first, and the first object that carries FX's properties wins, so neither layout needs the other's naming.
 def _preferences():
+    parts = (__package__ or "").split(".")
+    names = [ADDON_PACKAGE] + [".".join(parts[:count]) for count in range(len(parts), 0, -1)]
     try:
-        entry = bpy.context.preferences.addons.get(ADDON_PACKAGE)
+        addons = bpy.context.preferences.addons
     except (AttributeError, RuntimeError):
         return None
-    return entry.preferences if entry is not None else None
+    for name in dict.fromkeys(names):
+        entry = addons.get(name)
+        prefs = entry.preferences if entry is not None else None
+        if prefs is not None and hasattr(prefs, "cache_dir"):
+            return prefs
+    return None
 
 
 # Pre-cull, strip and geometry caches live in the folder set in the add-on preferences (so the standalone and the bundled

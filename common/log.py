@@ -9,6 +9,9 @@ LOG_TEXT_NAME = "NineSyncLog"
 LOG_TEXT_MAX_LINES = 3000
 
 
+LOG_TEXT_KEEP_LINES = 2000
+
+
 log = logging.getLogger("NineSync.FX")
 
 
@@ -21,7 +24,9 @@ class TextBlockHandler(logging.Handler):
                 LOG_TEXT_NAME
             )
             if len(text.lines) > LOG_TEXT_MAX_LINES:
+                keep = [line.body for line in text.lines][-LOG_TEXT_KEEP_LINES:]
                 text.clear()
+                text.write("\n".join(keep) + "\n")
             text.write(self.format(record) + "\n")
         except Exception:
             pass

@@ -2,17 +2,9 @@
 
 ## 0.7.0
 
-- Upgrading: every existing bake reads as stale once after this update and is rebaked on the next bake or sync (this is not backward-compatible bake reuse), and the accessory key record becomes version 2. Bakes made by 0.7.0 are shared and reused as before.
-- The NineSyncLog text block saved in the .blend now shows the home folder as `~` (for example `~\Projects\song.pmm`), so the account name is not stored. Logs saved by earlier versions are not rewritten and may still contain full paths.
-- Not included: library pruning (the second half of the library-size work) is not done yet.
-- A sync after the effect files changed only in modified time or path now goes through the incremental builder: unchanged passes keep their objects and bakes. A replaced pass is removed only after its replacement was built, and a failed rebuild or an unreadable effect keeps the working passes.
-- Bake validity and the shared-store address now include Core-owned animation: Child Of / parent bones and their ancestors, bones read by transform drivers, constraints, and the scene camera and light rig. Every existing bake reads as stale once, then only real changes rebake. Every sync re-checks bakes.
-- Effect drivers whose target object is gone (a recreated light rig) are detected and the pass is rebuilt; the light binding is part of the build signature.
-- The post_sync hook reports `{"imported", "failed", "warnings"}` and runs as a generator when Core offers `ctx.cancelled`, so Esc is heard between effect passes; FX starts no progress bar in an integrated sync.
-- Frame handler skips Core's internal frame loops (`shared["internal_frames"]`) and tags a pass only when a uniform value changed. The user library is saved once per sync and the bake store trimmed once per bake run, without evicting bakes that run just published.
-- Action traversal is slot-aware with or without mmd_tools; the accessory key record is version 2, adopting old records instead of reading them as edits.
-- The shared log trim keeps the last 2000 lines instead of clearing the text.
-- Preferences are found through the package and its parents; FX registers no preferences class when the bundle sets `NINESYNC_PREFERENCES_OWNER`.
+- Back-end improvements to syncing.
+- Effect file paths are saved relative to the .blend.
+- A warning shows when an effect's files are missing.
 
 ## 0.6.0
 

@@ -21,6 +21,10 @@ from .runtime.build_effect import (
 )
 from .runtime.bake import mme_queue_bake_check
 from .runtime.drivers import mme_revive_drivers
+from .runtime.effect_files import (
+    mme_missing_files,
+    mme_missing_text,
+)
 from .runtime.progress import mme_progress_tick
 from .runtime.sample_cache import mme_sample_cache
 from .runtime.update import mme_update_scene
@@ -69,6 +73,13 @@ def mme_load_handler(*_args):
     _mme_runtimes.clear()
     mme_sample_cache.clear()
     _mme_state["errors"].clear()
+    try:
+        for root in mme_effect_roots(bpy.context.scene):
+            missing = mme_missing_files(root)
+            if missing:
+                log.warning("effect files are missing, it cannot be rebuilt or baked until they are back: %s", mme_missing_text(root, missing))
+    except (AttributeError, RuntimeError):
+        pass
     try:
         revived = mme_revive_drivers(
             [c for root in mme_effect_roots(bpy.context.scene) for c in root.children]

@@ -20,6 +20,7 @@ from ...common.controls import (
     mme_param_meta,
 )
 from ...common.state import _mme_state
+from ...runtime.effect_files import mme_missing_files
 from ..helpers import (
     draw_wrapped,
     fx_pass_summary,
@@ -64,6 +65,13 @@ def draw_fx_selected(layout, context, root, active):
     clear = row.operator("ninesync_fx.bake_effects", text="Clear Bake", icon="TRASH")
     clear.root_name = root.name
     clear.clear = True
+    missing = mme_missing_files(root)
+    if missing:
+        box = layout.box()
+        box.alert = True
+        box.label(text="Files not found, rebuild and bake are off", icon="ERROR")
+        for what, path in missing:
+            draw_wrapped(box, "%s: %s" % (what, path))
     col = layout.column(align=True)
     col.label(text="Accessory: %s" % root.get("mme_acc_name", root.name), icon="EMPTY_AXIS")
     col.label(text="Effect: %s" % os.path.basename(root.get("mme_fx", "")), icon="SHADERFX")

@@ -15,6 +15,10 @@ from ...runtime.bake_store import (
     mme_store_batch_begin,
     mme_store_batch_end,
 )
+from ...runtime.effect_files import (
+    mme_missing_files,
+    mme_missing_text,
+)
 from ...runtime.progress import (
     mme_progress_begin,
     mme_progress_end,
@@ -39,6 +43,12 @@ class NINESYNC_FX_OT_bake_effects(Operator):
         scene = context.scene
         settings = scene.ninesync_fx
         roots = mme_target_roots(scene, self.root_name)
+        if not self.clear:
+            lost = [(root, mme_missing_files(root)) for root in roots]
+            lost = [(root, missing) for root, missing in lost if missing]
+            if lost:
+                self.report({"ERROR"}, "Not baked, " + "; ".join(mme_missing_text(root, missing) for root, missing in lost))
+                return {"CANCELLED"}
         passes = [p for root in roots for p in mme_effect_passes(root)]
         if not passes:
             self.report({"WARNING"}, "No effect passes to %s" % ("clear" if self.clear else "bake"))

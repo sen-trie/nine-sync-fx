@@ -34,6 +34,22 @@ def mme_resolved_path(stored):
     return os.path.normpath(bpy.path.abspath(stored)) if stored else ""
 
 
+# The effect and mesh files recorded on a root that are not there, as (what, resolved path), so a rebuild or bake can
+# say so before it does nothing.
+def mme_missing_files(root):
+    missing = []
+    for key, what in (("mme_fx", "Effect file"), ("mme_x", "Mesh file")):
+        stored = root.get(key, "")
+        path = mme_resolved_path(stored)
+        if stored and not os.path.isfile(path):
+            missing.append((what, path))
+    return missing
+
+
+def mme_missing_text(root, missing):
+    return "%s: %s" % (root.name, "; ".join("%s not found: %s" % item for item in missing))
+
+
 MME_EMM_KEY = re.compile(r"^(acs|pmd)(\d+)(?:\[(\d+)\])?(?:\.(show))?$")
 
 

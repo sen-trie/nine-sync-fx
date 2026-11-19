@@ -13,6 +13,10 @@ from ...common.state import (
     _mme_state,
 )
 from ...runtime.build_effect import mme_rebuild_effect
+from ...runtime.effect_files import (
+    mme_missing_files,
+    mme_missing_text,
+)
 from ...runtime.bake_store import mme_store_clear
 from ...runtime.cache_store import mme_cache_clear
 from ...runtime.params import mme_reset_params
@@ -37,6 +41,10 @@ class NINESYNC_FX_OT_refresh_effects(Operator):
         built = 0
         reused = 0
         for root in mme_target_roots(context.scene, self.root_name):
+            missing = mme_missing_files(root)
+            if missing:
+                self.report({"WARNING"}, "Not rebuilt, " + mme_missing_text(root, missing))
+                continue
             try:
                 built += mme_rebuild_effect(context.scene, root, self.force)
                 reused += len(getattr(_mme_runtimes.get(root.name), "build_report", {}).get("reused", ()))

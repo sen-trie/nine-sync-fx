@@ -43,6 +43,8 @@ from .bake_paths import mme_drop_pass_bake
 from .cleanup import remove_accessory_children_single
 from .controls_resolve import mme_apply_manual_controls
 from .effect_files import (
+    mme_missing_files,
+    mme_missing_text,
     mme_resolved_path,
     mme_stored_path,
 )
@@ -316,6 +318,9 @@ def mme_rebuild_effect(scene, root, force=False):
     settings = scene.ninesync_fx
     collection = next((c for c in root.users_collection), None) or accessory_collection(scene, True)
     fx_path, x_path = mme_resolved_path(root.get("mme_fx", "")), mme_resolved_path(root.get("mme_x", ""))
+    missing = mme_missing_files(root)
+    if missing:
+        log.warning("effect %s not rebuilt, a file is missing: %s", root.name, mme_missing_text(root, missing))
     if collection is None or not (os.path.isfile(fx_path) and os.path.isfile(x_path)):
         return 0
     unit = float(root.get("mme_unit", 1.0)) or 1.0

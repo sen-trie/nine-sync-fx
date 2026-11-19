@@ -199,6 +199,7 @@ def import_accessory_steps(scene, collection, project, settings, acc, entry, uni
             )
         elif fx_path:
             started = time.time()
+            root["mme_fx_chosen"] = bool(entry is not None and entry.effect_path)
             try:
                 children, uncovered, _tracks, total = yield from mme_build_effect_steps(
                     scene, collection, settings, acc, root, path, fx_path, unit, controls, old_passes if incremental else None

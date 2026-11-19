@@ -14,6 +14,26 @@ from ..fx.preprocessor import fx_read_text
 from ..fx.textures import fx_find_file
 
 
+# How an effect's .fx and .x are recorded on its root. By default they are kept relative to the .blend ("//..."), so the
+# file still finds them after it moves with its folder or goes to someone else. A path the user picked by hand is kept
+# absolute, as is any path while the .blend is unsaved or on another drive (Blender cannot make those relative).
+def mme_stored_path(path, absolute=False):
+    if not path:
+        return ""
+    path = os.path.normpath(path)
+    if absolute or not bpy.data.is_saved:
+        return path
+    try:
+        return bpy.path.relpath(path)
+    except ValueError:
+        return path
+
+
+# The path to read from a stored one: relative paths resolve against the .blend as it is now.
+def mme_resolved_path(stored):
+    return os.path.normpath(bpy.path.abspath(stored)) if stored else ""
+
+
 MME_EMM_KEY = re.compile(r"^(acs|pmd)(\d+)(?:\[(\d+)\])?(?:\.(show))?$")
 
 

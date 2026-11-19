@@ -42,6 +42,10 @@ from .build_pass import mme_build_pass
 from .bake_paths import mme_drop_pass_bake
 from .cleanup import remove_accessory_children_single
 from .controls_resolve import mme_apply_manual_controls
+from .effect_files import (
+    mme_resolved_path,
+    mme_stored_path,
+)
 from .steps import run_steps
 from .frame_state import mme_frame_state
 from .manifest import (
@@ -126,8 +130,8 @@ def mme_build_effect_steps(scene, collection, settings, acc, root, x_path, fx_pa
     runtime = MmeRuntime(fx_path, x_path, values)
     runtime.build_variants = (variants, combos)
     root[MME_RUNTIME_VALUES_PROP] = json.dumps(values)
-    root["mme_fx"] = fx_path
-    root["mme_x"] = x_path
+    root["mme_fx"] = mme_stored_path(fx_path, bool(root.get("mme_fx_chosen")))
+    root["mme_x"] = mme_stored_path(x_path)
     root["mme_unit"] = unit
     runtime.controls_runtime = {name for name, desc in mme_load_controls(root).items() if desc.get("kind") != "const"}
     if acc is not None:
@@ -311,7 +315,7 @@ def mme_rebuild_effect(scene, root, force=False):
     _mme_state["stale"].discard(root.name)
     settings = scene.ninesync_fx
     collection = next((c for c in root.users_collection), None) or accessory_collection(scene, True)
-    fx_path, x_path = root.get("mme_fx", ""), root.get("mme_x", "")
+    fx_path, x_path = mme_resolved_path(root.get("mme_fx", "")), mme_resolved_path(root.get("mme_x", ""))
     if collection is None or not (os.path.isfile(fx_path) and os.path.isfile(x_path)):
         return 0
     unit = float(root.get("mme_unit", 1.0)) or 1.0

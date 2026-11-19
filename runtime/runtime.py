@@ -15,6 +15,7 @@ from ..fx.textures import FxTextureStore
 from ..fx.types import FxValue
 from ..nodes.images import mme_load_pixels
 from ..xfile.textures import resolve_x_texture
+from .effect_files import mme_resolved_path
 from .geometry_cache import mme_x_effect_geometry
 from .params import mme_built_values
 
@@ -105,8 +106,8 @@ def mme_effect_stamp(fx_path, x_path, program=None):
 # Per-session cache of runtimes by root name; a runtime is rebuilt when the files change and is restored from
 # the values stored on the root after a file load.
 def mme_runtime_for(root):
-    fx_path = root.get("mme_fx", "")
-    x_path = root.get("mme_x", "")
+    fx_path = mme_resolved_path(root.get("mme_fx", ""))
+    x_path = mme_resolved_path(root.get("mme_x", ""))
     if not fx_path or not x_path:
         return None
     key = root.name

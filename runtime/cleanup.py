@@ -68,7 +68,7 @@ def mme_purge_owned(prefix):
 
 # Forgets everything effect-related on a root and its cached runtime when the effect is detached.
 def mme_clear_root_props(root):
-    for name in [k for k in root.keys() if k in ("mme_fx", "mme_x", "mme_unit", "mme_controls") or k.startswith(MME_CONTROL_PREFIX)]:
+    for name in [k for k in root.keys() if k in ("mme_fx", "mme_fx_chosen", "mme_x", "mme_unit", "mme_controls") or k.startswith(MME_CONTROL_PREFIX)]:
         del root[name]
     _mme_runtimes.pop(root.name, None)
 

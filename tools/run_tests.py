@@ -42,6 +42,7 @@ BLENDER = [
     ("incremental", (), ()),
     ("plain_fixture", (), ()),
     ("xparse", (), ()),
+    ("relative_paths", (), ()),
     ("x_importer", (), ()),
     ("mixed", (), ()),
     ("version", (), ()),

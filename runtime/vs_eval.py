@@ -21,7 +21,8 @@ from ..fx.types import FxValue
 # The vertices of one pass as numpy arrays: source index, loop instance, per-vertex loop values and the
 # matching positions, normals and UVs. A subset made while probing keeps the lane numbers of its vertices in
 # the full set and shares its memo, so texture samples carry over between probe states; inputs converted to
-# the analysis dtype are kept, not converted again for every state.
+# the analysis dtype are kept, not converted again for every state, and stored column by column, so the x, y and z the
+# shader reads are contiguous arrays (numpy is several times slower on a strided column).
 class MmePassData:
     __slots__ = ("draw", "src", "inst", "loop_values", "positions", "normals", "uvs", "count", "stamp", "lanes", "memo", "converted", "parent")
 
@@ -51,9 +52,9 @@ class MmePassData:
         found = self.converted.get(dtype)
         if found is None:
             found = (
-                self.positions.astype(dtype, copy=False),
-                self.normals.astype(dtype, copy=False),
-                self.uvs.astype(dtype, copy=False),
+                np.asfortranarray(self.positions, dtype=dtype),
+                np.asfortranarray(self.normals, dtype=dtype),
+                np.asfortranarray(self.uvs, dtype=dtype),
                 {var: values.astype(dtype) for var, values in self.loop_values.items()},
             )
             self.converted[dtype] = found

@@ -333,6 +333,10 @@ MME_GATE_ALPHA = 1.0 / 512.0
 MME_GATE_PROBES = 96
 
 
+# Bumped when the alpha gate search changes, so cached gates from an older search are not read.
+MME_GATE_VERSION = 1
+
+
 MME_VARIANT_FRAMES = 24
 
 
@@ -352,12 +356,13 @@ MME_ANALYSIS_DTYPE = np.float32
 
 
 # Memory budgets for build analysis: vertices per shader batch in pre-cull and in strip analysis, bytes per scoring
-# block, and whether large strip buffers are file-backed. They bound the temporary arrays of the analysis; Blender's
-# own memory and the built meshes come on top. Every budget gives the same result.
+# block, whether large strip buffers are file-backed, and the bytes of strip samples kept between builds of a session
+# (0 keeps none). They bound the temporary arrays of the analysis; Blender's own memory and the built meshes come on
+# top. Every budget gives the same result.
 MME_MEMORY_BUDGETS = {
-    "LOW": {"precull": 262144, "strips": 65536, "block": 64 << 20, "spill": True},
-    "BALANCED": {"precull": 4194304, "strips": 262144, "block": 256 << 20, "spill": False},
-    "HIGH": {"precull": 1 << 40, "strips": 1048576, "block": 1024 << 20, "spill": False},
+    "LOW": {"precull": 262144, "strips": 65536, "block": 64 << 20, "spill": True, "samples": 0},
+    "BALANCED": {"precull": 4194304, "strips": 262144, "block": 256 << 20, "spill": False, "samples": 256 << 20},
+    "HIGH": {"precull": 1 << 40, "strips": 1048576, "block": 1024 << 20, "spill": False, "samples": 1024 << 20},
 }
 
 

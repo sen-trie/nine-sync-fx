@@ -8,12 +8,14 @@ from ..runtime.cleanup import (
     mme_purge_owned,
     remove_accessory_children,
 )
+from ..runtime.sample_cache import mme_sample_cache
 
 
 # Removes all accessory roots with their pass objects and owned materials and groups, the emptied collection
 # and the sync's actions.
 def clean_accessory_objects(counts):
     _mme_runtimes.clear()
+    mme_sample_cache.clear()
     collection = accessory_collection(bpy.context.scene)
     if collection is not None:
         for obj in [

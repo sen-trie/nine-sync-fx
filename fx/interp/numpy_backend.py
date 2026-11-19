@@ -40,7 +40,12 @@ class FxNumpyBackend:
     def neg(self, a):
         return np.negative(a, dtype=self.dtype)
 
+    # numpy's float32 fmod is several times slower than its float64 one. fmod is exact, so widening the float32
+    # operands, taking fmod in float64 and narrowing back gives the same bits for every input.
     def mod(self, a, b):
+        if self.dtype == np.float32:
+            wide = np.fmod(np.asarray(a, dtype=np.float32).astype(np.float64), np.asarray(b, dtype=np.float32).astype(np.float64))
+            return wide.astype(np.float32)
         return np.fmod(a, b, dtype=self.dtype)
 
     def idiv(self, a, b):

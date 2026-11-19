@@ -22,6 +22,7 @@ from .runtime.build_effect import (
 from .runtime.bake import mme_queue_bake_check
 from .runtime.drivers import mme_revive_drivers
 from .runtime.progress import mme_progress_tick
+from .runtime.sample_cache import mme_sample_cache
 from .runtime.update import mme_update_scene
 from .ui.hook_entry import (
     clean_hook,
@@ -66,6 +67,7 @@ def register_hooks():
 def mme_load_handler(*_args):
     register_hooks()
     _mme_runtimes.clear()
+    mme_sample_cache.clear()
     _mme_state["errors"].clear()
     try:
         revived = mme_revive_drivers(

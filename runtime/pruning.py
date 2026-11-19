@@ -1,11 +1,17 @@
+import bpy
+import hashlib
+import json
 import numpy as np
+import os
 
 from ..common.constants import (
     MME_GATE_ALPHA,
     MME_GATE_EPS,
     MME_GATE_PROBES,
+    MME_GATE_VERSION,
     MME_PRUNE_TR,
 )
+from ..common.digest import file_digest
 from ..common.log import log
 from ..fx.entry import (
     fx_entry,
@@ -19,7 +25,14 @@ from ..fx.types import (
     fx_count,
     fx_is_numeric,
 )
+from .cache_store import (
+    mme_cache_count,
+    mme_cache_path,
+    mme_cache_touch,
+    mme_cache_trim,
+)
 from .frame_state import mme_prune_state
+from .manifest import mme_texture_digest
 from .precull import (
     mme_precull_load,
     mme_precull_save,
@@ -29,6 +42,7 @@ from .variants import (
     mme_condition,
     mme_condition_key,
     mme_condition_state,
+    mme_exact_value,
     mme_group_key,
 )
 from .visibility import (
@@ -182,13 +196,114 @@ def mme_ps_numpy_alpha(runtime, draw, state, inputs, loop_values, count):
     return np.nan_to_num(alpha, nan=1.0)
 
 
+# Cache file of a pass's alpha gates (kind "gates") or Tr = 0 proof (kind "empty", with the pass data's digest as
+# extra). Both searches are deterministic functions of what this key holds (the random probes use fixed seeds): the
+# effect, mesh and texture contents, the pass, the probe state's exact bits, the output layout, the opacity globals, the
+# instance count and the gate constants, with the Blender and numpy versions that evaluate it.
+def mme_gate_file(runtime, draw, probe, vs_outputs, tr_names, instances, kind="gates", extra=()):
+    stamp = tuple(file_digest(name) for name in runtime.program.files)
+    xstamp = file_digest(runtime.x_path)
+    if "missing" in stamp or xstamp == "missing":
+        return None
+    text = repr((
+        MME_GATE_VERSION,
+        tuple(bpy.app.version),
+        np.__version__,
+        stamp,
+        xstamp,
+        mme_texture_digest(runtime),
+        draw.technique.name,
+        draw.fx_pass.name,
+        draw.subset,
+        draw.order,
+        repr(draw.loops),
+        list(vs_outputs.items()),
+        list(tr_names),
+        int(instances),
+        MME_GATE_PROBES,
+        MME_GATE_EPS,
+        MME_GATE_ALPHA,
+        MME_PRUNE_TR,
+        mme_exact_value(probe.__dict__),
+        kind,
+        extra,
+    ))
+    return mme_cache_path(kind + "_" + hashlib.md5(text.encode("utf-8")).hexdigest() + ".json")
+
+
+# Digest of what pass data is built from apart from the pass and instance count: the used vertices with their inputs,
+# and the loop density. Hashing the data itself would cost more than the searches it keys, since it holds every instance.
+def mme_source_digest(runtime, used, density):
+    h = hashlib.sha1(repr(float(density)).encode("utf-8"))
+    for array in (np.asarray(used, dtype=np.int64), runtime.positions[used], runtime.normals[used], runtime.uvs[used]):
+        array = np.ascontiguousarray(array)
+        h.update(array.dtype.str.encode("ascii"))
+        h.update(repr(array.shape).encode("ascii"))
+        h.update(array.tobytes())
+    return h.hexdigest()
+
+
+def mme_gate_list(value):
+    return [(str(semantic), int(k)) for semantic, k in value]
+
+
+def mme_gate_text(value):
+    if not isinstance(value, str):
+        raise TypeError("not a string")
+    return value
+
+
+# A cached value read through read, or None when the file is missing, unreadable or holds something read rejects.
+def mme_gate_load(path, read=mme_gate_list):
+    if path is None or not os.path.isfile(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+        value = read(data["value"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    mme_cache_touch(path)
+    return value
+
+
+# Atomic write (temp file then replace), then the cache folder's size limit.
+def mme_gate_save(path, value):
+    if path is None:
+        return
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        temp = path + ".tmp"
+        with open(temp, "w", encoding="utf-8") as handle:
+            json.dump({"value": value}, handle)
+        os.replace(temp, path)
+        mme_cache_trim()
+    except OSError as error:
+        log.debug("alpha gate cache not written: %s", error)
+
+
 # Finds vertex-shader outputs that act as alpha gates: setting one component to (almost) zero makes the pixel
 # shader fully transparent for all random probes
 # while the unmodified inputs are visible somewhere. Vertices where such a gate is closed never show, so they
-# can be dropped. Returns [] when anything fails.
-def mme_alpha_gates(runtime, draw, state, vs_outputs, tr_names, instances):
+# can be dropped. Returns [] when anything fails. With cached set, a finished search is kept in the cache folder
+# (see mme_gate_file) and read back by later builds.
+def mme_alpha_gates(runtime, draw, state, vs_outputs, tr_names, instances, cached=False):
     if draw.fx_pass.ps is None or not vs_outputs:
         return []
+    path = mme_gate_file(runtime, draw, mme_prune_state(state), vs_outputs, tr_names, instances) if cached else None
+    found = mme_gate_load(path)
+    if path is not None:
+        mme_cache_count("gates", found is not None)
+    if found is not None:
+        return found
+    gates = mme_alpha_gates_search(runtime, draw, state, vs_outputs, tr_names, instances)
+    if gates is not None:
+        mme_gate_save(path, gates)
+    return gates or []
+
+
+# The gate search of mme_alpha_gates; None when the pixel shader could not be evaluated.
+def mme_alpha_gates_search(runtime, draw, state, vs_outputs, tr_names, instances):
     count = MME_GATE_PROBES
     rng = np.random.default_rng(1234)
     base = {}
@@ -209,7 +324,7 @@ def mme_alpha_gates(runtime, draw, state, vs_outputs, tr_names, instances):
                     probe.controls[name] = [value]
             alpha = mme_ps_numpy_alpha(runtime, draw, probe, base, loops, count)
             if alpha is None:
-                return []
+                return None
             if (alpha > MME_GATE_ALPHA).any():
                 lit = True
             for semantic, k in candidates:
@@ -224,7 +339,7 @@ def mme_alpha_gates(runtime, draw, state, vs_outputs, tr_names, instances):
                     closed[(semantic, k)] = False
     except Exception as error:
         log.debug("alpha gate probe for %s failed: %s", draw.fx_pass.name, error)
-        return []
+        return None
     if not lit:
         return []
     return [c for c in candidates if closed[c]]
@@ -290,13 +405,28 @@ def mme_alpha_scaled(states):
 # Decides whether a pass that reads the accessory's opacity draws nothing at Tr = 0, by two tests: every vertex is clipped
 # when the vertex shader runs with Tr = 0, or the pixel shader returns alpha 0 for random inputs (several seeds) under a
 # blend state where alpha 0 draws nothing. Returns the reason, or "" when neither holds (or anything fails), so only
-# passes that pass a test ever get the Tr = 0 switch.
-def mme_empty_at_zero_tr(runtime, draw, state, data, vs_outputs, tr_names, instances):
+# passes that pass a test ever get the Tr = 0 switch. source, the (used vertices, density) that data was built from
+# (used tiled over the instances), turns on a cache kept like the alpha gates.
+def mme_empty_at_zero_tr(runtime, draw, state, data, vs_outputs, tr_names, instances, source=None):
     if not tr_names:
         return ""
     probe = mme_prune_state(state)
     for name in tr_names:
         probe.controls[name] = [0.0]
+    path = mme_gate_file(runtime, draw, probe, vs_outputs, tr_names, instances, "empty", mme_source_digest(runtime, *source)) if source is not None else None
+    found = mme_gate_load(path, mme_gate_text)
+    if path is not None:
+        mme_cache_count("empty", found is not None)
+    if found is not None:
+        return found
+    reason = mme_empty_at_zero_tr_search(runtime, draw, probe, data, vs_outputs, tr_names, instances)
+    if reason is not None:
+        mme_gate_save(path, reason)
+    return reason or ""
+
+
+# The proof of mme_empty_at_zero_tr for a probe state with Tr = 0; None when it could not be evaluated.
+def mme_empty_at_zero_tr_search(runtime, draw, probe, data, vs_outputs, tr_names, instances):
     try:
         keep = np.zeros(data.count, dtype=bool)
         opened = np.ones(data.count, dtype=bool)
@@ -316,4 +446,4 @@ def mme_empty_at_zero_tr(runtime, draw, state, data, vs_outputs, tr_names, insta
         return "alpha is 0 at Tr = 0"
     except Exception as error:
         log.debug("Tr = 0 proof for %s failed: %s", draw.fx_pass.name, error)
-        return ""
+        return None

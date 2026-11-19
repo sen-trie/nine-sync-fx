@@ -153,7 +153,7 @@ def mme_build_pass(runtime, draw, state, root, collection, unit, density, label,
     stage = runtime.timing.setdefault(label, {"analysis": 0.0, "alpha": 0.0, "precull": 0.0, "strips": 0.0, "graph": 0.0})
     stage["analysis"] += reduce_started - analysis_started
     mark = time.time()
-    gates = mme_alpha_gates(runtime, draw, state, probe_varyings, tr_names, instances)
+    gates = mme_alpha_gates(runtime, draw, state, probe_varyings, tr_names, instances, getattr(scene.ninesync_fx, "mme_precull", True))
     stage["alpha"] += time.time() - mark
     cache_path = None
     count_params = ()
@@ -216,7 +216,8 @@ def mme_build_pass(runtime, draw, state, root, collection, unit, density, label,
         try:
             started = time.time()
             mark = time.time()
-            empty_reason = mme_empty_at_zero_tr(runtime, draw, state, data, probe_varyings, tr_names, instances)
+            source = (used, density) if getattr(scene.ninesync_fx, "mme_precull", True) else None
+            empty_reason = mme_empty_at_zero_tr(runtime, draw, state, data, probe_varyings, tr_names, instances, source)
             stage["alpha"] += time.time() - mark
             if empty_reason:
                 log.info("effect pass %s: empty while Tr = 0 (%s)", label, empty_reason)

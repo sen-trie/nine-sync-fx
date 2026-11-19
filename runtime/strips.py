@@ -23,10 +23,15 @@ from .cache_store import (
     mme_cache_trim,
 )
 from .progress import mme_progress_within
+from .sample_cache import (
+    mme_sample_cache,
+    mme_sample_pass_key,
+)
 from .variants import (
     mme_apply_variant,
     mme_condition,
     mme_condition_key,
+    mme_exact_state_key,
 )
 from .vs_eval import (
     MmePassData,
@@ -123,7 +128,12 @@ class MmeStripStore:
 # runs in float32, positions are cast once from float64, the row tolerances, the effect size and the varying ranges are
 # accumulated in float64 from the same numbers, and varyings are scaled at the end in float64 as before. Each varying
 # channel has its own buffer, allocated only once the channel varies (a constant channel never changes a score), and
-# switched to float64 if float32 cannot hold its values exactly.
+# switched to float64 if float32 cannot hold its values exactly. NaN and infinity are cleaned only in batches that hold
+# one; finite batches skip the cleaning copies, which give the same values there.
+# An instance's lanes are stored only if no stored instance has the same bits in every buffer (position, cull, width
+# and varyings): the row search takes the worst score over lanes and any cull change, so a repeated lane changes
+# neither, and loop instances and probe states often repeat each other exactly. The effect size and the varying ranges
+# still see every lane.
 class MmeStripSamples:
     def __init__(self, runs, instances, rows, width, store=None):
         self.S, self.I, self.R, self.W = runs, instances, rows, width
@@ -131,41 +141,46 @@ class MmeStripSamples:
         self.store = store or MmeStripStore(False)
         self.P = self.store.array((rows, self.lanes, 3), np.float32)
         self.C = np.empty((rows, self.lanes), dtype=bool)
-        self.widths = np.empty((runs, instances, rows), dtype=np.float64) if width > 1 else None
+        self.widths = np.empty((runs * instances, rows), dtype=np.float64) if width > 1 else None
         self.channels = None
         self.vmin = self.vmax = None
         self.lo = np.full(3, np.inf)
         self.hi = np.full(3, -np.inf)
+        self.groups = 0
+        self.index = {}
 
     def put(self, run, i0, i1, world, cull, comps):
         n = i1 - i0
         count = n * self.R * self.W
-        lane0 = (run * self.I + i0) * self.W
-        lane1 = lane0 + n * self.W
-        pos = np.nan_to_num(np.asarray(world, dtype=np.float64)).reshape(n, self.R, self.W, 3)
+        lane0 = self.groups * self.W
+        pos = np.asarray(world, dtype=np.float64)
+        if not np.isfinite(pos).all():
+            pos = np.nan_to_num(pos)
+        pos = pos.reshape(n, self.R, self.W, 3)
         cul = np.broadcast_to(np.asarray(cull, dtype=bool), (count,)).reshape(n, self.R, self.W)
         visible = ~cul
         if visible.any():
             seen = pos[visible]
             np.minimum(self.lo, seen.min(0), out=self.lo)
             np.maximum(self.hi, seen.max(0), out=self.hi)
-        if self.widths is not None:
-            self.widths[run, i0:i1] = np.linalg.norm(pos[:, :, -1] - pos[:, :, 0], axis=-1)
-        self.P[:, lane0:lane1] = pos.transpose(1, 0, 2, 3).reshape(self.R, n * self.W, 3)
+        widths = np.linalg.norm(pos[:, :, -1] - pos[:, :, 0], axis=-1) if self.widths is not None else None
+        pos32 = pos.astype(np.float32)
         del pos
-        self.C[:, lane0:lane1] = cul.transpose(1, 0, 2).reshape(self.R, n * self.W)
         if self.channels is None:
             self.channels = [None] * len(comps)
             self.vmin = np.full(len(comps), np.inf)
             self.vmax = np.full(len(comps), -np.inf)
+        blocks = []
         for k, c in enumerate(comps):
             raw = np.broadcast_to(np.asarray(c), (count,))
-            wide = np.nan_to_num(raw.astype(np.float64))
-            low, high = wide.min(), wide.max()
+            if raw.dtype.kind == "f" and np.isfinite(raw).all():
+                low, high = np.float64(raw.min()), np.float64(raw.max())
+            else:
+                wide = np.nan_to_num(raw.astype(np.float64))
+                low, high = wide.min(), wide.max()
+                del wide
             self.vmin[k] = min(self.vmin[k], low)
             self.vmax[k] = max(self.vmax[k], high)
-            del wide
-            block = raw.reshape(n, self.R, self.W).transpose(1, 0, 2).reshape(self.R, n * self.W)
             held = self.channels[k]
             if held is None or isinstance(held, tuple):
                 first = raw[:1]
@@ -184,41 +199,85 @@ class MmeStripSamples:
                     wider = self.store.array((self.R, self.lanes), np.float64)
                     wider[:, :lane0] = held[:, :lane0]
                     self.channels[k] = held = wider
-            held[:, lane0:lane1] = block
+            blocks.append((held, raw.reshape(n, self.R, self.W).astype(held.dtype, copy=False)))
+        prints = [cul.reshape(n, -1).sum(axis=1).tolist()]
+        for values in [pos32] + [block for _held, block in blocks]:
+            bits = mme_bits(values).reshape(n, -1)
+            prints.append(np.bitwise_xor.reduce(bits, axis=1).tolist())
+            prints.append(bits.sum(axis=1, dtype=np.uint64).tolist())
+        for j, fingerprint in enumerate(zip(*prints)):
+            width = None if widths is None else widths[j]
+            if self.stored(fingerprint, pos32[j], cul[j], width, [(held, block[j]) for held, block in blocks]):
+                continue
+            g = self.groups
+            a, b = g * self.W, (g + 1) * self.W
+            self.P[:, a:b] = pos32[j]
+            self.C[:, a:b] = cul[j]
+            if widths is not None:
+                self.widths[g] = width
+            for held, block in blocks:
+                held[:, a:b] = block[j]
+            self.index.setdefault(fingerprint, []).append(g)
+            self.groups += 1
+
+    # Whether a stored instance has exactly these bits in every buffer.
+    def stored(self, fingerprint, pos, cul, width, channels):
+        for g in self.index.get(fingerprint, ()):
+            a, b = g * self.W, (g + 1) * self.W
+            if not np.array_equal(self.C[:, a:b], cul) or not np.array_equal(self.P[:, a:b].view(np.uint32), pos.view(np.uint32)):
+                continue
+            if width is not None and not np.array_equal(self.widths[g].view(np.uint64), width.view(np.uint64)):
+                continue
+            if all(np.array_equal(mme_bits(held[:, a:b]), mme_bits(block)) for held, block in channels):
+                return True
+        return False
 
     def prepared(self, tolerance, block):
+        lanes = self.groups * self.W
         size = float(np.linalg.norm(self.hi - self.lo)) if np.isfinite(self.lo).all() else 0.0
         pos_tol = max(size * tolerance, 1e-9)
         if self.widths is not None:
-            row_tol = np.clip(self.widths * 0.5, pos_tol * 0.1, pos_tol)
+            row_tol = np.clip(self.widths[:self.groups] * 0.5, pos_tol * 0.1, pos_tol)
         else:
-            row_tol = np.full((self.S, self.I, self.R), pos_tol)
+            row_tol = np.full((self.groups, self.R), pos_tol)
         self.widths = None
-        T = np.repeat(row_tol.transpose(2, 0, 1).reshape(self.R, self.S * self.I).astype(np.float32), self.W, axis=1)
+        T = np.repeat(row_tol.T.astype(np.float32), self.W, axis=1)
         del row_tol
         V = []
         if self.channels:
             ranges = np.maximum(self.vmax - self.vmin, 1e-6)
             var_tol = max(tolerance * 4.0, 1e-3)
             scale = ranges * var_tol
-            step = max(1, block // max(1, self.lanes * 16))
+            step = max(1, block // max(1, lanes * 16))
             for k, held in enumerate(self.channels):
                 if isinstance(held, tuple):
                     continue
+                held = held[:, :lanes]
                 out = held if held.dtype == np.float32 else self.store.array(held.shape, np.float32)
                 for r0 in range(0, self.R, step):
                     chunk = held[r0:r0 + step].astype(np.float64)
-                    np.nan_to_num(chunk, copy=False)
+                    if not np.isfinite(chunk).all():
+                        np.nan_to_num(chunk, copy=False)
                     chunk /= scale[k]
                     out[r0:r0 + step] = chunk
                     del chunk
                 V.append(out)
             self.channels = None
-        return self.P, T, self.C, V
+        self.index = {}
+        return self.P[:, :lanes], T, self.C[:, :lanes], V
+
+
+# Same-size unsigned integer view, so values compare by their bits (-0.0 and 0.0 differ, equal NaNs match).
+def mme_bits(values):
+    return values.view("u%d" % values.dtype.itemsize)
 
 
 # Evaluates the vertex shader over the selected strip rows for every probe state and instance, in batches bounded by the
 # memory budget, and returns the prepared buffers for mme_simplify_prepared.
+# A state whose exact key matches an evaluated one on every global that one read is skipped: the shader is
+# deterministic, so its lanes would repeat lanes already sampled, and a repeated lane never changes a row's worst score,
+# a cull change or a tolerance. A state an earlier build of this session evaluated with the same pass inputs replays
+# that build's outputs from the sample cache.
 def mme_strip_samples(runtime, draw, state, used, rows, layout, instances, tr_names, density, runs=None, tolerance=0.0, store=None):
     vertices = layout["grid"][rows].reshape(-1)
     per = len(vertices)
@@ -228,26 +287,64 @@ def mme_strip_samples(runtime, draw, state, used, rows, layout, instances, tr_na
     budget = mme_budget(runtime)
     batch = max(1, budget["strips"] // max(1, per))
     out = MmeStripSamples(len(runs), instances, len(rows), width, store)
+    seen = []
+    limit = budget.get("samples", 0)
+    pass_key = mme_sample_pass_key(runtime, draw, used[vertices], rows, instances, density, batch) if limit > 0 else None
+    replayed = 0
     for step, (probe, value) in enumerate(runs):
         mme_progress_within(0.65 + 0.15 * (step + 1) / len(runs), "simplifying strips %d/%d" % (step + 1, len(runs)))
         if value is not None:
             for name in tr_names:
                 probe.controls[name] = [value]
-        for i0 in range(0, instances, batch):
-            i1 = min(instances, i0 + batch)
-            src = np.tile(used[vertices], i1 - i0)
-            inst = np.repeat(np.arange(i0, i1, dtype=np.int64), per)
-            data = MmePassData(draw, src, inst, mme_loop_values(draw, inst, density), runtime)
-            outputs, _ex = mme_run_vs(runtime, data, probe, MME_ANALYSIS_DTYPE)
-            world, cull = mme_clip_world(outputs, probe, data.count)
-            comps = []
-            for semantic, item in sorted(outputs.items()):
-                if semantic == "POSITION0" or not fx_is_numeric(item.t):
-                    continue
-                comps.extend(item.c)
-            out.put(step, i0, i1, world, cull, comps)
-            del data, outputs, world, cull, comps
+        runtime.material_state(probe, draw.subset)
+        if any(mme_exact_state_key(probe, reads, runtime.program) == key for reads, key in seen):
+            continue
+        found = mme_sample_cache.find(pass_key, probe, runtime.program) if pass_key else None
+        if found is not None:
+            reads, entry = found
+            for i0, i1, world, cull, comps in mme_sample_cache.batches(entry):
+                out.put(step, i0, i1, world, cull, comps)
+                del world, cull, comps
+            seen.append((reads, mme_exact_state_key(probe, reads, runtime.program)))
+            replayed += 1
+            continue
+        reads = set()
+        entry = [] if pass_key else None
+        try:
+            mme_strip_evaluate(runtime, draw, probe, used, vertices, per, instances, batch, density, out, step, reads, entry)
+        except BaseException:
+            if entry:
+                mme_sample_cache.release(entry)
+            raise
+        reads = frozenset(reads)
+        seen.append((reads, mme_exact_state_key(probe, reads, runtime.program)))
+        if entry is not None:
+            mme_sample_cache.commit(pass_key, reads, probe, runtime.program, entry, limit)
+    if replayed:
+        log.debug("strip samples: %d of %d probe state(s) replayed from earlier builds (%.0f MB kept)", replayed, len(runs), mme_sample_cache.bytes / 1048576.0)
     return out.prepared(tolerance, budget["block"])
+
+
+# One probe state's evaluation for mme_strip_samples, batch by batch; each batch goes to the samples and, when entry is
+# a list, to the sample cache entry being collected.
+def mme_strip_evaluate(runtime, draw, probe, used, vertices, per, instances, batch, density, out, step, reads, entry):
+    for i0 in range(0, instances, batch):
+        i1 = min(instances, i0 + batch)
+        src = np.tile(used[vertices], i1 - i0)
+        inst = np.repeat(np.arange(i0, i1, dtype=np.int64), per)
+        data = MmePassData(draw, src, inst, mme_loop_values(draw, inst, density), runtime)
+        outputs, ex = mme_run_vs(runtime, data, probe, MME_ANALYSIS_DTYPE)
+        reads |= getattr(ex.env, "reads", set())
+        world, cull = mme_clip_world(outputs, probe, data.count)
+        comps = []
+        for semantic, item in sorted(outputs.items()):
+            if semantic == "POSITION0" or not fx_is_numeric(item.t):
+                continue
+            comps.extend(item.c)
+        out.put(step, i0, i1, world, cull, comps)
+        if entry is not None:
+            mme_sample_cache.add(entry, i0, i1, world, cull, comps, per)
+        del data, outputs, ex, world, cull, comps
 
 
 # Chooses which strip rows to keep from full sample arrays (runs, instances, rows, columns): prepares the buffers and runs

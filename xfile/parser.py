@@ -3,8 +3,9 @@ from .model import (
     XError,
 )
 from .tokenizer import (
+    XRun,
     x_number,
-    x_tokens,
+    x_run_tokens,
 )
 
 
@@ -33,10 +34,15 @@ def x_skip_block(tokens, i):
 
 # Builds the block tree: numbers and strings become block data, 'Type name {' opens a child, and '{ name }' is
 # stored as a __ref__ child
-# (a reference to a named Material defined elsewhere).
+# (a reference to a named Material defined elsewhere). An XRun stands for its number and separator tokens and gives
+# the same tree as those tokens one by one.
 def x_parse_body(tokens, i, block):
     while i < len(tokens):
         token = tokens[i]
+        if token.__class__ is XRun:
+            block.data.extend(token.values)
+            i += 1
+            continue
         if token == "}":
             return i + 1
         if token in (";", ","):
@@ -46,7 +52,9 @@ def x_parse_body(tokens, i, block):
             j = i + 1
             ref = []
             while j < len(tokens) and tokens[j] != "}":
-                if tokens[j] not in (";", ","):
+                if tokens[j].__class__ is XRun:
+                    ref.extend(t for t in tokens[j].tokens() if t not in (";", ","))
+                elif tokens[j] not in (";", ","):
                     ref.append(tokens[j])
                 j += 1
             child = XBlock("__ref__", ref[0] if ref else "")
@@ -68,6 +76,11 @@ def x_parse_body(tokens, i, block):
         if i < len(tokens) and tokens[i] != "{":
             name = tokens[i]
             i += 1
+            if name.__class__ is XRun:
+                words = name.tokens()
+                name = words[0]
+                if len(words) > 1:
+                    raise XError("expected '{' after %s" % kind)
         if i >= len(tokens) or tokens[i] != "{":
             raise XError("expected '{' after %s" % kind)
         if kind == "template":
@@ -75,7 +88,7 @@ def x_parse_body(tokens, i, block):
             continue
         i += 1
         child = XBlock(kind, name)
-        if i < len(tokens) and tokens[i].startswith("<") and tokens[i].endswith(">"):
+        if i < len(tokens) and tokens[i].__class__ is str and tokens[i].startswith("<") and tokens[i].endswith(">"):
             i += 1
         i = x_parse_body(tokens, i, child)
         block.children.append(child)
@@ -85,6 +98,6 @@ def x_parse_body(tokens, i, block):
 # Parses the whole text body into a root block whose children are the file's top-level blocks.
 def x_parse_tree(text):
     root = XBlock("root", "")
-    tokens = x_tokens(text)
+    tokens = x_run_tokens(text)
     x_parse_body(tokens, 0, root)
     return root

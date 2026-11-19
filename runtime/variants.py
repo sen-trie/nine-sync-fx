@@ -192,6 +192,33 @@ def mme_condition_key(condition, include=None, program=None):
     return json.dumps(projected, sort_keys=True)
 
 
+# Hashable bit-exact form of a scene value: floats by their hex form, arrays by dtype, shape and bytes, so -0.0 and 0.0
+# or values that only round alike stay apart.
+def mme_exact_value(value):
+    if isinstance(value, dict):
+        return ("d", tuple((k, mme_exact_value(v)) for k, v in sorted(value.items())))
+    if isinstance(value, (list, tuple)):
+        return ("l", tuple(mme_exact_value(v) for v in value))
+    if isinstance(value, np.ndarray):
+        return ("a", value.dtype.str, value.shape, value.tobytes())
+    if isinstance(value, (float, np.floating)):
+        return ("f", float(value).hex())
+    return ("v", type(value).__name__, repr(value))
+
+
+# Exact identity of a probe state as the vertex shader saw it: the value of every global it read, as the scene state
+# supplies it, plus every other scene field (camera, projection, material, flags) as is, because clip mapping and
+# texture lookup use those directly. Two states with equal keys give the same outputs on the same vertices.
+def mme_exact_state_key(state, reads, program):
+    fields = {k: v for k, v in state.__dict__.items() if k not in ("time", "params", "controls")}
+    values = {}
+    for name in sorted(reads):
+        g = program.globals.get(name)
+        source = fx_classify_global(g, program) if g is not None else None
+        values[name] = None if source is None else state.values(source, g)
+    return mme_exact_value((fields, values))
+
+
 # Rebuilds a scene state from a stored condition.
 def mme_condition_state(base, condition):
     probe = mme_apply_variant(base)

@@ -9,26 +9,38 @@ from .types import (
 
 # Builds the vertex-shader input provider from mesh arrays. Unknown semantics read as zero (colour as one), so
 # shaders asking for tangents or weights still run.
+# Constant columns are made in the dtype of the positions: numpy is several times slower on a float64 array narrowed
+# in every operation, and the backend casts each operand to its dtype anyway, so the values the shader computes are
+# the same.
 def fx_vertex_inputs(positions, normals, uvs, indices, colors=None):
+    dtype = positions.dtype if positions.dtype.kind == "f" else np.float64
+    columns = {}
+
+    def constant(value, n):
+        found = columns.get(value)
+        if found is None:
+            found = columns[value] = np.full(n, value, dtype=dtype)
+        return found
+
     def provide(ex):
         B = ex.B
 
         def get(semantic, t):
             n = len(positions)
             if semantic == "POSITION0":
-                comps = [positions[:, 0], positions[:, 1], positions[:, 2], np.ones(n)]
+                comps = [positions[:, 0], positions[:, 1], positions[:, 2], constant(1.0, n)]
             elif semantic == "NORMAL0":
-                comps = [normals[:, 0], normals[:, 1], normals[:, 2], np.zeros(n)]
+                comps = [normals[:, 0], normals[:, 1], normals[:, 2], constant(0.0, n)]
             elif semantic == "TEXCOORD0":
-                comps = [uvs[:, 0], uvs[:, 1], np.zeros(n), np.ones(n)]
+                comps = [uvs[:, 0], uvs[:, 1], constant(0.0, n), constant(1.0, n)]
             elif semantic in ("_INDEX", "INDEX"):
                 comps = [indices.astype(np.float64)]
             elif semantic == "COLOR0" and colors is not None:
                 comps = [colors[:, k] for k in range(4)]
             elif semantic in ("COLOR0", "COLOR1"):
-                comps = [np.ones(n)] * 4
+                comps = [constant(1.0, n)] * 4
             else:
-                comps = [np.zeros(n), np.zeros(n), np.zeros(n), np.ones(n)]
+                comps = [constant(0.0, n), constant(0.0, n), constant(0.0, n), constant(1.0, n)]
             if not fx_is_numeric(t):
                 return ex.zero(t)
             count = fx_count(t[1])

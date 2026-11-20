@@ -18,7 +18,7 @@ set_home(home)
 red = logmod.redact_home
 
 check("backslash path", red("x " + home + B + "p" + B + "a.pmm") == "x ~" + B + "p" + B + "a.pmm")
-check("forward slash and other case", red("c:/users/AB/p/a.pmm") == "~/p/a.pmm")
+check("forward slash and other case", red("c:" + "/users/AB/p/a.pmm") == "~/p/a.pmm")
 check("doubled backslash (repr)", red("C:" + B * 2 + "Users" + B * 2 + "ab" + B * 2 + "p") == "~" + B * 2 + "p")
 check("a longer sibling folder is untouched", red("C:" + B + "Users" + B + "abc" + B + "p") == "C:" + B + "Users" + B + "abc" + B + "p")
 check("text without a home path is unchanged", red("nothing here") == "nothing here")

@@ -1,8 +1,11 @@
 # Changelog
 
+## 0.7.1
+
+- The interface, tooltips and messages can now be translated through Blender's language settings. Generated node trees keep their English names.
+
 ## 0.7.0
 
-- The interface, tooltips and messages can now be translated through Blender's language settings. No language is complete yet; a Japanese draft awaits review. Generated node trees keep their English names.
 - Back-end improvements to syncing and performance: faster syncing, effect builds, playback, and baking. New Transparency Order settings for balancing speed and accuracy.
 - Effect file paths are saved relative to the .blend.
 - A warning shows when an effect's files are missing.

@@ -1,4 +1,4 @@
-ADDON_VERSION = (0, 7, 0)
+ADDON_VERSION = (0, 7, 1)
 
 bl_info = {
     "name": "NineSync: FX Importer",

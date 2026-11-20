@@ -50,6 +50,8 @@ BLENDER = [
     ("emm", (), ()),
     ("accessory_keys", (), ()),
     ("cache", (), ()),
+    ("particle_stage", (), ()),
+    ("instanced", (), ()),
     ("labels", (), (THUNDER,)),
     ("panels", ("--", "fx"), ("@core",)),
     ("cycle", (), ("@core",)),

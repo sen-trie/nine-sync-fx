@@ -32,7 +32,7 @@ if mode in ("core", "both"):
         print(name, "->", [o for o in out if "accessor" in o.lower() or "FX" in o or "Get " in o][:4], len(out))
 if mode in ("fx", "both"):
     fui = importlib.import_module("ninesync_fx.ui")
-    for name in ("NINESYNC_FX_PT_accessories", "NINESYNC_FX_PT_main", "NINESYNC_FX_PT_effects", "NINESYNC_FX_PT_bake", "NINESYNC_FX_PT_library", "NINESYNC_FX_PT_selected"):
+    for name in ("NINESYNC_FX_PT_accessories", "NINESYNC_FX_PT_main", "NINESYNC_FX_PT_effects", "NINESYNC_FX_PT_bake", "NINESYNC_FX_PT_library", "NINESYNC_FX_PT_selected", "NINESYNC_FX_PT_settings"):
         out.clear()
         getattr(fui, name).draw(type("P", (), {"layout": L()})(), ctx)
         print(name, "->", [o for o in out][:7], len(out))

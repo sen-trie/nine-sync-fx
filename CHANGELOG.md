@@ -2,9 +2,10 @@
 
 ## 0.7.0
 
-- Back-end improvements to syncing.
+- Back-end improvements to syncing and performance: faster syncing, effect builds, playback, and baking. New Transparency Order settings for balancing speed and accuracy.
 - Effect file paths are saved relative to the .blend.
 - A warning shows when an effect's files are missing.
+- Edit Source Mesh and Edit Final Geometry frames in every effect pass, an Edit Particle Instances checkbox for sprite effects. Bakes now include GN edits.
 
 ## 0.6.0
 
@@ -27,14 +28,14 @@
 
 ## 0.4.0
 
-- Fix: effects assigned in MME (the PMM's `.emm`) are now used, including `none` and `Default`. A missing effect is reported instead of guessed, and accessories hidden in MME stay hidden.
+- Fix: effects assigned in MME (the PMM's `.emm`) are now used, including `none` and `Default`. A missing effect is reported, and accessories hidden in MME stay hidden.
 - Accessories that switch parent bone between keys now follow each key's parent.
 - Tr (opacity) fades accessories without an effect.
 
 ## 0.3.0
 
 - Shared node library: `mme_core.blend` now lives in a user folder that survives updates.
-- Open FX Library .blend button in the Core Node Library panel.
+- Open FX Library .blend button in the Node Library panel.
 - Unresolved effect controllers can be assigned to an object or bone by hand.
 
 ## 0.2.0

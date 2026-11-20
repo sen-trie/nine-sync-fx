@@ -60,7 +60,7 @@ for obj in passes:
     inner = [n for n in top.nodes if n.bl_idname == "GeometryNodeGroup" and n.node_tree.name.startswith(mb.MME_PASS_PREFIX)]
     check("%s: the modifier tree holds one pass group" % obj.name, len(inner) == 1)
     own = [n for t in trees_of(top) for n in t.nodes if n.bl_idname == "GeometryNodeBake"]
-    check("%s: exactly one Bake node, inside the pass group" % obj.name, len(own) == 1 and own[0].id_data == inner[0].node_tree and own[0].name == mb.MME_BAKE_NODE)
+    check("%s: exactly one Bake node, last in the modifier tree after the pass group" % obj.name, len(own) == 1 and own[0].id_data == top and own[0].name == mb.MME_BAKE_NODE)
     managed = bake_node.mme_managed_bake(modifier)
     check("%s: the managed bake is found by name" % obj.name, managed is not None and managed.node.name == mb.MME_BAKE_NODE)
 
@@ -72,43 +72,96 @@ check("a sprite pass has a Particle Mesh input", mb.MME_PARTICLE_MESH_INPUT in i
 check("the plain passes have none", all(mb.MME_PARTICLE_MESH_INPUT not in [i.name for i in p.modifiers[mb.MME_GN_MODIFIER].node_group.interface.items_tree] for p in plain))
 managed = bake_node.mme_managed_bake(modifier)
 base_graph, reach = bake_scope.mme_bake_scope(modifier)
-check("the Particle Mesh input is not upstream of the bake", inputs[mb.MME_PARTICLE_MESH_INPUT] not in reach)
+check("the Particle Mesh input is upstream of the bake", inputs[mb.MME_PARTICLE_MESH_INPUT] in reach)
 check("the other inputs reach the bake", all(v in reach for k, v in inputs.items() if k != mb.MME_PARTICLE_MESH_INPUT and k != "Geometry") or len(reach) > 0)
 
 settings = scene.ninesync_fx
 cube = bpy.data.objects.new("cube", bpy.data.meshes.new("cube"))
 col.objects.link(cube)
 getattr(modifier.properties.inputs, inputs[mb.MME_PARTICLE_MESH_INPUT]).value = cube
-check("setting the Particle Mesh does not change the bake scope", bake_scope.mme_bake_scope(modifier)[0] == base_graph)
+check("setting the Particle Mesh does not change the graph digest", bake_scope.mme_bake_scope(modifier)[0] == base_graph)
 mb_inputs = mb.mme_bake_inputs(obj, root, scene, settings)
 getattr(modifier.properties.inputs, inputs[mb.MME_PARTICLE_MESH_INPUT]).value = None
 mb_inputs_after = mb.mme_bake_inputs(obj, root, scene, settings)
-check("the bake inputs ignore the Particle Mesh", digest_module.digest(mb_inputs) == digest_module.digest(mb_inputs_after))
+check("the bake inputs follow the Particle Mesh", digest_module.digest(mb_inputs) != digest_module.digest(mb_inputs_after))
 
 outer = {n.bl_idname for n in top.nodes}
 delete = [n for n in top.nodes if n.bl_idname == "GeometryNodeDeleteGeometry"]
-check("a sprite pass has the instance zone after the pass group", len(delete) == 1 and delete[0].domain == "INSTANCE")
+check("a sprite pass has the instance zone after the pass group, before the bake", len(delete) == 1 and delete[0].domain == "INSTANCE")
 dl_count = lambda: len(evaluated(obj)[0])
 edit_id = inputs[mb.MME_EDIT_INPUT]
 check("a sprite pass has a Particle Instances switch that is off", mb.MME_EDIT_INPUT in inputs and getattr(modifier.properties.inputs, edit_id).value is False)
-check("the Particle Instances switch is not upstream of the bake", edit_id not in reach)
+check("the Particle Instances switch is upstream of the bake", edit_id in reach)
 count = dl_count()
 off_pos = evaluated(obj)[0]
-getattr(modifier.properties.inputs, edit_id).value = True
+setattr(obj, mb.MME_EDIT_OBJECT_PROP, True)
+bpy.context.view_layer.update()
+check("the pass's own Edit Particle Instances switch drives its input", getattr(modifier.properties.inputs, edit_id).value is True)
 on_pos = evaluated(obj)[0]
 check("turning Particle Instances on gives the same mesh", on_pos.shape == off_pos.shape and np.allclose(on_pos, off_pos, atol=1e-4))
 delete[0].inputs["Selection"].default_value = True
 check("deleting every instance leaves nothing", dl_count() == 0)
 delete[0].inputs["Selection"].default_value = False
-check("a user node after the bake does not change the output", dl_count() == count)
+check("putting the selection back restores the output", dl_count() == count)
+settings.mme_bake_target = "PACKED"
+scene.frame_start, scene.frame_end = 0, 4
+delete[0].inputs["Selection"].default_value = True
+check("baking with an instance edit on", mb.mme_bake_pass(bpy.context, obj, 0, 4, settings, False) == "baked")
+check("the bake holds the instance edit (no vertices)", dl_count() == 0)
+check("the bake is valid while nothing changes", mb.mme_bake_decision(obj, root, scene, settings, False)[0])
+delete[0].inputs["Selection"].default_value = False
+check("editing the instances makes the bake out of date", not mb.mme_bake_decision(obj, root, scene, settings, False)[0])
+state_module = importlib.import_module("ninesync_fx.common.state"); bake_module = importlib.import_module("ninesync_fx.runtime.bake")
+state_module._mme_state["bake_check"].add(root.name)
+bake_module.mme_run_bake_checks()
+check("node edits keep the bake and mark it stale", obj.get(mb.MME_BAKED_PROP) and mb.mme_bake_state(obj) == "stale" and bake_node.mme_managed_bake(modifier) is not None and dl_count() == 0)
+other = [p for p in sprite if p != obj]
+if other:
+    check("the switches are per pass", not getattr(other[0], mb.MME_EDIT_OBJECT_PROP) and not getattr(other[0], mb.MME_LIVE_OBJECT_PROP))
+check("with the bake in place the old bake still wins", dl_count() == 0)
+baked_before = bake_node.mme_managed_bake(modifier) is not None
+setattr(obj, mb.MME_LIVE_OBJECT_PROP, True)
+bpy.context.view_layer.update()
+check("Enable Geometry Node Editing shows the live nodes instead of the bake", dl_count() == count)
+live_hash = mb.mme_bake_decision(obj, root, scene, settings, False)[4]
+setattr(obj, mb.MME_LIVE_OBJECT_PROP, False)
+check("switching it off shows the bake again", dl_count() == 0)
+check("switching it never changes the bake inputs", mb.mme_bake_decision(obj, root, scene, settings, False)[4] == live_hash)
+setattr(obj, mb.MME_LIVE_OBJECT_PROP, True)
+def shot():
+    import tempfile
+    scene.render.filepath = os.path.join(tempfile.gettempdir(), "ninesync_live_shot.png")
+    bpy.ops.render.render(write_still=True)
+    img = bpy.data.images.load(scene.render.filepath, check_existing=False)
+    buf = np.empty(len(img.pixels), np.float32); img.pixels.foreach_get(buf)
+    bpy.data.images.remove(img)
+    return buf
+scene.render.engine = "BLENDER_WORKBENCH"; scene.render.resolution_x = scene.render.resolution_y = 64
+scene.frame_set(0)
+on_render = shot()
+setattr(obj, mb.MME_LIVE_OBJECT_PROP, False)
+off_render = shot()
+mb.mme_clear_bake(bpy.context, obj)
+unbaked_render = shot()
+check("a render ignores Enable Geometry Node Editing and uses the bake", np.array_equal(on_render, off_render) and not np.array_equal(off_render, unbaked_render))
+setattr(obj, mb.MME_LIVE_OBJECT_PROP, True)
+delete[0].inputs["Selection"].default_value = True
+mb.mme_bake_pass(bpy.context, obj, 0, 4, settings, True)
+check("baking with live editing on still bakes", mb.mme_bake_pass(bpy.context, obj, 0, 4, settings, True) == "baked")
+check("live editing is back on after the bake", getattr(modifier.properties.inputs, [i.identifier for i in top.interface.items_tree if i.name == mb.MME_LIVE_INPUT][0]).value is True)
+setattr(obj, mb.MME_LIVE_OBJECT_PROP, False)
+delete[0].inputs["Selection"].default_value = False
+mb.mme_clear_bake(bpy.context, obj)
+setattr(obj, mb.MME_EDIT_OBJECT_PROP, False)
 
 user_bake = top.nodes.new("GeometryNodeBake")
 user_bake.bake_items.new("GEOMETRY", "Geometry")
 check("a user Bake node is added to the modifier", len(modifier.bakes) == 2)
 found = bake_node.mme_managed_bake(modifier)
 check("the managed bake is still the pass's own", found is not None and found.node.name == mb.MME_BAKE_NODE)
-check("a user Bake node does not change the bake scope", bake_scope.mme_bake_scope(modifier)[0] == base_graph)
+check("a user Bake node in the tree changes the graph digest like any added node", bake_scope.mme_bake_scope(modifier)[0] != base_graph)
 top.nodes.remove(user_bake)
+check("removing it restores the digest", bake_scope.mme_bake_scope(modifier)[0] == base_graph)
 
 pass_tree = [n for n in top.nodes if n.bl_idname == "GeometryNodeGroup" and n.node_tree.name.startswith(mb.MME_PASS_PREFIX)][0].node_tree
 changed = [n for n in pass_tree.nodes if n.bl_idname == "GeometryNodeSetPosition"][0]

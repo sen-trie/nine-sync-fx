@@ -18,7 +18,7 @@ for _name in [_n for _n in _sys.modules if _n.startswith(__name__ + ".")]:
     del _sys.modules[_name]
 
 import bpy
-from bpy.props import BoolProperty, PointerProperty
+from bpy.props import BoolProperty, EnumProperty, PointerProperty
 
 from . import hooks
 from .common.constants import (
@@ -38,13 +38,17 @@ from .handlers import (
     remove_handlers,
     startup_check,
 )
+from .runtime.live_edit import mme_set_live_edit
 from .runtime.visibility import (
     accessory_visible_get,
     accessory_visible_set,
 )
 from .ui import CLASSES
 from .ui.preferences import NineSyncFXPreferences
-from .ui.properties import NineSyncFXSettings
+from .ui.properties import (
+    MME_TRANSPARENCY_OVERRIDE_ITEMS,
+    NineSyncFXSettings,
+)
 from .ui.operators.accessories import menu_import_accessory
 
 
@@ -85,6 +89,25 @@ def register():
         get=accessory_visible_get,
         set=accessory_visible_set,
     )
+    bpy.types.Object.ninesync_fx_transparency_order = EnumProperty(
+        name="Transparency Order",
+        description="Transparency Order for this accessory's effect, overriding the one in the Effects panel",
+        items=MME_TRANSPARENCY_OVERRIDE_ITEMS,
+        default="SCENE",
+        update=lambda self, context: context.scene.update_tag(),
+    )
+    bpy.types.Object.ninesync_fx_edit_instances = BoolProperty(
+        name="Edit Particle Instances",
+        description="Part of this pass, so leave it enabled when rendering. Turns each particle into an instance so the nodes in the pass's frame can edit them; the edits are part of the bake (slower on big effects)",
+        default=False,
+        update=lambda self, context: context.scene.update_tag(),
+    )
+    bpy.types.Object.ninesync_fx_edit_live = BoolProperty(
+        name="Enable Geometry Node Editing",
+        description="Show this pass's live nodes in the viewport instead of its bake, so edits to its node groups show at once. Ignored in renders: they keep using the bake. Turn it off to see the bake again",
+        default=False,
+        update=lambda self, context: mme_set_live_edit(self, self.ninesync_fx_edit_live),
+    )
     bpy.types.TOPBAR_MT_file_import.remove(menu_import_accessory)
     bpy.types.TOPBAR_MT_file_import.append(menu_import_accessory)
     remove_handlers()
@@ -110,6 +133,12 @@ def unregister():
         bpy.types.TOPBAR_MT_file_import.remove(menu_import_accessory)
     except (ValueError, RuntimeError):
         pass
+    if hasattr(bpy.types.Object, "ninesync_fx_transparency_order"):
+        del bpy.types.Object.ninesync_fx_transparency_order
+    if hasattr(bpy.types.Object, "ninesync_fx_edit_live"):
+        del bpy.types.Object.ninesync_fx_edit_live
+    if hasattr(bpy.types.Object, "ninesync_fx_edit_instances"):
+        del bpy.types.Object.ninesync_fx_edit_instances
     if hasattr(bpy.types.Object, "ninesync_visible"):
         del bpy.types.Object.ninesync_visible
     if hasattr(bpy.types.Scene, "ninesync_fx"):

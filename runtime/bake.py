@@ -23,6 +23,7 @@ from .bake_store import (
     mme_store_touch,
 )
 from .drivers import mme_needs_handler
+from .live_edit import mme_live_restore, mme_live_suspend
 from .manifest import (
     mme_bake_decision,
     mme_bake_state,
@@ -30,6 +31,7 @@ from .manifest import (
     mme_log_action,
     mme_mark_stale_bakes,
     mme_portable_bake_sig,
+    mme_read_manifest,
     mme_set_bake_record,
 )
 
@@ -137,6 +139,7 @@ def mme_bake_pass(context, obj, start, end, settings, force=False):
     mme_set_bake_record(obj, target=settings.mme_bake_target)
     _mme_state["only"] = {obj.name}
     baking = time.time()
+    was_live = mme_live_suspend(obj)
     try:
         with context.temp_override(object=obj, active_object=obj, selected_objects=[obj]):
             result = bpy.ops.object.geometry_node_bake_single(
@@ -146,6 +149,7 @@ def mme_bake_pass(context, obj, start, end, settings, force=False):
         return _fail(context, obj, "Blender raised %s" % error, started, staging)
     finally:
         _mme_state["only"] = None
+        mme_live_restore(obj, was_live)
     if "FINISHED" not in result:
         return _fail(context, obj, "Blender returned %s" % sorted(result), started, staging)
     ok, detail_text = mme_bake_storage(obj, settings, (start, end))
@@ -195,8 +199,9 @@ def mme_queue_bake_check(root):
     bpy.app.timers.register(mme_run_bake_checks, first_interval=MME_REBUILD_DELAY)
 
 
-# Timer callback: once edits settle, marks baked passes whose inputs changed as stale and clears those bakes so the pass
-# goes back to live evaluation instead of showing obsolete geometry. It never starts a bake.
+# Timer callback: once edits settle, marks baked passes whose inputs changed as stale. A bake is cleared so the pass goes
+# back to live evaluation instead of showing obsolete geometry, except when only the user's own node edits changed: that
+# bake is kept (Enable Geometry Node Editing shows the live nodes) until Bake Changed. It never starts a bake.
 def mme_run_bake_checks():
     names = list(_mme_state["bake_check"])
     _mme_state["bake_check"].clear()
@@ -213,6 +218,9 @@ def mme_run_bake_checks():
             continue
         try:
             for child in mme_mark_stale_bakes(root, scene, settings, detail):
+                if (mme_read_manifest(child).get("bake") or {}).get("graph_only"):
+                    mme_log_action("STALE", child.name, "node edits are not baked yet; the bake is kept until Bake Changed")
+                    continue
                 mme_log_action("CLEAR", child.name, "stale bake cleared; the pass evaluates live until rebaked")
                 mme_clear_bake(context, child)
                 mme_set_bake_record(child, state="none", stale=False, stale_reason="")

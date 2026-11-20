@@ -15,6 +15,8 @@ from ..common.constants import (
     MME_GATE_MARGIN,
     MME_GN_MODIFIER,
     MME_LOOP_PREFIX,
+    MME_EDIT_PASS_PROP,
+    MME_ORDER_PASS_PROP,
     MME_PRUNED_PROP,
     MME_SWAP3,
     MME_UNIFORMS_PROP,
@@ -34,7 +36,16 @@ from ..nodes.material_compile import (
     mme_compile_material,
     mme_fallback_material,
 )
+from ..nodes.material_env import mme_blend_mode
+from ..nodes.material_instanced import (
+    MME_ORDER_FREE_MODES,
+    mme_instanced_material,
+)
 from ..nodes.names import mme_varying_name
+from .affine import (
+    mme_affine_missing,
+    mme_affine_plan,
+)
 from .drivers import (
     mme_drive_uniforms,
     mme_needs_handler,
@@ -210,8 +221,17 @@ def mme_build_pass(runtime, draw, state, root, collection, unit, density, label,
         one = MmePassData(draw, src_one, np.zeros(len(src_one), dtype=np.int64), mme_loop_values(draw, np.zeros(len(src_one), dtype=np.int64), density), runtime)
         outputs, _ex = mme_run_vs(runtime, one, state)
         vs_outputs = {k: len(v.c) for k, v in outputs.items() if k != "POSITION0" and fx_is_numeric(v.t)}
+        mark = time.time()
+        affine, affine_reason = mme_affine_plan(runtime, draw, state, src_one, density, tr_names, instances)
+        stage["alpha"] += time.time() - mark
         mme_progress_within(0.8, "material")
         mat, varyings, uniforms, loop_attrs, note = mme_pass_material(runtime, draw, state, label, owner, vs_outputs)
+        if affine is not None:
+            missing = mme_affine_missing(affine, varyings)
+            if missing or "fallback" in note:
+                affine, affine_reason = None, ("%s not an affine function of position, normal or UV per particle" % ", ".join(missing)) if missing else "the pixel shader was not converted"
+        if draw.loops:
+            log.info("effect pass %s: %s", label, ("copies move rigidly, %d reference vertices per particle (Transparency Order)" % len(affine.refs)) if affine else "shader runs on every vertex (%s)" % affine_reason)
         mme_progress_within(0.9, "node tree")
         try:
             started = time.time()
@@ -222,7 +242,10 @@ def mme_build_pass(runtime, draw, state, root, collection, unit, density, label,
             if empty_reason:
                 log.info("effect pass %s: empty while Tr = 0 (%s)", label, empty_reason)
             sprites = mme_is_sprite_mesh(runtime.positions[src_one], faces)
-            tree, drivers, defaults, node_count = mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_attrs, scene, bool(empty_reason), sprites)
+            split = bool(getattr(scene.ninesync_fx, "mme_particle_split", True))
+            order_free = mme_blend_mode(draw.fx_pass.states) in MME_ORDER_FREE_MODES
+            instanced = (affine, mat, mme_instanced_material(mat, affine, owner), order_free) if affine is not None and not sprites else None
+            tree, drivers, defaults, node_count = mme_build_geo_tree(label, runtime, draw, state, root, unit, varyings, loop_attrs, scene, bool(empty_reason), sprites, split, instanced)
         except FxError as error:
             log.warning("effect pass %s: vertex shader cannot run in Geometry Nodes (%s); using the Python backend", label, error)
             return mme_build_pass(runtime, draw, state, root, collection, unit, density, label, "PYTHON", scene)
@@ -237,8 +260,14 @@ def mme_build_pass(runtime, draw, state, root, collection, unit, density, label,
         obj = mme_pass_object(label, mesh, collection, root)
         modifier = obj.modifiers.new(MME_GN_MODIFIER, "NODES")
         modifier.node_group = tree
+        for _identifier, spec in drivers:
+            for var in spec["vars"]:
+                if var.get("self"):
+                    var["id"] = obj.name
         mme_set_drivers(obj, modifier, drivers, defaults)
         mme_finish_pass(obj, runtime, draw, root, scene, counts, density, mat, varyings, uniforms, "GEO", pruned)
+        obj[MME_ORDER_PASS_PROP] = instanced is not None
+        obj[MME_EDIT_PASS_PROP] = bool(sprites)
         log.info(
             "effect pass %s: Geometry Nodes, %d source vertices x %d loop instance(s), %d faces each, %d nodes (%.2fs), %s",
             label,

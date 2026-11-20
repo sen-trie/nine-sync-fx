@@ -4,6 +4,15 @@ from bpy.types import PropertyGroup
 
 from ..common.scene_utils import is_mmd_root
 
+MME_TRANSPARENCY_ITEMS = [
+    ("FULL", "Full Shader", "Run the vertex shader on every vertex of every copy. Slowest; the reference for the other two", 0),
+    ("MMD", "MMD Order", "Same image as MMD, faster: see-through passes become one mesh in MMD's draw order rebuilt from a few vertices per copy, additive and opaque passes are drawn as instances", 1),
+    ("SORTED", "Blender Sorted", "Draw every such pass as instances. Fastest. Cycles renders the same as the other levels, but EEVEE sorts see-through copies by distance instead of using MMD's order, which changes how overlapping copies blend (Nuke2's smoke looks lighter)", 2),
+]
+MME_TRANSPARENCY_OVERRIDE_ITEMS = [("SCENE", "Scene Default", "Use the Transparency Order set in the Effects panel", 0)] + [
+    (key, name, text, value + 1) for key, name, text, value in MME_TRANSPARENCY_ITEMS
+]
+
 
 class NineSyncFXAccessory(PropertyGroup):
     key: StringProperty()
@@ -92,6 +101,18 @@ class NineSyncFXSettings(PropertyGroup):
         name="Pre-cull Cache",
         description="Remember which effect vertices can never be drawn (per effect file, .x file and pass) in a cache on disk, so rebuilds only analyse new settings. Only vertices that stayed invisible in every evaluated state are skipped",
         default=True,
+    )
+    mme_particle_split: BoolProperty(
+        name="Per-Particle Shader Stage",
+        description="For effects that copy a mesh many times (LoopByCount), run the part of the vertex shader that depends only on the copy's index once per copy instead of once per vertex. The result is the same; turn off only to compare against the plain per-vertex graph. Changing it rebuilds the affected passes",
+        default=True,
+    )
+    mme_transparency_order: EnumProperty(
+        name="Transparency Order",
+        description="How LoopByCount effects whose vertex shader moves each copy of the mesh rigidly (checked when the pass is built) are drawn. Each accessory's Effect Controls can override it. Takes effect without a rebuild",
+        items=MME_TRANSPARENCY_ITEMS,
+        default="MMD",
+        update=lambda self, context: context.scene.update_tag(),
     )
     mme_auto_rebuild: BoolProperty(
         name="Auto Rebuild",

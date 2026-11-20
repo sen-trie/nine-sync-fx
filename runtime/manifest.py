@@ -11,6 +11,7 @@ from ..common.constants import (
     MME_BACKEND_PROP,
     MME_BAKE_STORE_VERSION,
     MME_CORE_VERSION,
+    MME_GRAPH_VERSION,
     MME_BAKED_PROP,
     MME_GN_MODIFIER,
     MME_MANIFEST_PROP,
@@ -422,6 +423,7 @@ def mme_shared_inputs(runtime, root, settings, backend, unit, controls, variants
         "density": float(settings.mme_density),
         "tolerance": float(getattr(settings, "mme_tolerance", 0.0)),
         "precull": bool(getattr(settings, "mme_precull", True)),
+        "particle_split": bool(getattr(settings, "mme_particle_split", True)),
         "backend": backend,
         "unit": float(unit),
         "variants": digest(variants_pack),
@@ -464,6 +466,7 @@ def mme_build_inputs(shared, runtime, draw, root, scene_controls):
         "density": shared["density"],
         "tolerance": shared["tolerance"],
         "precull": shared["precull"],
+        "graph": [MME_GRAPH_VERSION, shared["particle_split"] if draw.loops and shared["backend"] != "PYTHON" else False],
         "backend": shared["backend"],
         "unit": shared["unit"],
         "variants": shared["variants"],
@@ -710,16 +713,20 @@ def mme_bake_decision(obj, root, scene, settings, force):
     return True, "signature matched, frames %d-%d, %s" % (scene.frame_start, scene.frame_end, detail), [], inputs, sig
 
 
-# Marks baked passes of a root whose inputs no longer match as stale, without touching the bake. Returns their objects.
+# Marks baked passes of a root whose inputs no longer match as stale, without touching the bake. A pass whose only change is
+# its node graph (the user's own edits) is marked graph_only. Returns their objects.
 def mme_mark_stale_bakes(root, scene, settings, detail=False):
     stale = []
     for child in root.children:
-        if child.get(MME_PASS_KEY_PROP) is None or not child.get(MME_BAKED_PROP) or mme_bake_state(child) != "baked":
+        state = mme_bake_state(child)
+        if child.get(MME_PASS_KEY_PROP) is None or not child.get(MME_BAKED_PROP) or state not in ("baked", "stale"):
             continue
         valid, reason, changes, _inputs, _sig = mme_bake_decision(child, root, scene, settings, False)
         if valid:
+            if state == "stale":
+                mme_set_bake_record(child, state="baked", stale_reason="", graph_only=False)
             continue
-        mme_set_bake_record(child, state="stale", stale_reason=reason[:200])
+        mme_set_bake_record(child, state="stale", stale_reason=reason[:200], graph_only=bool(changes) and all(name == "graph" for name, _b, _a in changes))
         mme_log_action("STALE", child.name, reason, child.get(MME_BACKEND_PROP, ""), changes=changes, detail=detail)
         stale.append(child)
     return stale

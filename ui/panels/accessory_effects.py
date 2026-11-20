@@ -10,7 +10,7 @@ from ..relink import settings_outdated
 
 
 class NINESYNC_FX_PT_effects(Panel):
-    bl_label = "Accessory Effects"
+    bl_label = "Accessory Directory"
     bl_idname = "NINESYNC_FX_PT_effects"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"

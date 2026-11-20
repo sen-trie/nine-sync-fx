@@ -23,6 +23,7 @@ from .panels.bake import NINESYNC_FX_PT_bake
 from .panels.library import NINESYNC_FX_PT_library
 from .panels.main import NINESYNC_FX_PT_main
 from .panels.selected import NINESYNC_FX_PT_selected
+from .panels.settings import NINESYNC_FX_PT_settings
 from .preferences import NineSyncFXPreferences
 from .properties import (
     NineSyncFXAccessory,
@@ -52,7 +53,8 @@ CLASSES = (
     NINESYNC_FX_PT_accessories,
     NINESYNC_FX_PT_main,
     NINESYNC_FX_PT_selected,
-    NINESYNC_FX_PT_effects,
+    NINESYNC_FX_PT_settings,
     NINESYNC_FX_PT_bake,
+    NINESYNC_FX_PT_effects,
     NINESYNC_FX_PT_library,
 )

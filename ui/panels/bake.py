@@ -5,7 +5,7 @@ from ..relink import settings_outdated
 
 
 class NINESYNC_FX_PT_bake(Panel):
-    bl_label = "Bake"
+    bl_label = "Scene Bake"
     bl_idname = "NINESYNC_FX_PT_bake"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"

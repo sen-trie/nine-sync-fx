@@ -167,6 +167,27 @@ MME_ATTR_SRC = "mme_src"
 MME_ATTR_INST = "mme_inst"
 
 
+MME_ATTR_PARTICLE = "mme_pp_"
+
+
+MME_ATTR_POINT = "mme_point"
+
+
+MME_ATTR_AFFINE = "mmeA_"
+
+
+MME_ORDER_LEVELS = {"FULL": 0, "MMD": 1, "SORTED": 2}
+MME_ORDER_OBJECT_PROP = "ninesync_fx_transparency_order"
+MME_ORDER_PASS_PROP = "mme_order_switch"
+MME_EDIT_OBJECT_PROP = "ninesync_fx_edit_instances"
+MME_EDIT_PASS_PROP = "mme_edit_switch"
+MME_LIVE_OBJECT_PROP = "ninesync_fx_edit_live"
+MME_LIVE_INPUT = "Geometry Node Editing (viewport only)"
+
+
+MME_STAGE_PROP = "mme_user_stage"
+
+
 MME_ATTR_CULL = "mme_cull"
 
 
@@ -286,6 +307,9 @@ MME_REBUILD_DELAY = 0.6
 
 
 MME_CORE_VERSION = 2
+
+
+MME_GRAPH_VERSION = 11
 
 
 MME_KEY_PROP = "mme_key"

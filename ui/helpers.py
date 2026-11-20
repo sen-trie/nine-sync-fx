@@ -11,6 +11,8 @@ from ..common.animation import iter_fcurves
 from ..common.constants import (
     MME_BACKEND_PROP,
     MME_BAKED_PROP,
+    MME_ORDER_OBJECT_PROP,
+    MME_ORDER_PASS_PROP,
     MME_DRAW_PROP,
     MME_PRUNED_PROP,
     MME_WRAP_CHAR,
@@ -68,6 +70,8 @@ def draw_effect_controls(layout, entry):
     col = box.column(align=True)
     col.prop(root, '["mme_tr"]', text="Tr (keyed from PMM)")
     col.prop(root, '["mme_si"]', text="Si (keyed from PMM)")
+    if any(p.get(MME_ORDER_PASS_PROP) for p in passes):
+        col.prop(root, MME_ORDER_OBJECT_PROP)
     meta = mme_param_meta(root)
     if meta:
         col.separator()

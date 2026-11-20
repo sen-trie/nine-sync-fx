@@ -10,6 +10,8 @@ from ..common.constants import (
     MME_BACKEND_PROP,
     MME_CORE_FILE,
     MME_DRAW_PROP,
+    MME_EDIT_OBJECT_PROP,
+    MME_LIVE_OBJECT_PROP,
     MME_PARAM_BUILT_PROP,
     MME_PRUNED_PROP,
     MME_RUNTIME_VALUES_PROP,
@@ -38,6 +40,7 @@ from ..fx.params import (
     fx_structural_params,
 )
 from ..nodes.standard_groups import mme_save_core_library
+from ..nodes.user_frames import mme_clear_stash, mme_stash_pass
 from .build_pass import mme_build_pass
 from .bake_paths import mme_drop_pass_bake
 from .cleanup import remove_accessory_children_single
@@ -223,6 +226,7 @@ def mme_build_effect_steps(scene, collection, settings, acc, root, x_path, fx_pa
                 continue
             if old is not None:
                 names = (old.name, old.data.name if old.data is not None else "")
+                carried = (bool(getattr(old, MME_EDIT_OBJECT_PROP, False)), bool(getattr(old, MME_LIVE_OBJECT_PROP, False)))
                 mme_drop_pass_bake(old)
                 remove_accessory_children_single(old)
                 existing.pop(key, None)
@@ -233,6 +237,8 @@ def mme_build_effect_steps(scene, collection, settings, acc, root, x_path, fx_pa
                             obj.data.name = names[1]
                     except (RuntimeError, ReferenceError):
                         pass
+                    setattr(obj, MME_EDIT_OBJECT_PROP, carried[0])
+                    setattr(obj, MME_LIVE_OBJECT_PROP, carried[1])
             if obj is None:
                 empties_now[key] = sig
                 report["empty"] += 1
@@ -330,12 +336,14 @@ def mme_rebuild_effect(scene, root, force=False):
     keyed = {} if force else mme_pass_by_key(root)
     for child in passes:
         if child not in keyed.values():
+            mme_stash_pass(child)
             mme_drop_pass_bake(child)
             remove_accessory_children_single(child)
     started = time.time()
     children, _uncovered, _tracks, total = mme_build_effect(
         scene, collection, settings, None, root, x_path, fx_path, unit, mme_apply_manual_controls(root, mme_load_controls_raw(root)), keyed, force
     )
+    mme_clear_stash()
     report = getattr(_mme_runtimes.get(root.name), "build_report", {"built": [], "reused": []})
     for child, own in report["built"]:
         child.scale = (ACCESSORY_UNIT * unit,) * 3

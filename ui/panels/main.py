@@ -25,21 +25,6 @@ class NINESYNC_FX_PT_main(Panel):
         if settings_outdated(context.scene):
             draw_wrapped(layout, STALE_SETTINGS_MESSAGE)
             return
-        settings = context.scene.ninesync_fx
-        col = layout.column()
-        col.use_property_split = True
-        col.use_property_decorate = False
-        col.prop(settings, "mme_backend")
-        col.prop(settings, "mme_density", slider=True)
-        col.prop(settings, "mme_tolerance")
-        col.prop(settings, "mme_memory_budget")
-        col.prop(settings, "mme_auto_rebuild")
-        col.prop(settings, "mme_log_detail")
-        precull = col.row(align=True)
-        precull.prop(settings, "mme_precull")
-        precull.operator("ninesync_fx.clear_precull", text="", icon="TRASH")
-        if settings.mme_backend == "PYTHON":
-            col.prop(settings, "mme_live")
         row = layout.row()
         row.scale_y = 1.3
         row.alert = bool(_mme_state["stale"])

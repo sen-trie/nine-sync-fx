@@ -1,6 +1,9 @@
 import hashlib
 
-from ..common.constants import MME_VARYING_PREFIX
+from ..common.constants import (
+    MME_ATTR_AFFINE,
+    MME_VARYING_PREFIX,
+)
 
 
 # Readable group name with a short hash of the key; node group names are limited to 63 bytes, so the label is
@@ -26,6 +29,12 @@ def mme_prop_name(prefix, name, index=None):
 # Attribute name that carries one component of a vertex-shader output (varying) to the pixel-shader material.
 def mme_varying_name(semantic, index):
     return "%s%s_%d" % (MME_VARYING_PREFIX, semantic, index)
+
+
+# Instance attribute holding one block of the per-particle coefficients that rebuild a varying in the
+# instanced material: 'k' is the constant, 'p', 'n' and 'uv' multiply position, normal and UV.
+def mme_affine_name(varying, block):
+    return "%s%s_%s" % (MME_ATTR_AFFINE, varying[len(MME_VARYING_PREFIX):], block)
 
 
 MME_INPUT_NODE_PREFIX = "mmeIn_"

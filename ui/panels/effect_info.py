@@ -4,7 +4,12 @@ import os
 
 from ...common.constants import (
     MME_DRAW_PROP,
+    MME_BACKEND_PROP,
+    MME_BAKED_PROP,
     MME_DRIVEN_PROP,
+    MME_EDIT_OBJECT_PROP,
+    MME_EDIT_PASS_PROP,
+    MME_LIVE_OBJECT_PROP,
     MME_GN_MODIFIER,
     MME_GROUP_PROP,
     MME_SELF_NAMES,
@@ -21,6 +26,8 @@ from ...common.controls import (
 )
 from ...common.state import _mme_state
 from ...runtime.effect_files import mme_missing_files
+from ...runtime.bake_node import mme_managed_bake
+from ...runtime.manifest import mme_bake_state
 from ..helpers import (
     draw_wrapped,
     fx_pass_summary,
@@ -51,6 +58,49 @@ def fx_control_text(desc):
     return kind
 
 
+_status_icons = {}
+
+
+# Coloured dots for the bake status, the same ones Core uses for its model sync status (strip colours: red, yellow, green).
+def _status_icon(state):
+    if not _status_icons:
+        try:
+            available = set(bpy.types.UILayout.bl_rna.functions["label"].parameters["icon"].enum_items.keys())
+        except Exception:
+            available = set()
+        for key, number, fallback in (("NONE", "01", "ERROR"), ("PARTIAL", "03", "ERROR"), ("ALL", "04", "CHECKMARK")):
+            name = "STRIP_COLOR_" + number
+            _status_icons[key] = name if name in available else fallback
+    return _status_icons[state]
+
+
+# A box above the effect's details: red when no pass is baked, green when every pass that can be baked is, yellow in between
+# (some passes baked, or a bake kept while its pass was edited).
+def draw_bake_status(layout, root):
+    total = baked = edited = 0
+    for obj in mme_effect_passes(root):
+        if mme_managed_bake(obj.modifiers.get(MME_GN_MODIFIER)) is None:
+            continue
+        total += 1
+        state = mme_bake_state(obj)
+        if state == "baked" and obj.get(MME_BAKED_PROP):
+            baked += 1
+        elif state == "stale" and obj.get(MME_BAKED_PROP):
+            edited += 1
+    if not total:
+        return
+    box = layout.box()
+    if baked == total:
+        box.label(text="Baked: all %d passes" % total, icon=_status_icon("ALL"))
+    elif baked + edited == 0:
+        box.label(text="Not baked", icon=_status_icon("NONE"))
+    else:
+        text = "Partly baked: %d of %d passes" % (baked + edited, total)
+        if edited:
+            text += ", %d edited since" % edited
+        box.label(text=text, icon=_status_icon("PARTIAL"))
+
+
 def draw_fx_selected(layout, context, root, active):
     settings = context.scene.ninesync_fx
     stale = root.name in _mme_state["stale"]
@@ -72,11 +122,10 @@ def draw_fx_selected(layout, context, root, active):
         box.label(text="Files not found, rebuild and bake are off", icon="ERROR")
         for what, path in missing:
             draw_wrapped(box, "%s: %s" % (what, path))
-    col = layout.column(align=True)
-    col.label(text="Accessory: %s" % root.get("mme_acc_name", root.name), icon="EMPTY_AXIS")
-    col.label(text="Effect: %s" % os.path.basename(root.get("mme_fx", "")), icon="SHADERFX")
-    col.label(text="Mesh: %s" % os.path.basename(root.get("mme_x", "")), icon="MESH_DATA")
-    layout.label(text="Keyed from the PMM", icon="KEYINGSET")
+    draw_bake_status(layout, root)
+    layout.label(text="Effect: %s" % os.path.basename(root.get("mme_fx", "")), icon="SHADERFX")
+    if getattr(settings, "filepath", ""):
+        layout.label(text="Keyed from the PMM", icon="KEYINGSET")
     sub = layout.column(align=True)
     sub.prop(root, '["mme_tr"]', text="Tr (opacity)")
     sub.prop(root, '["mme_si"]', text="Si (scale)")
@@ -105,14 +154,34 @@ def draw_fx_selected(layout, context, root, active):
         hint = layout.row()
         hint.active = False
         hint.label(text="Greyed: set by %s" % ", ".join(sorted(overriders)), icon="LINKED")
-    if structural & set(meta):
-        draw_wrapped(layout, "Wrench parameters change the geometry and can be keyframed: the build covers every keyed value, and editing the keys rebuilds the effect.")
-    if active is not None and active.get(MME_DRAW_PROP) and active.parent == root:
-        draw_pass_material(layout, active)
+    pass_header, pass_body = layout.panel("ninesync_fx_pass", default_closed=False)
+    is_pass = active is not None and active.get(MME_DRAW_PROP) and active.parent == root
+    pass_header.label(text="Pass Details: %s" % active.name.split("_")[-1] if is_pass else "Pass Details", icon="MODIFIER")
+    if pass_body is not None:
+        if is_pass:
+            draw_pass_details(pass_body, active)
+        else:
+            pass_body.label(text="Select one of this effect's passes")
     header, body = layout.panel("ninesync_fx_details", default_closed=False)
     header.label(text="Effect Details", icon="INFO")
     if body is not None:
         draw_fx_details(body, settings, root, active)
+
+
+# The switches that belong to one pass: Edit Particle Instances (only for a pass made of particle sprites, the only
+# kind that can be split into instances) and Enable Geometry Node Editing (viewport only), then its output material.
+def draw_pass_details(layout, obj):
+    if obj.get(MME_EDIT_PASS_PROP):
+        layout.prop(obj, MME_EDIT_OBJECT_PROP, text="Edit Particle Instances")
+    if obj.get(MME_BACKEND_PROP) == "GEO":
+        live = layout.row()
+        live.scale_y = 1.2
+        live.prop(obj, MME_LIVE_OBJECT_PROP, toggle=True, text="Enable Geometry Node Editing", icon="NODETREE")
+        if getattr(obj, MME_LIVE_OBJECT_PROP, False):
+            layout.label(text="Viewport only: renders still use the bake", icon="INFO")
+        if mme_bake_state(obj) == "stale":
+            layout.label(text="Edits are not baked yet: Bake Changed", icon="ERROR")
+    draw_pass_material(layout, obj)
 
 
 # Gamma and emission strength of a pass's output stage, edited on the node sockets themselves so the material
@@ -132,9 +201,8 @@ def draw_pass_material(layout, obj):
             shown.append((mat, gamma, emission))
     if not shown:
         return
-    pass_name = info.get("pass") or info.get("technique") or obj.name
     col = layout.column(align=True)
-    col.label(text="Pass Material (%s)" % pass_name, icon="MATERIAL")
+    col.label(text="Pass Material", icon="MATERIAL")
     col.separator(factor=0.4)
     for mat, gamma, emission in shown:
         if len(shown) > 1:

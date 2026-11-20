@@ -20,7 +20,7 @@ from ..relink import settings_outdated
 
 
 class NINESYNC_FX_PT_library(Panel):
-    bl_label = "Core Node Library"
+    bl_label = "Node Library"
     bl_idname = "NINESYNC_FX_PT_library"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"

@@ -1,4 +1,5 @@
 import bpy
+from bpy.app.translations import pgettext_n as n_
 
 from ..common.constants import X_IMPORTER_URL
 from .mesh import x_importer_available
@@ -16,7 +17,7 @@ def fx_missing_dependencies():
         missing.append(
             (
                 "DirectX X Importer",
-                "DirectX X Importer is not installed (only needed for binary or compressed .x accessories)",
+                n_("DirectX X Importer is not installed (only needed for binary or compressed .x accessories)"),
                 X_IMPORTER_URL,
             )
         )

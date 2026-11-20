@@ -7,7 +7,7 @@ os.makedirs(FIX + "/out", exist_ok=True)
 pkg = importlib.import_module("ninesync_fx")
 def package_modules():
     prefix = pkg.__name__ + "."
-    return [m for n, m in list(sys.modules.items()) if n.startswith(prefix) and m is not None] + [pkg]
+    return [m for n, m in list(sys.modules.items()) if n.startswith(prefix) and m is not None and not n.endswith(".i18n.translations")] + [pkg]
 
 
 

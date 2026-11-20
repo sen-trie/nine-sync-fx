@@ -1,3 +1,4 @@
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.types import Panel
 
 from ...common.constants import NINESYNC_CATEGORY
@@ -20,7 +21,7 @@ class NINESYNC_FX_PT_bake(Panel):
     def draw(self, context):
         layout = self.layout
         settings = context.scene.ninesync_fx
-        layout.label(text="Scene frames %d - %d" % (context.scene.frame_start, context.scene.frame_end))
+        layout.label(text=iface_("Scene frames %d - %d") % (context.scene.frame_start, context.scene.frame_end))
         layout.prop(settings, "mme_bake_target", text="Store")
         if settings.mme_bake_target == "DISK":
             layout.prop(settings, "mme_bake_dir", text="")

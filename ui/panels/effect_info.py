@@ -1,6 +1,7 @@
 import bpy
 import json
 import os
+from bpy.app.translations import pgettext_iface as iface_, pgettext_rpt as rpt_
 
 from ...common.constants import (
     MME_DRAW_PROP,
@@ -41,20 +42,20 @@ def fx_control_text(desc):
     kind = desc.get("kind")
     source = desc.get("from") or ""
     if kind == "const":
-        text = "missing: %s (uses %s)" % (source or "target", ", ".join("%g" % v for v in desc.get("values", [0.0])))
+        text = iface_("missing: %s (uses %s)") % (source or iface_("target"), ", ".join("%g" % v for v in desc.get("values", [0.0])))
         return "%s, %s" % (text, desc["note"]) if desc.get("note") else text
     if kind == "self":
-        return "this accessory: %s" % (desc.get("item") or "transform")
+        return iface_("this accessory: %s") % (desc.get("item") or iface_("transform"))
     if kind == "object":
-        return "%s: %s" % (desc.get("object", ""), desc.get("item") or "transform")
+        return "%s: %s" % (desc.get("object", ""), desc.get("item") or iface_("transform"))
     if kind == "prop":
-        return "morph %s (keyed)" % source
+        return iface_("morph %s (keyed)") % source
     if kind == "shapekey":
-        return "shape key %s on %s (live)" % (desc.get("key", ""), desc.get("object", ""))
+        return iface_("shape key %s on %s (live)") % (desc.get("key", ""), desc.get("object", ""))
     if kind == "bone":
-        return "bone %s on %s" % (desc.get("bone", ""), desc.get("object", ""))
+        return iface_("bone %s on %s") % (desc.get("bone", ""), desc.get("object", ""))
     if kind == "model":
-        return "model %s" % desc.get("object", "")
+        return iface_("model %s") % desc.get("object", "")
     return kind
 
 
@@ -91,13 +92,13 @@ def draw_bake_status(layout, root):
         return
     box = layout.box()
     if baked == total:
-        box.label(text="Baked: all %d passes" % total, icon=_status_icon("ALL"))
+        box.label(text=iface_("Baked: all %d passes") % total, icon=_status_icon("ALL"))
     elif baked + edited == 0:
         box.label(text="Not baked", icon=_status_icon("NONE"))
     else:
-        text = "Partly baked: %d of %d passes" % (baked + edited, total)
+        text = iface_("Partly baked: %d of %d passes") % (baked + edited, total)
         if edited:
-            text += ", %d edited since" % edited
+            text += iface_(", %d edited since") % edited
         box.label(text=text, icon=_status_icon("PARTIAL"))
 
 
@@ -108,7 +109,7 @@ def draw_fx_selected(layout, context, root, active):
     row.scale_y = 1.2
     rebuild_cell = row.row(align=True)
     rebuild_cell.alert = stale
-    rebuild = rebuild_cell.operator("ninesync_fx.refresh_effects", text="Rebuild (out of date)" if stale else "Rebuild", icon="FILE_REFRESH")
+    rebuild = rebuild_cell.operator("ninesync_fx.refresh_effects", text=iface_("Rebuild (out of date)") if stale else iface_("Rebuild"), icon="FILE_REFRESH")
     rebuild.root_name = root.name
     bake = row.operator("ninesync_fx.bake_effects", text="Bake Changed", icon="RENDER_ANIMATION")
     bake.root_name = root.name
@@ -121,9 +122,9 @@ def draw_fx_selected(layout, context, root, active):
         box.alert = True
         box.label(text="Files not found, rebuild and bake are off", icon="ERROR")
         for what, path in missing:
-            draw_wrapped(box, "%s: %s" % (what, path))
+            draw_wrapped(box, "%s: %s" % (iface_(what), path))
     draw_bake_status(layout, root)
-    layout.label(text="Effect: %s" % os.path.basename(root.get("mme_fx", "")), icon="SHADERFX")
+    layout.label(text=iface_("Effect: %s") % os.path.basename(root.get("mme_fx", "")), icon="SHADERFX")
     if getattr(settings, "filepath", ""):
         layout.label(text="Keyed from the PMM", icon="KEYINGSET")
     sub = layout.column(align=True)
@@ -153,10 +154,10 @@ def draw_fx_selected(layout, context, root, active):
     if overriders:
         hint = layout.row()
         hint.active = False
-        hint.label(text="Greyed: set by %s" % ", ".join(sorted(overriders)), icon="LINKED")
+        hint.label(text=iface_("Greyed: set by %s") % ", ".join(sorted(overriders)), icon="LINKED")
     pass_header, pass_body = layout.panel("ninesync_fx_pass", default_closed=False)
     is_pass = active is not None and active.get(MME_DRAW_PROP) and active.parent == root
-    pass_header.label(text="Pass Details: %s" % active.name.split("_")[-1] if is_pass else "Pass Details", icon="MODIFIER")
+    pass_header.label(text=iface_("Pass Details: %s") % active.name.split("_")[-1] if is_pass else iface_("Pass Details"), icon="MODIFIER")
     if pass_body is not None:
         if is_pass:
             draw_pass_details(pass_body, active)
@@ -261,13 +262,14 @@ def draw_fx_details(layout, settings, root, active):
         except (TypeError, ValueError):
             unsupported = []
         if unsupported:
-            draw_wrapped(box, "Full-screen passes are not supported and were skipped: %s" % ", ".join(unsupported))
+            draw_wrapped(box, iface_("Full-screen passes are not supported and were skipped: %s") % ", ".join(unsupported))
         for obj in mme_effect_passes(root):
             info, backend, loops, flags = fx_pass_summary(obj)
             row = box.row(align=True)
             select = row.operator(
                 "ninesync_fx.select_object",
                 text="%s / %s" % (info.get("technique", "?"), info.get("pass", "?")),
+                translate=False,
                 icon="RADIOBUT_ON" if obj == active else "RADIOBUT_OFF",
                 emboss=False,
             )
@@ -291,14 +293,14 @@ def draw_fx_details(layout, settings, root, active):
             except (TypeError, ValueError):
                 varyings, uniforms, driven = [], [], []
             col = box.column(align=True)
-            col.label(text="%s / %s" % (info.get("technique", "?"), info.get("pass", active.name)), icon="OBJECT_DATA")
-            col.label(text="Subset %s, %s backend" % (info.get("subset", "?"), backend))
+            col.label(text="%s / %s" % (info.get("technique", "?"), info.get("pass", active.name)), icon="OBJECT_DATA", translate=False)
+            col.label(text=iface_("Subset %s, %s backend") % (info.get("subset", "?"), backend))
             if loops:
-                col.label(text="Loops: %s" % loops)
+                col.label(text=iface_("Loops: %s") % loops)
             if flags:
-                col.label(text="State: %s" % ", ".join(flags))
-            col.label(text="%d vertex outputs to the material" % len(varyings))
-            col.label(text="%d material inputs from the scene (%d by drivers)" % (len(uniforms), len(driven)))
+                col.label(text=iface_("State: %s") % ", ".join(flags))
+            col.label(text=iface_("%d vertex outputs to the material") % len(varyings))
+            col.label(text=iface_("%d material inputs from the scene (%d by drivers)") % (len(uniforms), len(driven)))
             if active.data is not None and len(active.data.materials) and active.data.materials[0] is not None:
                 mat = active.data.materials[0]
                 col.label(text=mat.name, icon="MATERIAL")

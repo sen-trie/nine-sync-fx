@@ -1,0 +1,1303 @@
+# NineSync UI catalog. Generated layout: edit msgstr values only; see DEVELOPER_GUIDE.md#translations.
+msgid ""
+msgstr ""
+"Project-Id-Version: NineSync fx\n"
+"Report-Msgid-Bugs-To: https://github.com/sen-trie/nine-sync-release/issues\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-NineSync-Domain: fx\n"
+
+#. kind: tooltip
+#: __init__.py:98
+msgid "Show this accessory in the viewport and in renders (sets Hide in Viewport and Disable in Renders on its meshes, like mmd_tools)"
+msgstr ""
+
+#. kind: label
+#: __init__.py:98
+msgid "Visible"
+msgstr ""
+
+#. kind: label
+#: __init__.py:104 ui/properties.py:110
+msgid "Transparency Order"
+msgstr ""
+
+#. kind: tooltip
+#: __init__.py:104
+msgid "Transparency Order for this accessory's effect, overriding the one in the Effects panel"
+msgstr ""
+
+#. kind: label
+#: __init__.py:111 ui/panels/effect_info.py:176
+msgid "Edit Particle Instances"
+msgstr ""
+
+#. kind: tooltip
+#: __init__.py:111
+msgid "Part of this pass, so leave it enabled when rendering. Turns each particle into an instance so the nodes in the pass's frame can edit them; the edits are part of the bake (slower on big effects)"
+msgstr ""
+
+#. kind: label
+#: __init__.py:117 ui/panels/effect_info.py:180
+msgid "Enable Geometry Node Editing"
+msgstr ""
+
+#. kind: tooltip
+#: __init__.py:117
+msgid "Show this pass's live nodes in the viewport instead of its bake, so edits to its node groups show at once. Ignored in renders: they keep using the bake. Turn it off to see the bake again"
+msgstr ""
+
+#. kind: label
+#: accessories/dependencies.py:20
+msgid "DirectX X Importer is not installed (only needed for binary or compressed .x accessories)"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:51
+msgid "Effect not found: %s"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:52
+msgid "Effect error: %s"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:53
+msgid "Effect failed: %s"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:58
+msgid "File not found"
+msgstr ""
+
+#. kind: report
+#: ui/helpers.py:64
+msgid "Effect file"
+msgstr ""
+
+#. kind: report
+#: ui/helpers.py:64
+msgid "Mesh file"
+msgstr ""
+
+#. kind: report
+#: ui/helpers.py:65
+msgid "%s not found: %s"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:76 ui/properties.py:38
+msgid "Effect Controls"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:85
+msgid "%d GN, %d Py"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:87
+msgid ", %d baked"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:92
+msgid "Tr (keyed from PMM)"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:93
+msgid "Si (keyed from PMM)"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:103
+msgid "Reset"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:105 ui/panels/effect_info.py:112
+msgid "Rebuild"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:108
+msgid "Bake"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:110 ui/panels/effect_info.py:116
+msgid "Clear Bake"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:168
+msgid "baked"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:170
+msgid "frame handler"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:172
+msgid "pruned"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:205
+msgid "Get %s"
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:207
+msgid "mmd_tools is not enabled: parent bone matching and morph names use plain bone names only."
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:213
+msgid "PMM accessories are synced by NineSync: PMM Bridge. Press Sync Now there."
+msgstr ""
+
+#. kind: label
+#: ui/helpers.py:215
+msgid "PMM projects need NineSync: PMM Bridge. Import .x accessories directly with File > Import > MMD Accessory (.x)."
+msgstr ""
+
+#. kind: label
+#: ui/operators/accessories.py:36
+msgctxt "Operator"
+msgid "Keyframe Visibility"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/accessories.py:37
+msgid "Insert a visibility keyframe (Hide in Viewport and Disable in Renders) on this accessory's meshes at the current frame. Click on a keyed frame to remove the key"
+msgstr ""
+
+#. kind: label
+#: ui/operators/accessories.py:69
+msgctxt "Operator"
+msgid "Import MMD Accessory"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/accessories.py:70
+msgid "Import MikuMikuDance accessories (.x) without a PMM. Accessories with an MME effect (.fx) are built and listed in the NineSync panels"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/accessories.py:77
+msgid "Size multiplier, matching mmd_tools' import scale (0.08 by default)"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/accessories.py:84
+msgid "Build the accessory's MME effect (.fx) when one is found next to it"
+msgstr ""
+
+#. kind: label
+#: ui/operators/accessories.py:84
+msgid "MME Effect"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/accessories.py:89
+msgid "Effect (.fx) to use instead of the one next to the .x. Leave empty to look it up"
+msgstr ""
+
+#. kind: report
+#: ui/operators/accessories.py:110
+msgid "Not found: %s"
+msgstr ""
+
+#. kind: report
+#: ui/operators/accessories.py:120
+msgid "Imported %d accessory file(s)"
+msgstr ""
+
+#. kind: label
+#: ui/operators/accessories.py:126
+msgid "MMD Accessory (.x)"
+msgstr ""
+
+#. kind: label
+#: ui/operators/accessories.py:131
+msgctxt "Operator"
+msgid "Select"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/accessories.py:132
+msgid "Select this object and make it active"
+msgstr ""
+
+#. kind: label
+#: ui/operators/accessories.py:151
+msgctxt "Operator"
+msgid "Clean Accessories"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/accessories.py:152
+msgid "Delete imported accessory objects, their effects and their animation. Your own data is never touched"
+msgstr ""
+
+#. kind: report
+#: ui/operators/accessories.py:162
+msgid "Removed %d accessory(ies)"
+msgstr ""
+
+#. kind: label
+#: ui/operators/accessories.py:169
+msgctxt "Operator"
+msgid "Support Report"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/accessories.py:170
+msgid "Copy a support report with versions, effect settings and the recent log to the clipboard. User folders are redacted, but check it before posting"
+msgstr ""
+
+#. kind: report
+#: ui/operators/accessories.py:184
+msgid "Support report copied (%d lines) and saved to the %s text"
+msgstr ""
+
+#. kind: label
+#: ui/operators/bake.py:34
+msgctxt "Operator"
+msgid "Bake Effects"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/bake.py:35
+msgid "Bake effect geometry over the scene frame range so playback and rendering read stored geometry instead of running shaders. Passes whose inputs and stored bake are unchanged are skipped; Ctrl-click Force Rebake All to redo every pass"
+msgstr ""
+
+#. kind: report
+#: ui/operators/bake.py:51
+msgid "Not baked, %s"
+msgstr ""
+
+#. kind: report
+#: ui/operators/bake.py:56
+msgid "No effect passes to clear"
+msgstr ""
+
+#. kind: report
+#: ui/operators/bake.py:58
+msgid "No effect passes to bake"
+msgstr ""
+
+#. kind: report
+#: ui/operators/bake.py:61
+msgid "Save the .blend first, or pick an absolute Bake Folder"
+msgstr ""
+
+#. kind: report
+#: ui/operators/bake.py:86
+msgid "Cleared %d effect bake(s)"
+msgstr ""
+
+#. kind: report
+#: ui/operators/bake.py:101
+msgid "Baked %d, reused %d, shared %d, failed %d of %d effect pass(es), frames %d-%d, in %.1fs"
+msgstr ""
+
+#. kind: label
+#: ui/operators/controls.py:41
+msgctxt "Operator"
+msgid "Assign Controller"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/controls.py:42
+msgid "Choose the object or bone this unresolved effect controller reads. The assignment is saved with the accessory. An automatic match from the PMM takes priority"
+msgstr ""
+
+#. kind: label
+#: ui/operators/controls.py:48
+msgid "Object"
+msgstr ""
+
+#. kind: label
+#: ui/operators/controls.py:49
+msgid "Bone"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/controls.py:50
+msgid "Also assign this object to the other unresolved items of the same controller"
+msgstr ""
+
+#. kind: label
+#: ui/operators/controls.py:50
+msgid "Use for this controller's other items"
+msgstr ""
+
+#. kind: report
+#: ui/operators/controls.py:86
+msgid "That effect control no longer exists"
+msgstr ""
+
+#. kind: report
+#: ui/operators/controls.py:96
+msgid "Pick an object to assign"
+msgstr ""
+
+#. kind: report
+#: ui/operators/controls.py:100
+msgid "%s has no shape key, bone or transform item named %s"
+msgstr ""
+
+#. kind: report
+#: ui/operators/controls.py:116
+msgid "%d item(s) of this controller were not found on the object and stay unresolved"
+msgstr ""
+
+#. kind: label
+#: ui/operators/effects.py:31
+msgctxt "Operator"
+msgid "Refresh Effects"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/effects.py:32
+msgid "Reload effect files and rebuild the effect passes whose inputs changed (backend, density, parameters, files). Unchanged passes keep their objects and bakes; a rebuilt pass loses its bake"
+msgstr ""
+
+#. kind: report
+#: ui/operators/effects.py:47
+msgid "Not rebuilt, %s"
+msgstr ""
+
+#. kind: report
+#: ui/operators/effects.py:56
+msgid "%d effect pass(es) present, %d reused unchanged"
+msgstr ""
+
+#. kind: label
+#: ui/operators/effects.py:63
+msgctxt "Operator"
+msgid "Clear Effect Caches"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/effects.py:64
+msgid "Delete the effect caches: never-drawn vertices, simplified strips and parsed .x geometry. The next rebuild analyses each effect from scratch"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/effects.py:66
+msgid "Delete the shared bake store instead; projects that use those bakes bake again"
+msgstr ""
+
+#. kind: report
+#: ui/operators/effects.py:70
+msgid "Removed %d shared bake(s)"
+msgstr ""
+
+#. kind: report
+#: ui/operators/effects.py:73
+msgid "Removed %d effect cache file(s)"
+msgstr ""
+
+#. kind: label
+#: ui/operators/effects.py:79
+msgctxt "Operator"
+msgid "Reset Parameters"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/effects.py:80
+msgid "Set this effect's parameters back to the values written in the .fx file"
+msgstr ""
+
+#. kind: label
+#: ui/operators/library.py:60
+msgctxt "Operator"
+msgid "Open FX Library .blend"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/library.py:61
+msgid "Open the shared node library this add-on reads and writes. Asks first: it can start a second Blender so this file stays open"
+msgstr ""
+
+#. kind: label
+#: ui/operators/library.py:63
+msgid "Open In"
+msgstr ""
+
+#. kind: label
+#: ui/operators/library.py:66
+msgid "Second Blender"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/library.py:66
+msgid "Start a separate Blender with the library. This file stays open"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/library.py:67
+msgid "Close this file and open the library here"
+msgstr ""
+
+#. kind: label
+#: ui/operators/library.py:67
+msgid "This Blender"
+msgstr ""
+
+#. kind: label
+#: ui/operators/library.py:71
+msgid "Open a copy of the bundled library"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/library.py:71
+msgid "Your library is not available. Open a temporary copy of the one shipped with the add-on; saving it does not change either library"
+msgstr ""
+
+#. kind: label
+#: ui/operators/library.py:77
+msgid "Discard unsaved changes in this file"
+msgstr ""
+
+#. kind: label
+#: ui/operators/library.py:84
+msgid "Open"
+msgstr ""
+
+#. kind: label
+#: ui/operators/library.py:94
+msgid "Your library was not found at %s."
+msgstr ""
+
+#. kind: label
+#: ui/operators/library.py:94
+msgid "the user folder"
+msgstr ""
+
+#. kind: label
+#: ui/operators/library.py:101
+msgid "This file has unsaved changes"
+msgstr ""
+
+#. kind: label
+#: ui/operators/library.py:104
+msgid "This file is closed. It has no unsaved changes"
+msgstr ""
+
+#. kind: report
+#: ui/operators/library.py:109
+msgid "%s not found at %s. Tick the bundled copy, or import an effect to create it"
+msgstr ""
+
+#. kind: report
+#: ui/operators/library.py:112
+msgid "This file has unsaved changes. Save it first, or open the library in a second Blender"
+msgstr ""
+
+#. kind: report
+#: ui/operators/library.py:123
+msgid "Could not open %s: %s"
+msgstr ""
+
+#. kind: report
+#: ui/operators/library.py:125
+msgid "Opened %s"
+msgstr ""
+
+#. kind: label
+#: ui/operators/library.py:131
+msgctxt "Operator"
+msgid "Save Shared Groups to Library"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/library.py:132
+msgid "Write every shared effect node group in this file into your mme_core.blend library, so later imports append them instead of building them"
+msgstr ""
+
+#. kind: report
+#: ui/operators/library.py:138
+msgid "Could not write %s: %s"
+msgstr ""
+
+#. kind: report
+#: ui/operators/library.py:140
+msgid "%s now holds %d shared group(s)"
+msgstr ""
+
+#. kind: label
+#: ui/operators/library.py:147
+msgctxt "Operator"
+msgid "Rebuild Standard Groups"
+msgstr ""
+
+#. kind: tooltip
+#: ui/operators/library.py:148
+msgid "Rebuild the standard shared groups (camera, matrices, clip space, common HLSL intrinsics) with this Blender version and save them to the library. Function groups from imported effects are kept"
+msgstr ""
+
+#. kind: report
+#: ui/operators/library.py:155
+msgid "Could not rebuild the standard groups: %s"
+msgstr ""
+
+#. kind: report
+#: ui/operators/library.py:157
+msgid "Rebuilt %d standard group(s); %s holds %d"
+msgstr ""
+
+#. kind: label
+#: ui/panels/accessories.py:42
+msgid "Sync a PMM with NineSync: PMM Bridge, or import an accessory directly"
+msgstr ""
+
+#. kind: label
+#: ui/panels/accessories.py:43 ui/panels/accessories.py:77
+msgid "Import Accessory (.x)"
+msgstr ""
+
+#. kind: label
+#: ui/panels/accessory_effects.py:14
+msgid "Accessory Directory"
+msgstr ""
+
+#. kind: label
+#: ui/panels/accessory_effects.py:30
+msgid "Sync a PMM with NineSync: PMM Bridge, or use File > Import > MMD Accessory (.x)."
+msgstr ""
+
+#. kind: label
+#: ui/panels/bake.py:9
+msgid "Scene Bake"
+msgstr ""
+
+#. kind: label
+#: ui/panels/bake.py:24
+msgid "Scene frames %d - %d"
+msgstr ""
+
+#. kind: label
+#: ui/panels/bake.py:25
+msgid "Store"
+msgstr ""
+
+#. kind: label
+#: ui/panels/bake.py:30
+msgid "Clear Shared Bakes"
+msgstr ""
+
+#. kind: label
+#: ui/panels/bake.py:34 ui/panels/effect_info.py:114
+msgid "Bake Changed"
+msgstr ""
+
+#. kind: label
+#: ui/panels/bake.py:35
+msgid "Clear All"
+msgstr ""
+
+#. kind: label
+#: ui/panels/bake.py:37
+msgid "Force Rebake All"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:45
+msgid "missing: %s (uses %s)"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:45
+msgid "target"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:48
+msgid "this accessory: %s"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:48 ui/panels/effect_info.py:50
+msgid "transform"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:52
+msgid "morph %s (keyed)"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:54
+msgid "shape key %s on %s (live)"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:56
+msgid "bone %s on %s"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:58
+msgid "model %s"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:95
+msgid "Baked: all %d passes"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:97
+msgid "Not baked"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:99
+msgid "Partly baked: %d of %d passes"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:101
+msgid ", %d edited since"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:112
+msgid "Rebuild (out of date)"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:123
+msgid "Files not found, rebuild and bake are off"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:127
+msgid "Effect: %s"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:129
+msgid "Keyed from the PMM"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:131
+msgid "Tr (opacity)"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:132
+msgid "Si (scale)"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:135
+msgid "Effect Parameters"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:143
+msgid "This effect exposes no parameters"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:157
+msgid "Greyed: set by %s"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:160
+msgid "Pass Details"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:160
+msgid "Pass Details: %s"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:165
+msgid "Select one of this effect's passes"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:167
+msgid "Effect Details"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:182
+msgid "Viewport only: renders still use the bake"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:184
+msgid "Edits are not baked yet: Bake Changed"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:206
+msgid "Pass Material"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:212
+msgid "Gamma"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:214
+msgid "Emission"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:216
+msgid "Produce Diffuse Rays"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:226
+msgid "This effect reads no other objects"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:235
+msgid "This accessory"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:265
+msgid "Full-screen passes are not supported and were skipped: %s"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:286
+msgid "Pick a pass in the Passes tab"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:297
+msgid "Subset %s, %s backend"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:299
+msgid "Loops: %s"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:301
+msgid "State: %s"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:302
+msgid "%d vertex outputs to the material"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:303
+msgid "%d material inputs from the scene (%d by drivers)"
+msgstr ""
+
+#. kind: label
+#: ui/panels/library.py:24
+msgid "Node Library"
+msgstr ""
+
+#. kind: label
+#: ui/panels/library.py:44
+msgid "%d shared groups in the library"
+msgstr ""
+
+#. kind: label
+#: ui/panels/library.py:46
+msgid "%d shared groups in this file (%d not in the library)"
+msgstr ""
+
+#. kind: label
+#: ui/panels/library.py:52
+msgid "Using the bundled library until Blender restarts: %s"
+msgstr ""
+
+#. kind: label
+#: ui/panels/library.py:54
+msgid "Your library is created on the first effect import."
+msgstr ""
+
+#. kind: label
+#: ui/panels/library.py:59
+msgid "Save to Library"
+msgstr ""
+
+#. kind: label
+#: ui/panels/library.py:60
+msgid "Rebuild Standard"
+msgstr ""
+
+#. kind: label
+#: ui/panels/main.py:31
+msgid "Rebuild Changed Effects"
+msgstr ""
+
+#. kind: label
+#: ui/panels/main.py:32
+msgid "Force Rebuild All"
+msgstr ""
+
+#. kind: label
+#: ui/panels/selected.py:14
+msgid "Selected Effect"
+msgstr ""
+
+#. kind: label
+#: ui/panels/selected.py:29
+msgid "Select an effect accessory (MMDAcc_...) or one of its passes to see its settings here."
+msgstr ""
+
+#. kind: label
+#: ui/panels/settings.py:8
+msgid "Settings"
+msgstr ""
+
+#. kind: label
+#: ui/preferences.py:13
+msgid "Cache Folder"
+msgstr ""
+
+#. kind: tooltip
+#: ui/preferences.py:13
+msgid "Where parsed .x geometry, pre-cull results and strip results are kept. Leave empty for this add-on's own user folder; set the same folder in the standalone and the bundled add-on to share it"
+msgstr ""
+
+#. kind: label
+#: ui/preferences.py:19
+msgid "Cache Limit (MB)"
+msgstr ""
+
+#. kind: tooltip
+#: ui/preferences.py:19
+msgid "The least recently used cache files are deleted when the folder grows past this size"
+msgstr ""
+
+#. kind: label
+#: ui/preferences.py:27
+msgid "Shared Bake Limit (MB)"
+msgstr ""
+
+#. kind: tooltip
+#: ui/preferences.py:27
+msgid "The least recently used shared bakes are deleted when the shared bake store grows past this size"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:8
+msgid "Full Shader"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:8
+msgid "Run the vertex shader on every vertex of every copy. Slowest; the reference for the other two"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:9
+msgid "MMD Order"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:9
+msgid "Same image as MMD, faster: see-through passes become one mesh in MMD's draw order rebuilt from a few vertices per copy, additive and opaque passes are drawn as instances"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:10
+msgid "Blender Sorted"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:10
+msgid "Draw every such pass as instances. Fastest. Cycles renders the same as the other levels, but EEVEE sorts see-through copies by distance instead of using MMD's order, which changes how overlapping copies blend (Nuke2's smoke looks lighter)"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:20
+msgid "Sync From PMM"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:20
+msgid "Update this accessory from the PMM when you press Sync. Turn off to keep it as it is in Blender"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:27
+msgid "Run this accessory's MME effect (.fx). Turn off to import the plain mesh"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:27
+msgid "Use Effect"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:32
+msgid "Effect (.fx) to use instead of the one found next to the .x or in the PMM's .emm file"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:32 ui/operators/accessories.py:89
+msgid "Effect File"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:39
+msgid "Overrides the parent bone stored in the PMM. Leave empty to use the PMM value"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:39
+msgid "Parent Bone"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:48
+msgid "Enabled"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:49
+msgid "Target"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:53
+msgid "PMM File"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:53
+msgid "Set by NineSync: PMM Bridge on each sync"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:54
+msgid "Auto Scale From Model"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:54
+msgid "Use the scale the first enabled model was imported with in mmd_tools"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:59
+msgid "Motion scale passed to the mmd_tools VMD importer when Auto Scale is off"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:59 ui/operators/accessories.py:77
+msgid "Scale"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:65
+msgid "Import and animate .x accessories stored in the PMM. Static meshes only"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:65
+msgid "Sync Accessories"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:70
+msgid "Rebuild .sph/.spa sphere maps from accessory textures with a camera-space normal lookup"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:70
+msgid "Sphere Maps (Experimental)"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:76
+msgid "Accessory Folder"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:76
+msgid "Extra folder searched for .x files when the path stored in the PMM does not exist"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:82
+msgid "Effect Density"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:82
+msgid "Share of each LoopByCount loop to draw. 1 matches MMD. Lower values make heavy effects such as Nuke2 faster to scrub. Geometry Nodes passes update live; Python passes on the next sync or Refresh Effects"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:91
+msgid "Geometry Tolerance"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:91
+msgid "How far simplified effect strips may drift from the full mesh, as a share of the effect's size. Rows of strip meshes (such as Thunder's 10,000-segment rings and bolts) that the shader output can rebuild by interpolation are merged. 0 keeps every row. Faces that the shader always makes fully transparent are removed regardless. Applies on the next Rebuild"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:100
+msgid "Pre-cull Cache"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:100
+msgid "Remember which effect vertices can never be drawn (per effect file, .x file and pass) in a cache on disk, so rebuilds only analyse new settings. Only vertices that stayed invisible in every evaluated state are skipped"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:105
+msgid "For effects that copy a mesh many times (LoopByCount), run the part of the vertex shader that depends only on the copy's index once per copy instead of once per vertex. The result is the same; turn off only to compare against the plain per-vertex graph. Changing it rebuilds the affected passes"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:105
+msgid "Per-Particle Shader Stage"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:110
+msgid "How LoopByCount effects whose vertex shader moves each copy of the mesh rigidly (checked when the pass is built) are drawn. Each accessory's Effect Controls can override it. Takes effect without a rebuild"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:117
+msgid "Auto Rebuild"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:117
+msgid "Rebuild an effect automatically after you edit a parameter that changes its geometry (wrench icon). Off by default because heavy effects take minutes: edits then only mark the effect as out of date until you press Rebuild Changed"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:122
+msgid "Detailed Build Log"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:122
+msgid "Log every changed input (before and after) behind each rebuild, rebake and skip decision, not just the reason"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:127
+msgid "Live Effect Preview"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:127
+msgid "Recompute Python-backend effect passes whenever the frame changes in the viewport. Geometry Nodes passes always update. Renders always recompute"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:132
+msgid "Effect Backend"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:132
+msgid "How effect vertex shaders run. Applied on the next sync or Refresh Effects"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:136
+msgid "Compile vertex shaders to Geometry Nodes: no Python per frame, renders and bakes natively. Passes that cannot compile fall back to Python"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:136
+msgid "Geometry Nodes"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:137
+msgid "Python"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:137
+msgid "Run vertex shaders in Python (numpy) from a frame-change handler"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:141
+msgid "Effect Info"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:144
+msgid "Linked Objects"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:144
+msgid "Objects and morphs the effect reads (CONTROLOBJECT)"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:145
+msgid "Passes"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:145
+msgid "The effect's draw passes"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:146
+msgid "Details of the selected pass object"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:146
+msgid "Selected Pass"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:150
+msgid "After an effect import builds new shared node groups, add them to mme_core.blend so later imports append them instead of building them again"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:150
+msgid "Grow Library Automatically"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:155
+msgid "Bake To"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:158
+msgid "Packed in .blend"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:158
+msgid "Store baked effect geometry inside the .blend file"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:159
+msgid "Disk"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:159
+msgid "Store baked effect geometry in the folder below"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:163
+msgid "Build Memory"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:163
+msgid "How much memory effect analysis may use for temporary arrays while building. Lower settings build large effects in smaller batches: slower, same result"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:167
+msgid "Low"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:167
+msgid "Small batches; for machines with 8-16 GB of RAM"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:168
+msgid "Balanced"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:168
+msgid "Default batches"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:169
+msgid "High"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:169
+msgid "Large batches; fastest on machines with plenty of RAM"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:173
+msgid "Bake Folder"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:173
+msgid "Folder for effect bakes stored on disk"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:179
+msgid "Folder per Pass"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:179
+msgid "Store each effect pass's disk bake in its own folder, named by the .blend file and the pass, so copies of the file never overwrite each other's bakes and rebuilt passes leave no stale bake behind"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:184
+msgid "Keep disk bakes in the shared cache, named by what they were baked from, so another project or file with the same effect and animation reuses them instead of baking again. Stored in the cache folder from the add-on preferences, not beside the .blend"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:184
+msgid "Share Bakes"
+msgstr ""
+
+#. kind: tooltip
+#: ui/properties.py:189
+msgid "PMM keyframes are 30 fps. Scale every key frame by scene fps / 30 so motion keeps its real speed in a scene with a different frame rate"
+msgstr ""
+
+#. kind: label
+#: ui/properties.py:189
+msgid "Retime to Scene FPS"
+msgstr ""
+
+#. kind: label, report
+#: ui/relink.py:11 ui/relink.py:53
+msgid "An older copy of NineSync: FX replaced this add-on's settings. They were re-linked; press the button again, and remove the old copy in Preferences > Add-ons"
+msgstr ""

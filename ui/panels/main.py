@@ -7,7 +7,7 @@ from ...common.constants import (
 from ...common.state import _mme_state
 from ..helpers import draw_wrapped
 from ..relink import (
-    STALE_SETTINGS_MESSAGE,
+    stale_settings_message,
     settings_outdated,
 )
 
@@ -23,7 +23,7 @@ class NINESYNC_FX_PT_main(Panel):
     def draw(self, context):
         layout = self.layout
         if settings_outdated(context.scene):
-            draw_wrapped(layout, STALE_SETTINGS_MESSAGE)
+            draw_wrapped(layout, stale_settings_message())
             return
         row = layout.row()
         row.scale_y = 1.3

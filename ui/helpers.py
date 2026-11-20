@@ -1,6 +1,7 @@
 import bpy
 import json
 import textwrap
+from bpy.app.translations import pgettext_iface as iface_, pgettext_rpt as rpt_
 from .. import hooks
 
 from ..accessories.dependencies import (
@@ -44,6 +45,26 @@ def draw_wrapped(layout, text, width=None):
         column.label(text=line)
 
 
+# The effect note is stored in English (the panel matches its prefix); it is translated only when drawn.
+def effect_note_text(note):
+    for prefix, text in (
+        ("Effect not found: ", iface_("Effect not found: %s")),
+        ("Effect error: ", iface_("Effect error: %s")),
+        ("Effect failed: ", iface_("Effect failed: %s")),
+    ):
+        if note.startswith(prefix):
+            return text % note[len(prefix):]
+    if note == "File not found":
+        return iface_("File not found")
+    return note
+
+
+# The runtime's English missing-file text is for logs; this is the same text translated for the report line.
+def missing_files_report(root, missing):
+    names = {"Effect file": rpt_("Effect file"), "Mesh file": rpt_("Mesh file")}
+    return "%s: %s" % (root.name, "; ".join(rpt_("%s not found: %s") % (names.get(what, what), path) for what, path in missing))
+
+
 def draw_effect_controls(layout, entry):
     collection = accessory_collection(bpy.context.scene)
     root = find_accessory_root(collection, entry.key) if collection else None
@@ -61,9 +82,9 @@ def draw_effect_controls(layout, entry):
     )
     geo = sum(1 for p in passes if p.get(MME_BACKEND_PROP) == "GEO")
     baked = sum(1 for p in passes if p.get(MME_BAKED_PROP))
-    summary = "%d GN, %d Py" % (geo, len(passes) - geo)
+    summary = iface_("%d GN, %d Py") % (geo, len(passes) - geo)
     if baked:
-        summary += ", %d baked" % baked
+        summary += iface_(", %d baked") % baked
     head.label(text=summary)
     if not entry.show_controls:
         return
@@ -144,11 +165,11 @@ def fx_pass_summary(obj):
     loops = ", ".join("%s x%d" % (var or "loop", count) for var, count in info.get("loops", []))
     flags = []
     if obj.get(MME_BAKED_PROP):
-        flags.append("baked")
+        flags.append(iface_("baked"))
     if obj.get("mme_handler", True):
-        flags.append("frame handler")
+        flags.append(iface_("frame handler"))
     if obj.get(MME_PRUNED_PROP):
-        flags.append("pruned")
+        flags.append(iface_("pruned"))
     return info, backend, loops, flags
 
 
@@ -180,18 +201,18 @@ def draw_fx_dependency_notices(layout):
     for label, message, url in fx_missing_dependencies():
         box = layout.box()
         box.alert = True
-        box.label(text=message, icon="ERROR")
-        box.operator("wm.url_open", text="Get %s" % label, icon="URL").url = url
+        box.label(text=iface_(message), icon="ERROR")
+        box.operator("wm.url_open", text=iface_("Get %s") % label, icon="URL").url = url
     if not fx_mmd_tools_available():
-        draw_wrapped(layout, "mmd_tools is not enabled: parent bone matching and morph names use plain bone names only.")
+        draw_wrapped(layout, iface_("mmd_tools is not enabled: parent bone matching and morph names use plain bone names only."))
 
 
 def draw_standalone_block(layout, context, settings):
     draw_fx_dependency_notices(layout)
     if hooks.core_installed():
-        draw_wrapped(layout, "PMM accessories are synced by NineSync: PMM Bridge. Press Sync Now there.")
+        draw_wrapped(layout, iface_("PMM accessories are synced by NineSync: PMM Bridge. Press Sync Now there."))
         return
-    draw_wrapped(layout, "PMM projects need NineSync: PMM Bridge. Import .x accessories directly with File > Import > MMD Accessory (.x).")
+    draw_wrapped(layout, iface_("PMM projects need NineSync: PMM Bridge. Import .x accessories directly with File > Import > MMD Accessory (.x)."))
     tools = layout.row(align=True)
     tools.operator("ninesync_fx.clean", icon="TRASH")
     tools.operator("ninesync_fx.copy_report", icon="COPYDOWN")

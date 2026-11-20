@@ -14,4 +14,4 @@ license = ["SPDX:GPL-3.0-or-later"]
 files = "Read .x, .fx and textures; write node library and cache"
 
 [build]
-paths_exclude_pattern = ["__pycache__/", "/tests/", "/tools/", "/docs/", "/debug-src/", "/.github/", "/.git/", ".gitignore", "/CLAUDE.md", "*.pyc"]
+paths_exclude_pattern = ["__pycache__/", "/tests/", "/tools/", "/docs/", "/debug-src/", "/.github/", "/.git/", ".gitignore", "/CLAUDE.md", "*.pyc", "*.po", "*.pot"]

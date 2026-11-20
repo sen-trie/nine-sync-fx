@@ -1,5 +1,6 @@
 import bpy
 import json
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, StringProperty
 from bpy.types import Operator
 
@@ -96,7 +97,7 @@ class NINESYNC_FX_OT_assign_control(Operator):
                 return {"CANCELLED"}
             if mme_manual_control(obj, mme_control_item(controls[self.control]), self.bone_name) is None:
                 wanted = self.bone_name or mme_control_item(controls[self.control])
-                self.report({"ERROR"}, "%s has no shape key, bone or transform item named %s" % (obj.name, wanted))
+                self.report({"ERROR"}, rpt_("%s has no shape key, bone or transform item named %s") % (obj.name, wanted))
                 return {"CANCELLED"}
             for name in names:
                 if mme_manual_control(obj, mme_control_item(controls[name]), self.bone_name if name == self.control else "") is None:
@@ -112,6 +113,6 @@ class NINESYNC_FX_OT_assign_control(Operator):
         else:
             _mme_state["stale"].add(root.name)
         if skipped:
-            self.report({"WARNING"}, "%d item(s) of this controller were not found on the object and stay unresolved" % skipped)
+            self.report({"WARNING"}, rpt_("%d item(s) of this controller were not found on the object and stay unresolved") % skipped)
         redraw_all()
         return {"FINISHED"}

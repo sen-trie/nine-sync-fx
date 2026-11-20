@@ -1,5 +1,6 @@
 import bpy
 import traceback
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, StringProperty
 from bpy.types import Operator
 
@@ -15,13 +16,13 @@ from ...common.state import (
 from ...runtime.build_effect import mme_rebuild_effect
 from ...runtime.effect_files import (
     mme_missing_files,
-    mme_missing_text,
 )
 from ...runtime.bake_store import mme_store_clear
 from ...runtime.cache_store import mme_cache_clear
 from ...runtime.params import mme_reset_params
 from ...runtime.progress import mme_target_roots
 from ...runtime.update import mme_update_scene
+from ..helpers import missing_files_report
 from ..relink import refuse_if_outdated
 
 
@@ -43,7 +44,7 @@ class NINESYNC_FX_OT_refresh_effects(Operator):
         for root in mme_target_roots(context.scene, self.root_name):
             missing = mme_missing_files(root)
             if missing:
-                self.report({"WARNING"}, "Not rebuilt, " + mme_missing_text(root, missing))
+                self.report({"WARNING"}, rpt_("Not rebuilt, %s") % missing_files_report(root, missing))
                 continue
             try:
                 built += mme_rebuild_effect(context.scene, root, self.force)
@@ -52,7 +53,7 @@ class NINESYNC_FX_OT_refresh_effects(Operator):
                 log.error("effect '%s' rebuild failed: %s\n%s", root.name, error, traceback.format_exc())
                 self.report({"WARNING"}, "%s: %s" % (root.name, short_text(error, 80)))
         mme_update_scene(context.scene, context.evaluated_depsgraph_get(), force=True)
-        self.report({"INFO"}, "%d effect pass(es) present, %d reused unchanged" % (built, reused))
+        self.report({"INFO"}, rpt_("%d effect pass(es) present, %d reused unchanged") % (built, reused))
         redraw_all()
         return {"FINISHED"}
 
@@ -66,10 +67,10 @@ class NINESYNC_FX_OT_clear_precull(Operator):
 
     def execute(self, context):
         if self.bakes:
-            self.report({"INFO"}, "Removed %d shared bake(s)" % mme_store_clear())
+            self.report({"INFO"}, rpt_("Removed %d shared bake(s)") % mme_store_clear())
             return {"FINISHED"}
         removed = mme_cache_clear()
-        self.report({"INFO"}, "Removed %d effect cache file(s)" % removed)
+        self.report({"INFO"}, rpt_("Removed %d effect cache file(s)") % removed)
         return {"FINISHED"}
 
 

@@ -21,6 +21,7 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty, PointerProperty
 
 from . import hooks
+from .i18n import translations
 from .common.constants import (
     MIN_BLENDER,
     NINESYNC_NAME,
@@ -68,7 +69,18 @@ def conflicting_copy():
     return not _install["registered"] and hasattr(bpy.types.Scene, "ninesync_fx")
 
 
+# The translation dictionary goes in first and comes out on every failed or refused enable, so a refused copy leaves nothing
+# registered. The owner is this package's own name: standalone and bundled installs have different ones.
 def register():
+    translations.register(__package__)
+    try:
+        _register_all()
+    except BaseException:
+        translations.unregister(__package__)
+        raise
+
+
+def _register_all():
     if conflicting_copy():
         raise RuntimeError(
             "NineSync: FX Importer is already enabled from another install; disable that copy first. Nothing was changed."
@@ -146,6 +158,7 @@ def unregister():
     for cls in reversed(_install["classes"]):
         bpy.utils.unregister_class(cls)
     _install["classes"] = []
+    translations.unregister(__package__)
 
 
 def reload_in_place():

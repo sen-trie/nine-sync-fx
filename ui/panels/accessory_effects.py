@@ -1,3 +1,4 @@
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.types import Panel
 
 from ...common.constants import NINESYNC_CATEGORY
@@ -5,7 +6,7 @@ from ...common.scene_utils import (
     accessory_collection,
     find_accessory_root,
 )
-from ..helpers import draw_wrapped
+from ..helpers import draw_wrapped, effect_note_text
 from ..relink import settings_outdated
 
 
@@ -26,7 +27,7 @@ class NINESYNC_FX_PT_effects(Panel):
         layout = self.layout
         settings = context.scene.ninesync_fx
         if not len(settings.accessories):
-            draw_wrapped(layout, "Sync a PMM with NineSync: PMM Bridge, or use File > Import > MMD Accessory (.x).")
+            draw_wrapped(layout, iface_("Sync a PMM with NineSync: PMM Bridge, or use File > Import > MMD Accessory (.x)."))
             return
         collection = accessory_collection(context.scene)
         active = getattr(context, "active_object", None)
@@ -50,4 +51,4 @@ class NINESYNC_FX_PT_effects(Panel):
                 note = layout.row()
                 note.scale_y = 0.8
                 note.alert = True
-                note.label(text=entry.effect_note, icon="ERROR")
+                note.label(text=effect_note_text(entry.effect_note), icon="ERROR")

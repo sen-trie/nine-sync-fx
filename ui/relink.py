@@ -1,12 +1,14 @@
 import bpy
 import importlib
+from bpy.app.translations import pgettext_iface as iface_, pgettext_rpt as rpt_
 
 from ..common.constants import ADDON_PACKAGE
 from ..common.log import log
 from ..common.scene_utils import redraw_all
 
 
-STALE_SETTINGS_MESSAGE = "An older copy of NineSync: FX replaced this add-on's settings. They were re-linked; press the button again, and remove the old copy in Preferences > Add-ons"
+def stale_settings_message():
+    return iface_("An older copy of NineSync: FX replaced this add-on's settings. They were re-linked; press the button again, and remove the old copy in Preferences > Add-ons")
 
 
 _relink = {"pending": False}
@@ -48,5 +50,5 @@ def refuse_if_outdated(operator, context):
     if not settings_outdated(context.scene):
         return False
     schedule_relink()
-    operator.report({"WARNING"}, STALE_SETTINGS_MESSAGE)
+    operator.report({"WARNING"}, rpt_("An older copy of NineSync: FX replaced this add-on's settings. They were re-linked; press the button again, and remove the old copy in Preferences > Add-ons"))
     return True

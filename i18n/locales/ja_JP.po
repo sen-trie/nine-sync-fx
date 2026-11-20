@@ -1,0 +1,1816 @@
+# NineSync UI catalog. Generated layout: edit msgstr values only; see DEVELOPER_GUIDE.md#translations.
+msgid ""
+msgstr ""
+"Project-Id-Version: NineSync fx\n"
+"Report-Msgid-Bugs-To: https://github.com/sen-trie/nine-sync-release/issues\n"
+"Language-Team: NineSync ja_JP translators\n"
+"Language: ja_JP\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-NineSync-Domain: fx\n"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: __init__.py:98
+#, fuzzy
+msgid "Show this accessory in the viewport and in renders (sets Hide in Viewport and Disable in Renders on its meshes, like mmd_tools)"
+msgstr "このアクセサリをビューポートとレンダーに表示します（メッシュの「ビューポートで非表示」と「レンダーで無効」を設定します。mmd_toolsと同様）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: __init__.py:98
+#, fuzzy
+msgid "Visible"
+msgstr "表示"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: __init__.py:104 ui/properties.py:110
+#, fuzzy
+msgid "Transparency Order"
+msgstr "透過順序"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: __init__.py:104
+#, fuzzy
+msgid "Transparency Order for this accessory's effect, overriding the one in the Effects panel"
+msgstr "このアクセサリのエフェクトの透過順序です。エフェクトパネルの設定より優先されます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: __init__.py:111 ui/panels/effect_info.py:176
+#, fuzzy
+msgid "Edit Particle Instances"
+msgstr "パーティクルインスタンスを編集"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: __init__.py:111
+#, fuzzy
+msgid "Part of this pass, so leave it enabled when rendering. Turns each particle into an instance so the nodes in the pass's frame can edit them; the edits are part of the bake (slower on big effects)"
+msgstr "このパスの一部なので、レンダー時は有効のままにしてください。各パーティクルをインスタンスに変換し、パスのフレーム内のノードで編集できるようにします。編集内容はベイクに含まれます（大きなエフェクトでは遅くなります）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: __init__.py:117 ui/panels/effect_info.py:180
+#, fuzzy
+msgid "Enable Geometry Node Editing"
+msgstr "Geometry Nodes編集を有効化"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: __init__.py:117
+#, fuzzy
+msgid "Show this pass's live nodes in the viewport instead of its bake, so edits to its node groups show at once. Ignored in renders: they keep using the bake. Turn it off to see the bake again"
+msgstr "ベイクの代わりに、このパスのライブノードをビューポートに表示します。ノードグループへの編集がすぐに反映されます。レンダーでは無視され、引き続きベイクが使われます。オフにするとベイクの表示に戻ります"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: accessories/dependencies.py:20
+#, fuzzy
+msgid "DirectX X Importer is not installed (only needed for binary or compressed .x accessories)"
+msgstr "DirectX X Importerがインストールされていません（バイナリ形式または圧縮形式の.xアクセサリにのみ必要です）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:51
+#, fuzzy
+msgid "Effect not found: %s"
+msgstr "エフェクトが見つかりません: %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:52
+#, fuzzy
+msgid "Effect error: %s"
+msgstr "エフェクトエラー: %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:53
+#, fuzzy
+msgid "Effect failed: %s"
+msgstr "エフェクトの処理に失敗: %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:58
+#, fuzzy
+msgid "File not found"
+msgstr "ファイルが見つかりません"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/helpers.py:64
+#, fuzzy
+msgid "Effect file"
+msgstr "エフェクトファイル"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/helpers.py:64
+#, fuzzy
+msgid "Mesh file"
+msgstr "メッシュファイル"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/helpers.py:65
+#, fuzzy
+msgid "%s not found: %s"
+msgstr "%s が見つかりません: %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:76 ui/properties.py:38
+#, fuzzy
+msgid "Effect Controls"
+msgstr "エフェクトコントロール"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:85
+#, fuzzy
+msgid "%d GN, %d Py"
+msgstr "GN %d、Py %d"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:87
+#, fuzzy
+msgid ", %d baked"
+msgstr "、ベイク済み %d"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:92
+#, fuzzy
+msgid "Tr (keyed from PMM)"
+msgstr "Tr（PMMからキー設定）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:93
+#, fuzzy
+msgid "Si (keyed from PMM)"
+msgstr "Si（PMMからキー設定）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:103
+#, fuzzy
+msgid "Reset"
+msgstr "リセット"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:105 ui/panels/effect_info.py:112
+#, fuzzy
+msgid "Rebuild"
+msgstr "再構築"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:108
+#, fuzzy
+msgid "Bake"
+msgstr "ベイク"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:110 ui/panels/effect_info.py:116
+#, fuzzy
+msgid "Clear Bake"
+msgstr "ベイクを消去"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:168
+#, fuzzy
+msgid "baked"
+msgstr "ベイク済み"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:170
+#, fuzzy
+msgid "frame handler"
+msgstr "フレームハンドラー"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:172
+#, fuzzy
+msgid "pruned"
+msgstr "枝刈り済み"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:205
+#, fuzzy
+msgid "Get %s"
+msgstr "%s を入手"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:207
+#, fuzzy
+msgid "mmd_tools is not enabled: parent bone matching and morph names use plain bone names only."
+msgstr "mmd_toolsが有効になっていません。親ボーンの照合とモーフ名は、通常のボーン名のみを使用します。"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:213
+#, fuzzy
+msgid "PMM accessories are synced by NineSync: PMM Bridge. Press Sync Now there."
+msgstr "PMMのアクセサリはNineSync: PMM Bridgeで同期します。そちらで「Sync Now」を押してください。"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/helpers.py:215
+#, fuzzy
+msgid "PMM projects need NineSync: PMM Bridge. Import .x accessories directly with File > Import > MMD Accessory (.x)."
+msgstr "PMMプロジェクトにはNineSync: PMM Bridgeが必要です。.xアクセサリは、ファイル > インポート > MMD Accessory (.x) から直接読み込めます。"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/accessories.py:36
+#, fuzzy
+msgctxt "Operator"
+msgid "Keyframe Visibility"
+msgstr "表示のキーフレーム"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/accessories.py:37
+#, fuzzy
+msgid "Insert a visibility keyframe (Hide in Viewport and Disable in Renders) on this accessory's meshes at the current frame. Click on a keyed frame to remove the key"
+msgstr "現在のフレームで、このアクセサリのメッシュに表示のキーフレーム（「ビューポートで非表示」と「レンダーで無効」）を挿入します。キーのあるフレームでクリックするとキーを削除します"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/accessories.py:69
+#, fuzzy
+msgctxt "Operator"
+msgid "Import MMD Accessory"
+msgstr "MMDアクセサリをインポート"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/accessories.py:70
+#, fuzzy
+msgid "Import MikuMikuDance accessories (.x) without a PMM. Accessories with an MME effect (.fx) are built and listed in the NineSync panels"
+msgstr "PMMなしでMikuMikuDanceのアクセサリ（.x）をインポートします。MMEエフェクト（.fx）を持つアクセサリは構築され、NineSyncパネルに一覧表示されます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/accessories.py:77
+#, fuzzy
+msgid "Size multiplier, matching mmd_tools' import scale (0.08 by default)"
+msgstr "サイズの倍率です。mmd_toolsのインポートスケールに合わせています（既定は0.08）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/accessories.py:84
+#, fuzzy
+msgid "Build the accessory's MME effect (.fx) when one is found next to it"
+msgstr ".xの隣にMMEエフェクト（.fx）が見つかった場合、アクセサリのエフェクトを構築します"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/accessories.py:84
+#, fuzzy
+msgid "MME Effect"
+msgstr "MMEエフェクト"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/accessories.py:89
+#, fuzzy
+msgid "Effect (.fx) to use instead of the one next to the .x. Leave empty to look it up"
+msgstr ".xの隣にあるものの代わりに使用するエフェクト（.fx）です。空にすると自動で探します"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/accessories.py:110
+#, fuzzy
+msgid "Not found: %s"
+msgstr "見つかりません: %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/accessories.py:120
+#, fuzzy
+msgid "Imported %d accessory file(s)"
+msgstr "アクセサリファイルを %d 個インポートしました"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/accessories.py:126
+#, fuzzy
+msgid "MMD Accessory (.x)"
+msgstr "MMDアクセサリ (.x)"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/accessories.py:131
+#, fuzzy
+msgctxt "Operator"
+msgid "Select"
+msgstr "選択"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/accessories.py:132
+#, fuzzy
+msgid "Select this object and make it active"
+msgstr "このオブジェクトを選択してアクティブにします"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/accessories.py:151
+#, fuzzy
+msgctxt "Operator"
+msgid "Clean Accessories"
+msgstr "アクセサリを削除"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/accessories.py:152
+#, fuzzy
+msgid "Delete imported accessory objects, their effects and their animation. Your own data is never touched"
+msgstr "インポートしたアクセサリのオブジェクト、そのエフェクトとアニメーションを削除します。あなた自身のデータには触れません"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/accessories.py:162
+#, fuzzy
+msgid "Removed %d accessory(ies)"
+msgstr "アクセサリを %d 個削除しました"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/accessories.py:169
+#, fuzzy
+msgctxt "Operator"
+msgid "Support Report"
+msgstr "サポートレポート"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/accessories.py:170
+#, fuzzy
+msgid "Copy a support report with versions, effect settings and the recent log to the clipboard. User folders are redacted, but check it before posting"
+msgstr "バージョン、エフェクト設定、最近のログを含むサポートレポートをクリップボードにコピーします。ユーザーフォルダは伏せ字になりますが、投稿前に内容を確認してください"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/accessories.py:184
+#, fuzzy
+msgid "Support report copied (%d lines) and saved to the %s text"
+msgstr "サポートレポートをコピーし（%d 行）、テキスト %s に保存しました"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/bake.py:34
+#, fuzzy
+msgctxt "Operator"
+msgid "Bake Effects"
+msgstr "エフェクトをベイク"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/bake.py:35
+#, fuzzy
+msgid "Bake effect geometry over the scene frame range so playback and rendering read stored geometry instead of running shaders. Passes whose inputs and stored bake are unchanged are skipped; Ctrl-click Force Rebake All to redo every pass"
+msgstr "シーンのフレーム範囲でエフェクトのジオメトリをベイクし、再生やレンダー時にシェーダーを実行せず保存済みジオメトリを読み込みます。入力と保存済みベイクに変更がないパスはスキップされます。すべてのパスをやり直すには、Ctrlを押しながら「Force Rebake All」をクリックしてください"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/bake.py:51
+#, fuzzy
+msgid "Not baked, %s"
+msgstr "ベイクしませんでした、%s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/bake.py:56
+#, fuzzy
+msgid "No effect passes to clear"
+msgstr "消去するエフェクトパスがありません"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/bake.py:58
+#, fuzzy
+msgid "No effect passes to bake"
+msgstr "ベイクするエフェクトパスがありません"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/bake.py:61
+#, fuzzy
+msgid "Save the .blend first, or pick an absolute Bake Folder"
+msgstr "先に.blendを保存するか、絶対パスのベイクフォルダを指定してください"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/bake.py:86
+#, fuzzy
+msgid "Cleared %d effect bake(s)"
+msgstr "エフェクトのベイクを %d 個消去しました"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/bake.py:101
+#, fuzzy
+msgid "Baked %d, reused %d, shared %d, failed %d of %d effect pass(es), frames %d-%d, in %.1fs"
+msgstr "ベイク %d、再利用 %d、共有 %d、失敗 %d（エフェクトパス %d 個中）、フレーム %d-%d、所要時間 %.1f秒"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/controls.py:41
+#, fuzzy
+msgctxt "Operator"
+msgid "Assign Controller"
+msgstr "コントローラーを割り当て"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/controls.py:42
+#, fuzzy
+msgid "Choose the object or bone this unresolved effect controller reads. The assignment is saved with the accessory. An automatic match from the PMM takes priority"
+msgstr "この未解決のエフェクトコントローラーが読み取るオブジェクトまたはボーンを選びます。割り当てはアクセサリと一緒に保存されます。PMMからの自動一致が優先されます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/controls.py:48
+#, fuzzy
+msgid "Object"
+msgstr "オブジェクト"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/controls.py:49
+#, fuzzy
+msgid "Bone"
+msgstr "ボーン"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/controls.py:50
+#, fuzzy
+msgid "Also assign this object to the other unresolved items of the same controller"
+msgstr "同じコントローラーの他の未解決の項目にも、このオブジェクトを割り当てます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/controls.py:50
+#, fuzzy
+msgid "Use for this controller's other items"
+msgstr "このコントローラーの他の項目にも使用"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/controls.py:86
+#, fuzzy
+msgid "That effect control no longer exists"
+msgstr "そのエフェクトコントロールはもう存在しません"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/controls.py:96
+#, fuzzy
+msgid "Pick an object to assign"
+msgstr "割り当てるオブジェクトを選んでください"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/controls.py:100
+#, fuzzy
+msgid "%s has no shape key, bone or transform item named %s"
+msgstr "%s には、%s という名前のシェイプキー、ボーン、またはトランスフォーム項目がありません"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/controls.py:116
+#, fuzzy
+msgid "%d item(s) of this controller were not found on the object and stay unresolved"
+msgstr "このコントローラーの項目のうち %d 個がオブジェクト上に見つからず、未解決のままです"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/effects.py:31
+#, fuzzy
+msgctxt "Operator"
+msgid "Refresh Effects"
+msgstr "エフェクトを更新"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/effects.py:32
+#, fuzzy
+msgid "Reload effect files and rebuild the effect passes whose inputs changed (backend, density, parameters, files). Unchanged passes keep their objects and bakes; a rebuilt pass loses its bake"
+msgstr "エフェクトファイルを再読み込みし、入力（バックエンド、密度、パラメーター、ファイル）が変わったエフェクトパスを再構築します。変更のないパスはオブジェクトとベイクを保持し、再構築されたパスはベイクを失います"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/effects.py:47
+#, fuzzy
+msgid "Not rebuilt, %s"
+msgstr "再構築しませんでした、%s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/effects.py:56
+#, fuzzy
+msgid "%d effect pass(es) present, %d reused unchanged"
+msgstr "エフェクトパス %d 個が存在し、うち %d 個は変更なしで再利用しました"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/effects.py:63
+#, fuzzy
+msgctxt "Operator"
+msgid "Clear Effect Caches"
+msgstr "エフェクトキャッシュを消去"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/effects.py:64
+#, fuzzy
+msgid "Delete the effect caches: never-drawn vertices, simplified strips and parsed .x geometry. The next rebuild analyses each effect from scratch"
+msgstr "エフェクトキャッシュ（描画されない頂点、簡略化したストリップ、解析済みの.xジオメトリ）を削除します。次の再構築では、各エフェクトを最初から解析し直します"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/effects.py:66
+#, fuzzy
+msgid "Delete the shared bake store instead; projects that use those bakes bake again"
+msgstr "代わりに共有ベイクストアを削除します。そのベイクを使っているプロジェクトは再度ベイクされます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/effects.py:70
+#, fuzzy
+msgid "Removed %d shared bake(s)"
+msgstr "共有ベイクを %d 個削除しました"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/effects.py:73
+#, fuzzy
+msgid "Removed %d effect cache file(s)"
+msgstr "エフェクトキャッシュファイルを %d 個削除しました"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/effects.py:79
+#, fuzzy
+msgctxt "Operator"
+msgid "Reset Parameters"
+msgstr "パラメーターをリセット"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/effects.py:80
+#, fuzzy
+msgid "Set this effect's parameters back to the values written in the .fx file"
+msgstr "このエフェクトのパラメーターを、.fxファイルに書かれた値に戻します"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/library.py:60
+#, fuzzy
+msgctxt "Operator"
+msgid "Open FX Library .blend"
+msgstr "FXライブラリ.blendを開く"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/library.py:61
+#, fuzzy
+msgid "Open the shared node library this add-on reads and writes. Asks first: it can start a second Blender so this file stays open"
+msgstr "このアドオンが読み書きする共有ノードライブラリを開きます。先に確認します。このファイルを開いたままにするため、2つ目のBlenderを起動できます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/library.py:63
+#, fuzzy
+msgid "Open In"
+msgstr "開き方"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/library.py:66
+#, fuzzy
+msgid "Second Blender"
+msgstr "2つ目のBlender"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/library.py:66
+#, fuzzy
+msgid "Start a separate Blender with the library. This file stays open"
+msgstr "ライブラリを別のBlenderで起動します。このファイルは開いたままになります"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/library.py:67
+#, fuzzy
+msgid "Close this file and open the library here"
+msgstr "このファイルを閉じて、ここでライブラリを開きます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/library.py:67
+#, fuzzy
+msgid "This Blender"
+msgstr "このBlender"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/library.py:71
+#, fuzzy
+msgid "Open a copy of the bundled library"
+msgstr "同梱ライブラリのコピーを開く"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/library.py:71
+#, fuzzy
+msgid "Your library is not available. Open a temporary copy of the one shipped with the add-on; saving it does not change either library"
+msgstr "ライブラリを利用できません。アドオンに同梱されているライブラリの一時コピーを開きます。保存しても、どちらのライブラリも変更されません"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/library.py:77
+#, fuzzy
+msgid "Discard unsaved changes in this file"
+msgstr "このファイルの未保存の変更を破棄"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/library.py:84
+#, fuzzy
+msgid "Open"
+msgstr "開く"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/library.py:94
+#, fuzzy
+msgid "Your library was not found at %s."
+msgstr "ライブラリが %s に見つかりませんでした。"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/library.py:94
+#, fuzzy
+msgid "the user folder"
+msgstr "ユーザーフォルダ"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/library.py:101
+#, fuzzy
+msgid "This file has unsaved changes"
+msgstr "このファイルには未保存の変更があります"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/library.py:104
+#, fuzzy
+msgid "This file is closed. It has no unsaved changes"
+msgstr "このファイルは閉じられます。未保存の変更はありません"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/library.py:109
+#, fuzzy
+msgid "%s not found at %s. Tick the bundled copy, or import an effect to create it"
+msgstr "%s が %s に見つかりません。同梱コピーにチェックを入れるか、エフェクトをインポートして作成してください"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/library.py:112
+#, fuzzy
+msgid "This file has unsaved changes. Save it first, or open the library in a second Blender"
+msgstr "このファイルには未保存の変更があります。先に保存するか、2つ目のBlenderでライブラリを開いてください"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/library.py:123
+#, fuzzy
+msgid "Could not open %s: %s"
+msgstr "%s を開けませんでした: %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/library.py:125
+#, fuzzy
+msgid "Opened %s"
+msgstr "%s を開きました"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/library.py:131
+#, fuzzy
+msgctxt "Operator"
+msgid "Save Shared Groups to Library"
+msgstr "共有グループをライブラリに保存"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/library.py:132
+#, fuzzy
+msgid "Write every shared effect node group in this file into your mme_core.blend library, so later imports append them instead of building them"
+msgstr "このファイル内のすべての共有エフェクトノードグループを、あなたのmme_core.blendライブラリに書き込みます。以後のインポートでは、構築する代わりにそれらを追加します"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/library.py:138
+#, fuzzy
+msgid "Could not write %s: %s"
+msgstr "%s を書き込めませんでした: %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/library.py:140
+#, fuzzy
+msgid "%s now holds %d shared group(s)"
+msgstr "%s に共有グループが %d 個含まれています"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/operators/library.py:147
+#, fuzzy
+msgctxt "Operator"
+msgid "Rebuild Standard Groups"
+msgstr "標準グループを再構築"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/operators/library.py:148
+#, fuzzy
+msgid "Rebuild the standard shared groups (camera, matrices, clip space, common HLSL intrinsics) with this Blender version and save them to the library. Function groups from imported effects are kept"
+msgstr "標準の共有グループ（カメラ、行列、クリップ空間、一般的なHLSL組み込み関数）をこのBlenderのバージョンで再構築し、ライブラリに保存します。インポートしたエフェクトの関数グループは保持されます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/library.py:155
+#, fuzzy
+msgid "Could not rebuild the standard groups: %s"
+msgstr "標準グループを再構築できませんでした: %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: report
+#: ui/operators/library.py:157
+#, fuzzy
+msgid "Rebuilt %d standard group(s); %s holds %d"
+msgstr "標準グループを %d 個再構築しました。%s には %d 個含まれています"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/accessories.py:42
+#, fuzzy
+msgid "Sync a PMM with NineSync: PMM Bridge, or import an accessory directly"
+msgstr "NineSync: PMM BridgeでPMMを同期するか、アクセサリを直接インポートしてください"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/accessories.py:43 ui/panels/accessories.py:77
+#, fuzzy
+msgid "Import Accessory (.x)"
+msgstr "アクセサリをインポート (.x)"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/accessory_effects.py:14
+#, fuzzy
+msgid "Accessory Directory"
+msgstr "アクセサリのフォルダ"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/accessory_effects.py:30
+#, fuzzy
+msgid "Sync a PMM with NineSync: PMM Bridge, or use File > Import > MMD Accessory (.x)."
+msgstr "NineSync: PMM BridgeでPMMを同期するか、ファイル > インポート > MMD Accessory (.x) を使ってください。"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/bake.py:9
+#, fuzzy
+msgid "Scene Bake"
+msgstr "シーンのベイク"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/bake.py:24
+#, fuzzy
+msgid "Scene frames %d - %d"
+msgstr "シーンのフレーム %d - %d"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/bake.py:25
+#, fuzzy
+msgid "Store"
+msgstr "保存先"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/bake.py:30
+#, fuzzy
+msgid "Clear Shared Bakes"
+msgstr "共有ベイクを消去"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/bake.py:34 ui/panels/effect_info.py:114
+#, fuzzy
+msgid "Bake Changed"
+msgstr "変更分をベイク"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/bake.py:35
+#, fuzzy
+msgid "Clear All"
+msgstr "すべて消去"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/bake.py:37
+#, fuzzy
+msgid "Force Rebake All"
+msgstr "すべて強制再ベイク"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:45
+#, fuzzy
+msgid "missing: %s (uses %s)"
+msgstr "不明: %s（%s を使用）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:45
+#, fuzzy
+msgid "target"
+msgstr "ターゲット"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:48
+#, fuzzy
+msgid "this accessory: %s"
+msgstr "このアクセサリ: %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:48 ui/panels/effect_info.py:50
+#, fuzzy
+msgid "transform"
+msgstr "トランスフォーム"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:52
+#, fuzzy
+msgid "morph %s (keyed)"
+msgstr "モーフ %s（キー設定済み）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:54
+#, fuzzy
+msgid "shape key %s on %s (live)"
+msgstr "シェイプキー %s（%s 上、ライブ）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:56
+#, fuzzy
+msgid "bone %s on %s"
+msgstr "ボーン %s（%s 上）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:58
+#, fuzzy
+msgid "model %s"
+msgstr "モデル %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:95
+#, fuzzy
+msgid "Baked: all %d passes"
+msgstr "ベイク済み: 全 %d パス"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:97
+#, fuzzy
+msgid "Not baked"
+msgstr "未ベイク"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:99
+#, fuzzy
+msgid "Partly baked: %d of %d passes"
+msgstr "一部ベイク済み: %d / %d パス"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:101
+#, fuzzy
+msgid ", %d edited since"
+msgstr "、その後 %d 個編集"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:112
+#, fuzzy
+msgid "Rebuild (out of date)"
+msgstr "再構築（古い状態）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:123
+#, fuzzy
+msgid "Files not found, rebuild and bake are off"
+msgstr "ファイルが見つからないため、再構築とベイクは無効です"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:127
+#, fuzzy
+msgid "Effect: %s"
+msgstr "エフェクト: %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:129
+#, fuzzy
+msgid "Keyed from the PMM"
+msgstr "PMMからキー設定"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:131
+#, fuzzy
+msgid "Tr (opacity)"
+msgstr "Tr（不透明度）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:132
+#, fuzzy
+msgid "Si (scale)"
+msgstr "Si（スケール）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:135
+#, fuzzy
+msgid "Effect Parameters"
+msgstr "エフェクトパラメーター"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:143
+#, fuzzy
+msgid "This effect exposes no parameters"
+msgstr "このエフェクトにはパラメーターがありません"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:157
+#, fuzzy
+msgid "Greyed: set by %s"
+msgstr "グレー表示: %s が設定しています"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:160
+#, fuzzy
+msgid "Pass Details"
+msgstr "パスの詳細"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:160
+#, fuzzy
+msgid "Pass Details: %s"
+msgstr "パスの詳細: %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:165
+#, fuzzy
+msgid "Select one of this effect's passes"
+msgstr "このエフェクトのパスを選択してください"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:167
+#, fuzzy
+msgid "Effect Details"
+msgstr "エフェクトの詳細"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:182
+#, fuzzy
+msgid "Viewport only: renders still use the bake"
+msgstr "ビューポートのみ。レンダーは引き続きベイクを使います"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:184
+#, fuzzy
+msgid "Edits are not baked yet: Bake Changed"
+msgstr "編集内容はまだベイクされていません。「変更分をベイク」を押してください"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:206
+#, fuzzy
+msgid "Pass Material"
+msgstr "パスのマテリアル"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:212
+#, fuzzy
+msgid "Gamma"
+msgstr "ガンマ"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:214
+#, fuzzy
+msgid "Emission"
+msgstr "放射"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:216
+#, fuzzy
+msgid "Produce Diffuse Rays"
+msgstr "拡散光線を生成"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:226
+#, fuzzy
+msgid "This effect reads no other objects"
+msgstr "このエフェクトは他のオブジェクトを読み取りません"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:235
+#, fuzzy
+msgid "This accessory"
+msgstr "このアクセサリ"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:265
+#, fuzzy
+msgid "Full-screen passes are not supported and were skipped: %s"
+msgstr "全画面パスは非対応のためスキップしました: %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:286
+#, fuzzy
+msgid "Pick a pass in the Passes tab"
+msgstr "「パス」タブでパスを選んでください"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:297
+#, fuzzy
+msgid "Subset %s, %s backend"
+msgstr "サブセット %s、%s バックエンド"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:299
+#, fuzzy
+msgid "Loops: %s"
+msgstr "ループ: %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:301
+#, fuzzy
+msgid "State: %s"
+msgstr "状態: %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:302
+#, fuzzy
+msgid "%d vertex outputs to the material"
+msgstr "マテリアルへの頂点出力: %d"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/effect_info.py:303
+#, fuzzy
+msgid "%d material inputs from the scene (%d by drivers)"
+msgstr "シーンからのマテリアル入力: %d（ドライバー経由 %d）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/library.py:24
+#, fuzzy
+msgid "Node Library"
+msgstr "ノードライブラリ"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/library.py:44
+#, fuzzy
+msgid "%d shared groups in the library"
+msgstr "ライブラリ内の共有グループ: %d"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/library.py:46
+#, fuzzy
+msgid "%d shared groups in this file (%d not in the library)"
+msgstr "このファイル内の共有グループ: %d（ライブラリにないもの %d）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/library.py:52
+#, fuzzy
+msgid "Using the bundled library until Blender restarts: %s"
+msgstr "Blenderを再起動するまで、同梱ライブラリを使用します: %s"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/library.py:54
+#, fuzzy
+msgid "Your library is created on the first effect import."
+msgstr "ライブラリは、最初のエフェクトのインポート時に作成されます。"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/library.py:59
+#, fuzzy
+msgid "Save to Library"
+msgstr "ライブラリに保存"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/library.py:60
+#, fuzzy
+msgid "Rebuild Standard"
+msgstr "標準を再構築"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/main.py:31
+#, fuzzy
+msgid "Rebuild Changed Effects"
+msgstr "変更されたエフェクトを再構築"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/main.py:32
+#, fuzzy
+msgid "Force Rebuild All"
+msgstr "すべて強制再構築"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/selected.py:14
+#, fuzzy
+msgid "Selected Effect"
+msgstr "選択中のエフェクト"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/selected.py:29
+#, fuzzy
+msgid "Select an effect accessory (MMDAcc_...) or one of its passes to see its settings here."
+msgstr "エフェクトアクセサリ（MMDAcc_...）またはそのパスのいずれかを選択すると、ここに設定が表示されます。"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/panels/settings.py:8
+#, fuzzy
+msgid "Settings"
+msgstr "設定"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/preferences.py:13
+#, fuzzy
+msgid "Cache Folder"
+msgstr "キャッシュフォルダ"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/preferences.py:13
+#, fuzzy
+msgid "Where parsed .x geometry, pre-cull results and strip results are kept. Leave empty for this add-on's own user folder; set the same folder in the standalone and the bundled add-on to share it"
+msgstr "解析済みの.xジオメトリ、プレカル結果、ストリップ結果を保存する場所です。空にすると、このアドオン専用のユーザーフォルダを使います。スタンドアロン版と同梱版で同じフォルダを指定すると共有できます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/preferences.py:19
+#, fuzzy
+msgid "Cache Limit (MB)"
+msgstr "キャッシュ上限 (MB)"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/preferences.py:19
+#, fuzzy
+msgid "The least recently used cache files are deleted when the folder grows past this size"
+msgstr "フォルダがこのサイズを超えると、最近使われていないキャッシュファイルから削除されます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/preferences.py:27
+#, fuzzy
+msgid "Shared Bake Limit (MB)"
+msgstr "共有ベイク上限 (MB)"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/preferences.py:27
+#, fuzzy
+msgid "The least recently used shared bakes are deleted when the shared bake store grows past this size"
+msgstr "共有ベイクストアがこのサイズを超えると、最近使われていない共有ベイクから削除されます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:8
+#, fuzzy
+msgid "Full Shader"
+msgstr "フルシェーダー"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:8
+#, fuzzy
+msgid "Run the vertex shader on every vertex of every copy. Slowest; the reference for the other two"
+msgstr "すべてのコピーのすべての頂点で頂点シェーダーを実行します。最も遅く、他の2つの基準になります"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:9
+#, fuzzy
+msgid "MMD Order"
+msgstr "MMD順序"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:9
+#, fuzzy
+msgid "Same image as MMD, faster: see-through passes become one mesh in MMD's draw order rebuilt from a few vertices per copy, additive and opaque passes are drawn as instances"
+msgstr "MMDと同じ見た目で、より高速です。透過パスは、コピーごとの少数の頂点から再構築したMMDの描画順の1つのメッシュになり、加算パスと不透明パスはインスタンスとして描画されます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:10
+#, fuzzy
+msgid "Blender Sorted"
+msgstr "Blenderソート"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:10
+#, fuzzy
+msgid "Draw every such pass as instances. Fastest. Cycles renders the same as the other levels, but EEVEE sorts see-through copies by distance instead of using MMD's order, which changes how overlapping copies blend (Nuke2's smoke looks lighter)"
+msgstr "該当するすべてのパスをインスタンスとして描画します。最速です。Cyclesでは他のレベルと同じ結果になりますが、EEVEEでは透過コピーをMMDの順序ではなく距離順に並べるため、重なったコピーの合成結果が変わります（Nuke2の煙は薄く見えます）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:20
+#, fuzzy
+msgid "Sync From PMM"
+msgstr "PMMから同期"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:20
+#, fuzzy
+msgid "Update this accessory from the PMM when you press Sync. Turn off to keep it as it is in Blender"
+msgstr "同期を押したとき、PMMからこのアクセサリを更新します。オフにすると、Blender内の状態のまま保持します"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:27
+#, fuzzy
+msgid "Run this accessory's MME effect (.fx). Turn off to import the plain mesh"
+msgstr "このアクセサリのMMEエフェクト（.fx）を実行します。オフにすると、プレーンなメッシュをインポートします"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:27
+#, fuzzy
+msgid "Use Effect"
+msgstr "エフェクトを使用"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:32
+#, fuzzy
+msgid "Effect (.fx) to use instead of the one found next to the .x or in the PMM's .emm file"
+msgstr ".xの隣、またはPMMの.emmファイルにあるものの代わりに使用するエフェクト（.fx）です"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:32 ui/operators/accessories.py:89
+#, fuzzy
+msgid "Effect File"
+msgstr "エフェクトファイル"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:39
+#, fuzzy
+msgid "Overrides the parent bone stored in the PMM. Leave empty to use the PMM value"
+msgstr "PMMに保存されている親ボーンを上書きします。空にするとPMMの値を使います"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:39
+#, fuzzy
+msgid "Parent Bone"
+msgstr "親ボーン"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:48
+#, fuzzy
+msgid "Enabled"
+msgstr "有効"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:49
+#, fuzzy
+msgid "Target"
+msgstr "ターゲット"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:53
+#, fuzzy
+msgid "PMM File"
+msgstr "PMMファイル"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:53
+#, fuzzy
+msgid "Set by NineSync: PMM Bridge on each sync"
+msgstr "同期のたびに、NineSync: PMM Bridgeが設定します"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:54
+#, fuzzy
+msgid "Auto Scale From Model"
+msgstr "モデルから自動スケール"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:54
+#, fuzzy
+msgid "Use the scale the first enabled model was imported with in mmd_tools"
+msgstr "mmd_toolsで最初に有効なモデルをインポートしたときのスケールを使用します"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:59
+#, fuzzy
+msgid "Motion scale passed to the mmd_tools VMD importer when Auto Scale is off"
+msgstr "自動スケールがオフのとき、mmd_toolsのVMDインポーターに渡すモーションのスケールです"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:59 ui/operators/accessories.py:77
+#, fuzzy
+msgid "Scale"
+msgstr "スケール"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:65
+#, fuzzy
+msgid "Import and animate .x accessories stored in the PMM. Static meshes only"
+msgstr "PMMに保存された.xアクセサリをインポートしてアニメーションさせます。静的メッシュのみ対応です"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:65
+#, fuzzy
+msgid "Sync Accessories"
+msgstr "アクセサリを同期"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:70
+#, fuzzy
+msgid "Rebuild .sph/.spa sphere maps from accessory textures with a camera-space normal lookup"
+msgstr "アクセサリのテクスチャから、カメラ空間の法線参照で.sph/.spaスフィアマップを再構築します"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:70
+#, fuzzy
+msgid "Sphere Maps (Experimental)"
+msgstr "スフィアマップ（実験的）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:76
+#, fuzzy
+msgid "Accessory Folder"
+msgstr "アクセサリのフォルダ"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:76
+#, fuzzy
+msgid "Extra folder searched for .x files when the path stored in the PMM does not exist"
+msgstr "PMMに保存されたパスが存在しない場合に、.xファイルを探す追加のフォルダです"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:82
+#, fuzzy
+msgid "Effect Density"
+msgstr "エフェクト密度"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:82
+#, fuzzy
+msgid "Share of each LoopByCount loop to draw. 1 matches MMD. Lower values make heavy effects such as Nuke2 faster to scrub. Geometry Nodes passes update live; Python passes on the next sync or Refresh Effects"
+msgstr "各LoopByCountループのうち描画する割合です。1でMMDと一致します。値を下げると、Nuke2のような重いエフェクトでスクラブが速くなります。Geometry Nodesのパスはライブで更新され、Pythonのパスは次回の同期または「Refresh Effects」で更新されます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:91
+#, fuzzy
+msgid "Geometry Tolerance"
+msgstr "ジオメトリ許容差"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:91
+#, fuzzy
+msgid "How far simplified effect strips may drift from the full mesh, as a share of the effect's size. Rows of strip meshes (such as Thunder's 10,000-segment rings and bolts) that the shader output can rebuild by interpolation are merged. 0 keeps every row. Faces that the shader always makes fully transparent are removed regardless. Applies on the next Rebuild"
+msgstr "簡略化したエフェクトのストリップが、エフェクトの大きさに対する割合で、元のメッシュからどこまでずれてよいかを指定します。シェーダー出力を補間で再現できるストリップメッシュの列（Thunderの1万セグメントのリングや稲妻など）は統合されます。0ではすべての列を保持します。シェーダーが常に完全な透明にする面は、この設定に関係なく削除されます。次回の再構築で適用されます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:100
+#, fuzzy
+msgid "Pre-cull Cache"
+msgstr "プレカルキャッシュ"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:100
+#, fuzzy
+msgid "Remember which effect vertices can never be drawn (per effect file, .x file and pass) in a cache on disk, so rebuilds only analyse new settings. Only vertices that stayed invisible in every evaluated state are skipped"
+msgstr "描画されることのないエフェクトの頂点（エフェクトファイル、.xファイル、パスごと）をディスク上のキャッシュに記憶し、再構築では新しい設定だけを解析します。評価したすべての状態で見えないままだった頂点のみスキップされます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:105
+#, fuzzy
+msgid "For effects that copy a mesh many times (LoopByCount), run the part of the vertex shader that depends only on the copy's index once per copy instead of once per vertex. The result is the same; turn off only to compare against the plain per-vertex graph. Changing it rebuilds the affected passes"
+msgstr "メッシュを何度も複製するエフェクト（LoopByCount）で、コピーのインデックスのみに依存する頂点シェーダーの部分を、頂点ごとではなくコピーごとに1回実行します。結果は同じです。通常の頂点ごとのグラフと比較するときだけオフにしてください。変更すると、影響を受けるパスが再構築されます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:105
+#, fuzzy
+msgid "Per-Particle Shader Stage"
+msgstr "パーティクルごとのシェーダーステージ"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:110
+#, fuzzy
+msgid "How LoopByCount effects whose vertex shader moves each copy of the mesh rigidly (checked when the pass is built) are drawn. Each accessory's Effect Controls can override it. Takes effect without a rebuild"
+msgstr "頂点シェーダーがメッシュの各コピーを剛体的に動かすLoopByCountエフェクト（パスの構築時に判定）の描画方法です。各アクセサリのエフェクトコントロールで上書きできます。再構築なしで反映されます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:117
+#, fuzzy
+msgid "Auto Rebuild"
+msgstr "自動再構築"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:117
+#, fuzzy
+msgid "Rebuild an effect automatically after you edit a parameter that changes its geometry (wrench icon). Off by default because heavy effects take minutes: edits then only mark the effect as out of date until you press Rebuild Changed"
+msgstr "ジオメトリを変更するパラメーター（レンチアイコン）を編集した後、エフェクトを自動で再構築します。重いエフェクトは数分かかるため、既定ではオフです。オフの場合、編集するとエフェクトが古い状態になるだけで、「変更されたエフェクトを再構築」を押すまで再構築されません"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:122
+#, fuzzy
+msgid "Detailed Build Log"
+msgstr "詳細なビルドログ"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:122
+#, fuzzy
+msgid "Log every changed input (before and after) behind each rebuild, rebake and skip decision, not just the reason"
+msgstr "再構築、再ベイク、スキップの各判断の根拠になった入力の変更（変更前と変更後）をすべて記録します。理由だけではありません"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:127
+#, fuzzy
+msgid "Live Effect Preview"
+msgstr "ライブエフェクトプレビュー"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:127
+#, fuzzy
+msgid "Recompute Python-backend effect passes whenever the frame changes in the viewport. Geometry Nodes passes always update. Renders always recompute"
+msgstr "ビューポートでフレームが変わるたびに、Pythonバックエンドのエフェクトパスを再計算します。Geometry Nodesのパスは常に更新されます。レンダーでは常に再計算されます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:132
+#, fuzzy
+msgid "Effect Backend"
+msgstr "エフェクトバックエンド"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:132
+#, fuzzy
+msgid "How effect vertex shaders run. Applied on the next sync or Refresh Effects"
+msgstr "エフェクトの頂点シェーダーの実行方法です。次回の同期または「Refresh Effects」で適用されます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:136
+#, fuzzy
+msgid "Compile vertex shaders to Geometry Nodes: no Python per frame, renders and bakes natively. Passes that cannot compile fall back to Python"
+msgstr "頂点シェーダーをGeometry Nodesにコンパイルします。フレームごとのPythonが不要で、レンダーとベイクもネイティブに行えます。コンパイルできないパスはPythonにフォールバックします"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:136
+#, fuzzy
+msgid "Geometry Nodes"
+msgstr "Geometry Nodes"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:137
+#, fuzzy
+msgid "Python"
+msgstr "Python"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:137
+#, fuzzy
+msgid "Run vertex shaders in Python (numpy) from a frame-change handler"
+msgstr "フレーム変更ハンドラーから、頂点シェーダーをPython（numpy）で実行します"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:141
+#, fuzzy
+msgid "Effect Info"
+msgstr "エフェクト情報"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:144
+#, fuzzy
+msgid "Linked Objects"
+msgstr "リンクされたオブジェクト"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:144
+#, fuzzy
+msgid "Objects and morphs the effect reads (CONTROLOBJECT)"
+msgstr "エフェクトが読み取るオブジェクトとモーフです（CONTROLOBJECT）"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:145
+#, fuzzy
+msgid "Passes"
+msgstr "パス"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:145
+#, fuzzy
+msgid "The effect's draw passes"
+msgstr "エフェクトの描画パスです"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:146
+#, fuzzy
+msgid "Details of the selected pass object"
+msgstr "選択したパスオブジェクトの詳細です"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:146
+#, fuzzy
+msgid "Selected Pass"
+msgstr "選択中のパス"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:150
+#, fuzzy
+msgid "After an effect import builds new shared node groups, add them to mme_core.blend so later imports append them instead of building them again"
+msgstr "エフェクトのインポートで新しい共有ノードグループが構築された後、それらをmme_core.blendに追加し、以後のインポートで再構築せず追加できるようにします"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:150
+#, fuzzy
+msgid "Grow Library Automatically"
+msgstr "ライブラリを自動で拡張"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:155
+#, fuzzy
+msgid "Bake To"
+msgstr "ベイク先"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:158
+#, fuzzy
+msgid "Packed in .blend"
+msgstr ".blendにパック"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:158
+#, fuzzy
+msgid "Store baked effect geometry inside the .blend file"
+msgstr "ベイクしたエフェクトのジオメトリを.blendファイル内に保存します"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:159
+#, fuzzy
+msgid "Disk"
+msgstr "ディスク"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:159
+#, fuzzy
+msgid "Store baked effect geometry in the folder below"
+msgstr "ベイクしたエフェクトのジオメトリを、下のフォルダに保存します"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:163
+#, fuzzy
+msgid "Build Memory"
+msgstr "ビルドメモリ"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:163
+#, fuzzy
+msgid "How much memory effect analysis may use for temporary arrays while building. Lower settings build large effects in smaller batches: slower, same result"
+msgstr "構築中の一時配列に、エフェクト解析が使えるメモリ量です。低い設定では大きなエフェクトを小さなバッチに分けて構築します。遅くなりますが、結果は同じです"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:167
+#, fuzzy
+msgid "Low"
+msgstr "低"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:167
+#, fuzzy
+msgid "Small batches; for machines with 8-16 GB of RAM"
+msgstr "小さなバッチです。RAMが8〜16GBのマシン向けです"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:168
+#, fuzzy
+msgid "Balanced"
+msgstr "バランス"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:168
+#, fuzzy
+msgid "Default batches"
+msgstr "既定のバッチです"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:169
+#, fuzzy
+msgid "High"
+msgstr "高"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:169
+#, fuzzy
+msgid "Large batches; fastest on machines with plenty of RAM"
+msgstr "大きなバッチです。RAMに余裕のあるマシンで最速です"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:173
+#, fuzzy
+msgid "Bake Folder"
+msgstr "ベイクフォルダ"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:173
+#, fuzzy
+msgid "Folder for effect bakes stored on disk"
+msgstr "ディスクに保存するエフェクトのベイクのフォルダです"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:179
+#, fuzzy
+msgid "Folder per Pass"
+msgstr "パスごとのフォルダ"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:179
+#, fuzzy
+msgid "Store each effect pass's disk bake in its own folder, named by the .blend file and the pass, so copies of the file never overwrite each other's bakes and rebuilt passes leave no stale bake behind"
+msgstr "各エフェクトパスのディスクベイクを、.blendファイル名とパス名を付けた専用フォルダに保存します。ファイルのコピー同士でベイクを上書きせず、再構築されたパスに古いベイクが残りません"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:184
+#, fuzzy
+msgid "Keep disk bakes in the shared cache, named by what they were baked from, so another project or file with the same effect and animation reuses them instead of baking again. Stored in the cache folder from the add-on preferences, not beside the .blend"
+msgstr "ディスクベイクを共有キャッシュに保存し、ベイク元の内容で名前を付けます。同じエフェクトとアニメーションを持つ別のプロジェクトやファイルが、再ベイクせずに再利用できます。保存先は.blendの隣ではなく、アドオン設定のキャッシュフォルダです"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:184
+#, fuzzy
+msgid "Share Bakes"
+msgstr "ベイクを共有"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: tooltip
+#: ui/properties.py:189
+#, fuzzy
+msgid "PMM keyframes are 30 fps. Scale every key frame by scene fps / 30 so motion keeps its real speed in a scene with a different frame rate"
+msgstr "PMMのキーフレームは30fpsです。すべてのキーフレームをシーンfps / 30でスケールし、フレームレートの異なるシーンでもモーションの実際の速度を保ちます"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label
+#: ui/properties.py:189
+#, fuzzy
+msgid "Retime to Scene FPS"
+msgstr "シーンのFPSにリタイム"
+
+# Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
+#. kind: label, report
+#: ui/relink.py:11 ui/relink.py:53
+#, fuzzy
+msgid "An older copy of NineSync: FX replaced this add-on's settings. They were re-linked; press the button again, and remove the old copy in Preferences > Add-ons"
+msgstr "NineSync: FXの古いコピーがこのアドオンの設定を置き換えました。設定は再リンクされました。もう一度ボタンを押し、設定 > アドオンで古いコピーを削除してください"

@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+from bpy.app.translations import pgettext_iface as iface_, pgettext_rpt as rpt_
 from bpy.props import BoolProperty, EnumProperty
 from bpy.types import Operator
 
@@ -90,7 +91,7 @@ class NINESYNC_FX_OT_open_core_library(Operator):
         else:
             box = layout.box()
             box.alert = True
-            draw_wrapped(box, mme_library_fallback() or "Your library was not found at %s." % (mme_user_path() or "the user folder"), 70)
+            draw_wrapped(box, mme_library_fallback() or iface_("Your library was not found at %s.") % (mme_user_path() or iface_("the user folder")), 70)
             layout.prop(self, "use_bundled")
         layout.prop(self, "mode", expand=True)
         if self.mode == "REPLACE":
@@ -105,7 +106,7 @@ class NINESYNC_FX_OT_open_core_library(Operator):
     def execute(self, context):
         path = mme_open_target()
         if path is None and not self.use_bundled:
-            self.report({"ERROR"}, "%s not found at %s. Tick the bundled copy, or import an effect to create it" % (MME_CORE_FILE, mme_user_path() or mme_core_path()))
+            self.report({"ERROR"}, rpt_("%s not found at %s. Tick the bundled copy, or import an effect to create it") % (MME_CORE_FILE, mme_user_path() or mme_core_path()))
             return {"CANCELLED"}
         if self.mode == "REPLACE" and bpy.data.is_dirty and not self.discard_changes:
             self.report({"ERROR"}, "This file has unsaved changes. Save it first, or open the library in a second Blender")
@@ -119,9 +120,9 @@ class NINESYNC_FX_OT_open_core_library(Operator):
                 bpy.ops.wm.open_mainfile(filepath=path)
         except (OSError, RuntimeError, subprocess.SubprocessError) as error:
             log.warning("could not open %s: %s", path, error)
-            self.report({"ERROR"}, "Could not open %s: %s" % (path, error))
+            self.report({"ERROR"}, rpt_("Could not open %s: %s") % (path, error))
             return {"CANCELLED"}
-        self.report({"INFO"}, "Opened %s" % path)
+        self.report({"INFO"}, rpt_("Opened %s") % path)
         return {"FINISHED"}
 
 
@@ -134,9 +135,9 @@ class NINESYNC_FX_OT_save_core_library(Operator):
         try:
             count = mme_save_core_library()
         except (OSError, RuntimeError) as error:
-            self.report({"ERROR"}, "Could not write %s: %s" % (MME_CORE_FILE, error))
+            self.report({"ERROR"}, rpt_("Could not write %s: %s") % (MME_CORE_FILE, error))
             return {"CANCELLED"}
-        self.report({"INFO"}, "%s now holds %d shared group(s)" % (MME_CORE_FILE, count))
+        self.report({"INFO"}, rpt_("%s now holds %d shared group(s)") % (MME_CORE_FILE, count))
         redraw_all()
         return {"FINISHED"}
 
@@ -151,8 +152,8 @@ class NINESYNC_FX_OT_rebuild_core_library(Operator):
             built = mme_build_standard_groups(force=True)
             count = mme_save_core_library()
         except (OSError, RuntimeError, FxError) as error:
-            self.report({"ERROR"}, str(error))
+            self.report({"ERROR"}, rpt_("Could not rebuild the standard groups: %s") % error)
             return {"CANCELLED"}
-        self.report({"INFO"}, "Rebuilt %d standard group(s); %s holds %d" % (built, MME_CORE_FILE, count))
+        self.report({"INFO"}, rpt_("Rebuilt %d standard group(s); %s holds %d") % (built, MME_CORE_FILE, count))
         redraw_all()
         return {"FINISHED"}

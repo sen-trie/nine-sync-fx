@@ -1,3 +1,4 @@
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.types import Panel
 
 from ...common.constants import NINESYNC_CATEGORY
@@ -25,6 +26,6 @@ class NINESYNC_FX_PT_selected(Panel):
         active = context.active_object
         root = fx_effect_root(active)
         if root is None:
-            draw_wrapped(self.layout, "Select an effect accessory (MMDAcc_...) or one of its passes to see its settings here.")
+            draw_wrapped(self.layout, iface_("Select an effect accessory (MMDAcc_...) or one of its passes to see its settings here."))
             return
         draw_fx_selected(self.layout, context, root, active)

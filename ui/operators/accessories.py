@@ -1,6 +1,7 @@
 import bpy
 import os
 import traceback
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, CollectionProperty, FloatProperty, StringProperty
 from bpy.types import Operator, OperatorFileListElement
 from bpy_extras.io_utils import ImportHelper
@@ -106,7 +107,7 @@ class NINESYNC_FX_OT_import_accessory(Operator, ImportHelper):
         for name in names:
             path = os.path.join(folder, name)
             if not os.path.isfile(path):
-                self.report({"WARNING"}, "Not found: %s" % path)
+                self.report({"WARNING"}, rpt_("Not found: %s") % path)
                 continue
             try:
                 root = import_standalone_accessory(context, path, self.scale, self.use_effect, bpy.path.abspath(self.effect_path) if self.effect_path else "")
@@ -116,7 +117,7 @@ class NINESYNC_FX_OT_import_accessory(Operator, ImportHelper):
                 continue
             if root is not None:
                 imported += 1
-        self.report({"INFO"}, "Imported %d accessory file(s)" % imported)
+        self.report({"INFO"}, rpt_("Imported %d accessory file(s)") % imported)
         redraw_all()
         return {"FINISHED"} if imported else {"CANCELLED"}
 
@@ -158,7 +159,7 @@ class NINESYNC_FX_OT_clean(Operator):
         if refuse_if_outdated(self, context):
             return {"CANCELLED"}
         counts = clean_hook(context.scene, {"fx": True})
-        self.report({"INFO"}, "Removed %d accessory(ies)" % counts["accessories"])
+        self.report({"INFO"}, rpt_("Removed %d accessory(ies)") % counts["accessories"])
         redraw_all()
         return {"FINISHED"}
 
@@ -180,5 +181,5 @@ class NINESYNC_FX_OT_copy_report(Operator):
         report = bpy.data.texts.get(REPORT_TEXT_NAME) or bpy.data.texts.new(REPORT_TEXT_NAME)
         report.clear()
         report.write(text)
-        self.report({"INFO"}, "Support report copied (%d lines) and saved to the %s text" % (len(text.splitlines()), REPORT_TEXT_NAME))
+        self.report({"INFO"}, rpt_("Support report copied (%d lines) and saved to the %s text") % (len(text.splitlines()), REPORT_TEXT_NAME))
         return {"FINISHED"}

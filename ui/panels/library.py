@@ -1,5 +1,6 @@
 import bpy
 import os
+from bpy.app.translations import pgettext_iface as iface_
 from bpy.types import Panel
 
 from ...common.constants import (
@@ -40,17 +41,17 @@ class NINESYNC_FX_PT_library(Panel):
         col = layout.column(align=True)
         col.label(text=MME_CORE_FILE, icon="FILE_BLEND" if os.path.isfile(path) else "ERROR")
         col.label(text=short_text(path, 60))
-        col.label(text="%d shared groups in the library" % len(names))
+        col.label(text=iface_("%d shared groups in the library") % len(names))
         local = [g for g in bpy.data.node_groups if g.get(MME_KEY_PROP)]
-        col.label(text="%d shared groups in this file (%d not in the library)" % (len(local), len([g for g in local if g.name not in names])))
+        col.label(text=iface_("%d shared groups in this file (%d not in the library)") % (len(local), len([g for g in local if g.name not in names])))
         reason = mme_library_fallback()
         user = mme_user_path()
         if reason:
             box = layout.box()
             box.alert = True
-            draw_wrapped(box, "Using the bundled library until Blender restarts: %s" % reason)
+            draw_wrapped(box, iface_("Using the bundled library until Blender restarts: %s") % reason)
         elif path == mme_bundled_path() and not (user and os.path.isfile(user)):
-            draw_wrapped(layout, "Your library is created on the first effect import.")
+            draw_wrapped(layout, iface_("Your library is created on the first effect import."))
         layout.operator("ninesync_fx.open_core_library", icon="FILE_FOLDER")
         layout.prop(settings, "mme_core_autosave")
         row = layout.row(align=True)

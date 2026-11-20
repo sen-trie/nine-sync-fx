@@ -1,6 +1,7 @@
 import bpy
 import time
 import traceback
+from bpy.app.translations import pgettext_rpt as rpt_
 from bpy.props import BoolProperty, StringProperty
 from bpy.types import Operator
 
@@ -17,7 +18,6 @@ from ...runtime.bake_store import (
 )
 from ...runtime.effect_files import (
     mme_missing_files,
-    mme_missing_text,
 )
 from ...runtime.progress import (
     mme_progress_begin,
@@ -25,6 +25,7 @@ from ...runtime.progress import (
     mme_progress_step,
     mme_target_roots,
 )
+from ..helpers import missing_files_report
 from ..relink import refuse_if_outdated
 
 
@@ -47,11 +48,14 @@ class NINESYNC_FX_OT_bake_effects(Operator):
             lost = [(root, mme_missing_files(root)) for root in roots]
             lost = [(root, missing) for root, missing in lost if missing]
             if lost:
-                self.report({"ERROR"}, "Not baked, " + "; ".join(mme_missing_text(root, missing) for root, missing in lost))
+                self.report({"ERROR"}, rpt_("Not baked, %s") % "; ".join(missing_files_report(root, missing) for root, missing in lost))
                 return {"CANCELLED"}
         passes = [p for root in roots for p in mme_effect_passes(root)]
         if not passes:
-            self.report({"WARNING"}, "No effect passes to %s" % ("clear" if self.clear else "bake"))
+            if self.clear:
+                self.report({"WARNING"}, rpt_("No effect passes to clear"))
+            else:
+                self.report({"WARNING"}, rpt_("No effect passes to bake"))
             return {"CANCELLED"}
         if settings.mme_bake_target == "DISK" and not bpy.data.filepath and settings.mme_bake_dir.startswith("//"):
             self.report({"ERROR"}, "Save the .blend first, or pick an absolute Bake Folder")
@@ -79,7 +83,7 @@ class NINESYNC_FX_OT_bake_effects(Operator):
             mme_store_batch_end()
         scene.frame_set(frame)
         if self.clear:
-            self.report({"INFO"}, "Cleared %d effect bake(s)" % done)
+            self.report({"INFO"}, rpt_("Cleared %d effect bake(s)") % done)
         else:
             log.info(
                 "[NineSync FX] bake summary: %d pass(es); bake reused=%d shared=%d rebaked=%d failed=%d; frames %d-%d; elapsed=%.1fs",
@@ -94,7 +98,7 @@ class NINESYNC_FX_OT_bake_effects(Operator):
             )
             self.report(
                 {"WARNING" if counts["failed"] else "INFO"},
-                "Baked %d, reused %d, shared %d, failed %d of %d effect pass(es), frames %d-%d, in %.1fs"
+                rpt_("Baked %d, reused %d, shared %d, failed %d of %d effect pass(es), frames %d-%d, in %.1fs")
                 % (counts["baked"], counts["skipped"], counts["shared"], counts["failed"], len(passes), scene.frame_start, scene.frame_end, time.time() - started),
             )
         redraw_all()

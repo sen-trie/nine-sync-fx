@@ -45,9 +45,14 @@ def standalone_project():
     return types.SimpleNamespace(models=[], accessories=[], accessory_error=None)
 
 
-# Unique entry key for an accessory imported by hand, numbered when the same file is imported twice.
+# Unique entry key for an accessory imported by hand, numbered when the same file is imported twice. Keys name the
+# effect's materials and node groups, which are shared by every scene in the file, so keys used in other scenes and on
+# existing accessory roots count as taken too.
 def standalone_key(settings, name):
     taken = {e.key for e in settings.accessories}
+    for scene in bpy.data.scenes:
+        taken.update(e.key for e in getattr(getattr(scene, "ninesync_fx", None), "accessories", ()))
+    taken.update(o.get("mmd_bridge_accessory") for o in bpy.data.objects if o.get("mmd_bridge_accessory"))
     key = "x:%s" % name
     number = 2
     while key in taken:

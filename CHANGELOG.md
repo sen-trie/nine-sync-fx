@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.3
+
+- Fixed edited pass materials losing their nodes on the later rebuild.
+- Fixed the same accessory imported into two scenes sharing materials and node groups.
+
 ## 0.7.2
 
 - Fixed rebuilds throwing away GN edits inside effect passes.

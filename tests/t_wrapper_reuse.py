@@ -72,10 +72,12 @@ pointer = tree.as_pointer()
 groups = stage_groups()
 owned = len([g for g in bpy.data.node_groups if g.get(mb.MME_OWNER_PROP) == tree.get(mb.MME_OWNER_PROP)])
 driven = drivers(obj)
+obj.ninesync_fx_edit_instances = True
 
 obj = rebuild()
 tree = outer_tree(obj)
 check(tree.as_pointer() == pointer, "a forced rebuild reuses the same wrapper tree")
+check(obj.ninesync_fx_edit_instances, "a forced rebuild keeps the pass's Edit Particle Instances toggle")
 check(all(n in tree.nodes for n in user_nodes), "zone nodes, links from the MME Pass node and nodes outside the frames stay")
 check(tree.nodes["user copy of the pass"].inputs[0].links and tree.nodes["user copy of the pass"].inputs[0].links[0].from_node.name == "NineSync Pass", "the link from the MME Pass node is kept")
 check(stage_groups() == groups, "the same stage groups are linked back, none made")
@@ -119,4 +121,13 @@ check("user copy of the pass" in tree.nodes and tree.nodes["user copy of the pas
 check(len(kept_previous()) == 1, "the fallback keeps the old tree because the zone could not be carried (%s)" % kept_previous())
 stage = tree.nodes["NineSync Stage final"].node_tree
 check(stage_groups() == groups and any(n.bl_idname == "GeometryNodeSetPosition" for n in stage.nodes), "the fallback links the same stage group, edit inside, back")
+keys = []
+for title in ("second scene", "third scene"):
+    other = bpy.data.scenes.new(title)
+    with bpy.context.temp_override(scene=other, view_layer=other.view_layers[0]):
+        bpy.ops.import_scene.ninesync_fx_accessory(filepath=X2, scale=1.0)
+    made = next(o for o in other.objects if o.get("mme_params"))
+    keys.append((made["mmd_bridge_accessory"], {c.active_material.as_pointer() for c in made.children if c.get(mb.MME_DRAW_PROP) and c.active_material}))
+check(keys[0][0] != keys[1][0], "the same file imported into two scenes gets two keys (%s, %s)" % (keys[0][0], keys[1][0]))
+check(not (keys[0][1] & keys[1][1]), "the two imports do not share pass materials")
 print("FAILED:", "none" if not failed else failed)

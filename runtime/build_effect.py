@@ -13,6 +13,7 @@ from ..common.constants import (
     MME_EDIT_OBJECT_PROP,
     MME_LIVE_OBJECT_PROP,
     MME_PARAM_BUILT_PROP,
+    MME_PASS_KEY_PROP,
     MME_PRUNED_PROP,
     MME_RUNTIME_VALUES_PROP,
     MME_UNSUPPORTED_PROP,
@@ -327,7 +328,8 @@ def mme_build_effect_steps(scene, collection, settings, acc, root, x_path, fx_pa
 
 
 # Rebuilds an existing effect in place from the values stored on its root. Only passes whose build signature changed
-# are rebuilt (all of them with force); the others keep their objects, node trees, visibility, keys and bakes. Pass
+# are rebuilt (all of them with force); the others keep their objects, node trees, visibility, keys and bakes. Passes
+# removed up front keep their Edit Particle Instances and live editing toggles, matched by pass key. Pass
 # objects from before manifests existed are replaced once.
 def mme_rebuild_effect(scene, root, force=False):
     _mme_state["stale"].discard(root.name)
@@ -344,6 +346,10 @@ def mme_rebuild_effect(scene, root, force=False):
     mme_link_visibility(root)
     captured = mme_capture_visibility(root)
     keyed = {} if force else mme_pass_by_key(root)
+    toggles = {
+        child.get(MME_PASS_KEY_PROP): (bool(getattr(child, MME_EDIT_OBJECT_PROP, False)), bool(getattr(child, MME_LIVE_OBJECT_PROP, False)))
+        for child in passes if child not in keyed.values()
+    }
     for child in passes:
         if child not in keyed.values():
             mme_stash_pass(child)
@@ -358,6 +364,10 @@ def mme_rebuild_effect(scene, root, force=False):
     for child, own in report["built"]:
         child.scale = (ACCESSORY_UNIT * unit,) * 3
         mme_restore_visibility([child], own or captured)
+        flags = toggles.get(child.get(MME_PASS_KEY_PROP))
+        if flags is not None:
+            setattr(child, MME_EDIT_OBJECT_PROP, flags[0])
+            setattr(child, MME_LIVE_OBJECT_PROP, flags[1])
     root.update_tag()
     log.info(
         "effect '%s' rebuilt in %.1fs: %d of %d pass(es) present, %d rebuilt, %d reused",

@@ -125,7 +125,8 @@ def mme_wire_inputs(tree, group_node, B):
 
 # Compiles a pass's pixel shader into a material: the shader code goes into a group, the fixed output stage
 # around it is built once.
-# If the user edited the material (the signature changed), only the group is regenerated. Render-target reads
+# If the user edited the material (the signature changed), only the group is regenerated, and the signature of the
+# generated tree is kept so the material still counts as edited on the next rebuild. Render-target reads
 # re-run the pass that wrote them.
 # Returns the material plus the attributes, uniforms and loop attributes it needs.
 def mme_compile_material(name, runtime, draw, state, vs_outputs, owner=None):
@@ -199,7 +200,8 @@ def mme_compile_material(name, runtime, draw, state, vs_outputs, owner=None):
     mode = mme_blend_mode(draw.fx_pass.states)
     tree = mat.node_tree
     group_node = next((n for n in tree.nodes if n.bl_idname == "ShaderNodeGroup" and n.node_tree == group), None)
-    if not edited or group_node is None:
+    fresh = not edited or group_node is None
+    if fresh:
         for node in list(tree.nodes):
             tree.nodes.remove(node)
         group_node = tree.nodes.new("ShaderNodeGroup")
@@ -213,7 +215,8 @@ def mme_compile_material(name, runtime, draw, state, vs_outputs, owner=None):
     else:
         log.info("material %s was edited; only its pixel shader group was regenerated", mat.name)
     mme_wire_inputs(tree, group_node, B)
-    mat[MME_SIG_PROP] = mme_tree_signature(tree)
+    if fresh:
+        mat[MME_SIG_PROP] = mme_tree_signature(tree)
     varyings = sorted(k for k in B.inputs if k.startswith(MME_VARYING_PREFIX) and B.kinds.get(k) == "GEOMETRY")
     uniforms = [[k, env.uniforms[k][0], env.uniforms[k][1]] for k in B.inputs if k in env.uniforms]
     loop_attrs = sorted(k for k in B.inputs if k.startswith(MME_LOOP_PREFIX))

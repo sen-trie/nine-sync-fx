@@ -36,6 +36,9 @@ line2 = [p for p in mb.mme_effect_passes(root) if "Line" in p.name][0]
 mat2 = line2.data.materials[0]
 print("after rebuild same material:", mat2 == mat, "user node kept:", any(n.label == "user boost" for n in mat2.node_tree.nodes), "group linked:", any(n.bl_idname == "ShaderNodeGroup" and n.node_tree is not None for n in mat2.node_tree.nodes), "inputs wired:", sum(1 for n in mat2.node_tree.nodes if n.name.startswith("mmeIn_")))
 print("orphan groups:", [g.name for g in bpy.data.node_groups if g.users == 0])
+r = bpy.ops.ninesync_fx.refresh_effects(root_name=root.name)
+mat3 = [p for p in mb.mme_effect_passes(root) if "Line" in p.name][0].data.materials[0]
+print("second rebuild user node kept:", any(n.label == "user boost" for n in mat3.node_tree.nodes))
 cam.data.type = "ORTHO"; cam.data.ortho_scale = 60.0
 settings.mme_backend = "PYTHON"
 r = bpy.ops.ninesync_fx.refresh_effects(root_name=root.name)

@@ -40,7 +40,7 @@ from ..fx.params import (
     fx_structural_params,
 )
 from ..nodes.standard_groups import mme_save_core_library
-from ..nodes.user_frames import mme_clear_stash, mme_stash_pass
+from ..nodes.user_frames import mme_clear_stash, mme_stash_pass, mme_unstash_pass
 from .build_pass import mme_build_pass
 from .bake_paths import mme_drop_pass_bake
 from .cleanup import remove_accessory_children_single
@@ -121,6 +121,9 @@ def mme_build_effect(*args, **kwargs):
 # old self or its finished replacement, so a caller can report progress and stop cleanly.
 # A replaced pass is removed only after its replacement was built; when the replacement fails the working pass stays and the
 # failure is counted in the report.
+# A pass that is replaced hands its wrapper tree to the replacement (mme_stash_pass), so the user's nodes in it stay.
+# The stale and queued-rebuild marks are cleared after the built values are recorded: scene updates during the build
+# compare against the old values and would mark the effect stale again.
 def mme_build_effect_steps(scene, collection, settings, acc, root, x_path, fx_path, unit, controls, existing=None, force=False):
     _mme_runtimes.pop(root.name, None)
     program = fx_parse_file(fx_path)
@@ -206,9 +209,13 @@ def mme_build_effect_steps(scene, collection, settings, acc, root, x_path, fx_pa
                 continue
             own = mme_capture_pass(old) if old is not None else None
             started = time.time()
+            if old is not None:
+                mme_stash_pass(old)
             try:
                 obj = mme_build_pass(runtime, draw, state, root, collection, unit, density, label, backend, scene)
             except Exception as error:
+                if old is not None:
+                    mme_unstash_pass(old)
                 if old is None and not isinstance(error, FxError):
                     raise
                 if isinstance(error, FxError):
@@ -225,6 +232,7 @@ def mme_build_effect_steps(scene, collection, settings, acc, root, x_path, fx_pa
                     log.warning("effect pass %s: the previous build is kept", label)
                 continue
             if old is not None:
+                mme_unstash_pass(old)
                 names = (old.name, old.data.name if old.data is not None else "")
                 carried = (bool(getattr(old, MME_EDIT_OBJECT_PROP, False)), bool(getattr(old, MME_LIVE_OBJECT_PROP, False)))
                 mme_drop_pass_bake(old)
@@ -263,6 +271,8 @@ def mme_build_effect_steps(scene, collection, settings, acc, root, x_path, fx_pa
     root["mme_overrides"] = json.dumps(fx_overridden_params(runtime.program))
     root.update_tag()
     root[MME_PARAM_BUILT_PROP] = json.dumps(mme_param_signature(root))
+    _mme_state["stale"].discard(root.name)
+    _mme_state["rebuild"].discard(root.name)
     stats = dict(_mme_core["stats"])
     log.info(
         "shared node groups: %d built, %d appended from %s, %d reused from this file",

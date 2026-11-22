@@ -1,21 +1,39 @@
 import bpy
 import numpy as np
 
+from ..common.log import log
 from ..common.constants import (
     MME_ATTR_SPRITE,
     MME_CORE_VERSION,
     MME_BAKE_NODE,
     MME_LIVE_INPUT,
     MME_EDIT_INPUT,
+    MME_GRAPH_VERSION,
     MME_OWNER_PROP,
     MME_PARTICLE_MESH_INPUT,
     MME_SHADER_ONLY_ATTRS,
 )
 from .core_library import mme_core_group
-from .user_frames import mme_capture_frames, mme_take_stash, mme_keep_previous, mme_previous_wrapper, mme_restore_frames, mme_stage_frame
+from .user_frames import (
+    PASS_NODE,
+    mme_capture_frames,
+    mme_free_owned,
+    mme_keep_previous,
+    mme_previous_wrapper,
+    mme_restore_frames,
+    mme_stage_frame,
+    mme_take_stash,
+)
 from .names import mme_group_name
 
 SPRITE_CORNERS = 4
+
+WRAP_PROP = "mme_wrap"
+SPRITES_PROP = "mme_wrap_sprites"
+INPUTS_NODE = "NineSync Inputs"
+PARAMS_NODE = "NineSync Pass Inputs"
+INSTANCES_NODE = "NineSync Particles to Instances"
+SWAP_NODE = "NineSync Particle Mesh"
 
 
 # True when the pass mesh is made of sprites: four vertices per quad in order, the particle number (the source z) shared by
@@ -312,21 +330,21 @@ def mme_strip_inputs(S, geometry):
 # The pass's one Bake node, named so Effects > Bake can find it among any Bake nodes the user adds. It is the last node
 # of the wrapper, so a bake holds everything the pass makes, the user's instance edits and the Particle Mesh swap included.
 def _bake(outer, x, y, source, live_input):
-    bake = _node(outer, "GeometryNodeBake", x, y, "Bake (Effects > Bake)")
+    bake = _node(outer, "GeometryNodeBake", x, y + 100, "Bake (Effects > Bake)")
     bake.name = MME_BAKE_NODE
     bake.bake_items.new("GEOMETRY", "Geometry")
     outer.links.new(source, bake.inputs[0])
-    live_node = _node(outer, "NodeGroupInput", x - 80, y - 150, MME_LIVE_INPUT)
+    live_node = _node(outer, "NodeGroupInput", x - 370, y + 255, MME_LIVE_INPUT)
     for socket in live_node.outputs:
         socket.hide = socket.identifier != live_input
     live = next(s for s in live_node.outputs if s.identifier == live_input)
-    viewport = _node(outer, "GeometryNodeIsViewport", x - 80, y - 240, "viewport only")
-    both = _node(outer, "FunctionNodeBooleanMath", x + 200, y - 160, "Geometry Node Editing, viewport only", operation="AND")
+    viewport = _node(outer, "GeometryNodeIsViewport", x - 370, y + 165, "viewport only")
+    both = _node(outer, "FunctionNodeBooleanMath", x - 90, y + 285, "Geometry Node Editing, viewport only", operation="AND")
     outer.links.new(live, both.inputs[0])
     outer.links.new(viewport.outputs[0], both.inputs[1])
     for node in (live_node, viewport, both):
         node.width = 230
-    show = _node(outer, "GeometryNodeSwitch", x + 330, y, "Live nodes instead of the bake", input_type="GEOMETRY", width=230)
+    show = _node(outer, "GeometryNodeSwitch", x + 190, y + 85, "Live nodes instead of the bake", input_type="GEOMETRY", width=230)
     outer.links.new(both.outputs[0], show.inputs["Switch"])
     outer.links.new(bake.outputs[0], show.inputs["False"])
     outer.links.new(source, show.inputs["True"])
@@ -334,36 +352,148 @@ def _bake(outer, x, y, source, live_input):
 
 
 # Wraps a finished pass tree in the tree the modifier uses, so each pass is one node group. For sprite passes the wrapper
-# also holds the place for the user's instance nodes (Delete Geometry, Transform Instances, ...), Realize Instances and the
-# Particle Mesh swap, all before the pass's Bake node. Its inputs repeat the pass's inputs; the returned map takes a pass
-# input identifier to the wrapper's, for the drivers and defaults, followed by the identifier of the Enable Instance
-# Editing input (None for a pass without one).
+# also holds the place for the user's instance nodes, Realize Instances and the Particle Mesh swap, all before the pass's
+# Bake node. Its inputs repeat the pass's inputs; the returned map takes a pass input identifier to the wrapper's, for the
+# drivers and defaults, followed by the identifier of the Enable Instance Editing input (None for a pass without one).
+# A rebuild reuses the earlier wrapper and only swaps the pass in it, so everything the user added stays as it was; the
+# capture and restore of the frames is the fallback for a wrapper of another layout. A held (stashed) wrapper may still
+# be used by the pass it replaces, which is removed once the new pass is in place.
 def mme_wrap_pass(top, name, owner, sprites):
-    previous = mme_previous_wrapper(owner, name)
     stashed = mme_take_stash(owner)
-    kept, lost = stashed if stashed is not None else mme_capture_frames(previous) if previous is not None else ({}, 0)
-    result = _wrap_pass(top, name, owner, sprites)
-    if kept or lost:
-        if mme_restore_frames(result[0], kept) + lost and previous is not None:
+    previous = stashed or mme_previous_wrapper(owner, name)
+    if previous is not None and (stashed is not None or previous.users == 0):
+        try:
+            reused = _reuse_wrapper(previous, top, owner, sprites)
+        except (RuntimeError, TypeError, ValueError, KeyError, StopIteration) as error:
+            log.warning("could not reuse the earlier tree of %s: %s", name, error)
             mme_keep_previous(previous)
+            return _wrap_pass(top, name, owner, sprites)
+        if reused is not None:
+            return reused
+    kept, lost = mme_capture_frames(previous) if previous is not None else ({}, 0)
+    result = _wrap_pass(top, name, owner, sprites)
+    if previous is not None:
+        if (mme_restore_frames(result[0], kept) if kept else 0) + lost:
+            mme_keep_previous(previous)
+        else:
+            mme_free_owned(previous)
+        result[0].name = name
     return result
+
+
+def _input_specs(top, sprites):
+    sockets = [i for i in top.interface.items_tree if i.item_type == "SOCKET" and i.in_out == "INPUT"]
+    sockets.sort(key=lambda i: int(i.identifier.rsplit("_", 1)[-1]))
+    specs = [(i.name, i.socket_type, i) for i in sockets]
+    specs.append((MME_LIVE_INPUT, "NodeSocketBool", None))
+    if sprites:
+        specs.append((MME_EDIT_INPUT, "NodeSocketBool", None))
+        specs.append((MME_PARTICLE_MESH_INPUT, "NodeSocketObject", None))
+    return sockets, specs
+
+
+def _copy_socket(item, made):
+    for attribute in ("default_value", "min_value", "max_value", "description", "subtype"):
+        if hasattr(item, attribute) and hasattr(made, attribute):
+            try:
+                setattr(made, attribute, getattr(item, attribute))
+            except (TypeError, ValueError, AttributeError):
+                continue
+
+
+# Makes the wrapper's inputs match the new pass's, keeping every input whose name and type stay (and so its identifier,
+# its links and the user's own Group Input nodes) and putting them in the pass's order.
+def _sync_interface(outer, specs):
+    old = [i for i in outer.interface.items_tree if i.item_type == "SOCKET" and i.in_out == "INPUT"]
+    used = set()
+    ordered = []
+    for name, socket_type, source in specs:
+        match = next((i for i in old if i.identifier not in used and i.name == name and i.socket_type == socket_type), None)
+        if match is None:
+            match = outer.interface.new_socket(name, in_out="INPUT", socket_type=socket_type)
+        used.add(match.identifier)
+        if source is not None:
+            _copy_socket(source, match)
+        ordered.append(match)
+    for item in old:
+        if item.identifier not in used:
+            outer.interface.remove(item)
+    outputs = len([i for i in outer.interface.items_tree if i.item_type == "SOCKET" and i.in_out == "OUTPUT"])
+    for position, item in enumerate(ordered):
+        outer.interface.move(item, outputs + position)
+    return [i.identifier for i in ordered]
+
+
+# Reuses an earlier wrapper of the same layout: points its MME Pass node at the new pass, matches the inputs and links
+# the pass back in. Returns None when the wrapper cannot be reused (another layout or sprite kind, scaffold removed).
+def _reuse_wrapper(outer, top, owner, sprites):
+    if outer.get(WRAP_PROP) != MME_GRAPH_VERSION or bool(outer.get(SPRITES_PROP)) != bool(sprites):
+        return None
+    group, gin, params = outer.nodes.get(PASS_NODE), outer.nodes.get(INPUTS_NODE), outer.nodes.get(PARAMS_NODE)
+    if group is None or group.bl_idname != "GeometryNodeGroup":
+        return None
+    if any(n is None or n.bl_idname != "NodeGroupInput" for n in (gin, params)):
+        return None
+    if sprites and (outer.nodes.get(INSTANCES_NODE) is None or outer.nodes.get(SWAP_NODE) is None):
+        return None
+    sockets, specs = _input_specs(top, sprites)
+    geometry_in = next((i.identifier for i in sockets if i.socket_type == "NodeSocketGeometry"), None)
+    source = next((link.from_socket for s in group.inputs if s.type == "GEOMETRY" for link in s.links), None)
+    targets = [link.to_socket for s in group.outputs for link in s.links]
+    old_top = group.node_tree
+    identifiers = _sync_interface(outer, specs)
+    mapping = {item.identifier: identifiers[k] for k, item in enumerate(sockets)}
+    live_input = identifiers[len(sockets)]
+    edit_input = identifiers[len(sockets) + 1] if sprites else None
+    group.node_tree = top
+    group.label = "MME Pass: " + outer.name[len("MME "):]
+    for socket in group.inputs:
+        for link in list(socket.links):
+            outer.links.remove(link)
+    for socket in group.outputs:
+        for link in list(socket.links):
+            outer.links.remove(link)
+    link = outer.links.new
+    for old, new in mapping.items():
+        target = next(s for s in group.inputs if s.identifier == old)
+        if old == geometry_in and source is not None:
+            link(source, target)
+        else:
+            link(next(s for s in params.outputs if s.identifier == new), target)
+    for target in targets:
+        link(group.outputs[0], target)
+    _hide_unlinked(gin, params)
+    if sprites:
+        outer.nodes[INSTANCES_NODE].node_tree = mme_geo_instances_group()
+        outer.nodes[SWAP_NODE].node_tree = mme_geo_swap_group()
+    outer[MME_OWNER_PROP] = owner
+    if old_top is not None and old_top != top:
+        mme_free_owned(old_top)
+    return outer, mapping, edit_input, live_input
+
+
+def _deselect(tree):
+    for node in tree.nodes:
+        node.select = False
+
+
+def _hide_unlinked(*nodes):
+    for node in nodes:
+        for socket in node.outputs:
+            socket.hide = not socket.is_linked
 
 
 def _wrap_pass(top, name, owner, sprites):
     outer = bpy.data.node_groups.new(name, "GeometryNodeTree")
     outer[MME_OWNER_PROP] = owner
+    outer[WRAP_PROP] = MME_GRAPH_VERSION
+    outer[SPRITES_PROP] = bool(sprites)
     try:
-        sockets = [i for i in top.interface.items_tree if i.item_type == "SOCKET" and i.in_out == "INPUT"]
-        sockets.sort(key=lambda i: int(i.identifier.rsplit("_", 1)[-1]))
+        sockets, _specs = _input_specs(top, sprites)
         mapping = {}
         for item in sockets:
             made = outer.interface.new_socket(item.name, in_out="INPUT", socket_type=item.socket_type)
-            for attribute in ("default_value", "min_value", "max_value", "description", "subtype"):
-                if hasattr(item, attribute) and hasattr(made, attribute):
-                    try:
-                        setattr(made, attribute, getattr(item, attribute))
-                    except (TypeError, ValueError, AttributeError):
-                        continue
+            _copy_socket(item, made)
             mapping[item.identifier] = made.identifier
         outer.interface.new_socket("Geometry", in_out="OUTPUT", socket_type="NodeSocketGeometry")
         live = outer.interface.new_socket(MME_LIVE_INPUT, in_out="INPUT", socket_type="NodeSocketBool")
@@ -380,51 +510,54 @@ def _wrap_pass(top, name, owner, sprites):
             mesh_input = outer.interface.new_socket(MME_PARTICLE_MESH_INPUT, in_out="INPUT", socket_type="NodeSocketObject").identifier
         link = outer.links.new
         y = 300 if sprites else 0
-        gin = _node(outer, "NodeGroupInput", -2000, y)
-        gout = _node(outer, "NodeGroupOutput", 3500 if sprites else 1300, y)
+        gin = _node(outer, "NodeGroupInput", -1275, y - 30)
+        gin.name = INPUTS_NODE
+        params = _node(outer, "NodeGroupInput", -815, y - 130)
+        params.name = PARAMS_NODE
+        bake_x = 2120 if sprites else 305
+        gout = _node(outer, "NodeGroupOutput", bake_x + 460, y + 65)
         group = _node(outer, "GeometryNodeGroup", -600, y, "MME Pass: " + name[len("MME "):], node_tree=top, width=300)
+        group.name = PASS_NODE
         geometry_in = next((i.identifier for i in sockets if i.socket_type == "NodeSocketGeometry"), None)
         for old, new in mapping.items():
-            source = next(s for s in gin.outputs if s.identifier == new)
             target = next(s for s in group.inputs if s.identifier == old)
             if old == geometry_in:
-                source = mme_stage_frame(outer, "source", -1750, y + 420, source)
+                source = mme_stage_frame(outer, "source", -990, y + 15, next(s for s in gin.outputs if s.identifier == new), owner)
+            else:
+                source = next(s for s in params.outputs if s.identifier == new)
             link(source, target)
-        for socket in gin.outputs:
-            socket.hide = not socket.is_linked
+        _hide_unlinked(gin, params)
         if not sprites:
-            finished = mme_stage_frame(outer, "final", -200, y + 100, group.outputs[0])
-            link(_bake(outer, 600, y, finished, live_input), gout.inputs[0])
+            finished = mme_stage_frame(outer, "final", -160, y, group.outputs[0], owner)
+            link(_bake(outer, bake_x, y, finished, live_input), gout.inputs[0])
+            _deselect(outer)
             return outer, mapping, None, live_input
-        frame = _node(outer, "NodeFrame", -200, 100, "Edit Particle Instances (needs the panel checkbox)", shrink=False)
-        frame.width = 1220
-        frame.label_size = 16
-        frame.height = 520
-        instances = _node(outer, "GeometryNodeGroup", -170, 60, "Particles to Instances", frame, node_tree=mme_geo_instances_group(), width=220)
-        delete = _node(outer, "GeometryNodeDeleteGeometry", 340, -45, "Your nodes here: particle instances", frame, domain="INSTANCE", mode="ALL")
-        delete.inputs["Selection"].default_value = False
-        real = _node(outer, "GeometryNodeRealizeInstances", 840, -240, "Realize Instances", frame)
-        drop = _node(outer, "GeometryNodeRemoveAttribute", 1100, -100, "drop " + MME_ATTR_SPRITE)
+        instances = _node(outer, "GeometryNodeGroup", -200, -100, "Particles to Instances", node_tree=mme_geo_instances_group(), width=220)
+        instances.name = INSTANCES_NODE
+        edited = mme_stage_frame(outer, "instances", 200, -100, instances.outputs[0], owner)
+        real = _node(outer, "GeometryNodeRealizeInstances", 585, -80, "Realize Instances")
+        drop = _node(outer, "GeometryNodeRemoveAttribute", 840, 140, "drop " + MME_ATTR_SPRITE)
         drop.inputs["Name"].default_value = MME_ATTR_SPRITE
-        edit_node = _node(outer, "NodeGroupInput", 1300, 440, MME_EDIT_INPUT)
+        edit_node = _node(outer, "NodeGroupInput", 845, 330, MME_EDIT_INPUT)
         for socket in edit_node.outputs:
             socket.hide = socket.identifier != edit_input
-        edit_switch = _node(outer, "GeometryNodeSwitch", 1400, 300, "Enable Instance Editing?", input_type="GEOMETRY")
-        swap = _node(outer, "GeometryNodeGroup", 1700, 300, "Particle Mesh (optional swap)", node_tree=mme_geo_swap_group(), width=260)
-        mesh_node = _node(outer, "NodeGroupInput", 1450, 120, MME_PARTICLE_MESH_INPUT)
+        edit_switch = _node(outer, "GeometryNodeSwitch", 1065, 300, "Enable Instance Editing?", input_type="GEOMETRY")
+        swap = _node(outer, "GeometryNodeGroup", 1255, 295, "Particle Mesh (optional swap)", node_tree=mme_geo_swap_group(), width=260)
+        swap.name = SWAP_NODE
+        mesh_node = _node(outer, "NodeGroupInput", 1080, 135, MME_PARTICLE_MESH_INPUT)
         for socket in mesh_node.outputs:
             socket.hide = socket.identifier != mesh_input
         link(next(s for s in edit_node.outputs if s.identifier == edit_input), edit_switch.inputs["Switch"])
         link(group.outputs[0], instances.inputs[0])
         link(group.outputs[0], edit_switch.inputs["False"])
-        link(instances.outputs[0], delete.inputs["Geometry"])
-        link(delete.outputs[0], real.inputs[0])
+        link(edited, real.inputs[0])
         link(real.outputs[0], drop.inputs[0])
         link(drop.outputs[0], edit_switch.inputs["True"])
         link(edit_switch.outputs[0], swap.inputs["Geometry"])
         link(next(s for s in mesh_node.outputs if s.identifier == mesh_input), swap.inputs[MME_PARTICLE_MESH_INPUT])
-        finished = mme_stage_frame(outer, "final", 2050, y + 100, swap.outputs[0])
-        link(_bake(outer, 2800, y, finished, live_input), gout.inputs[0])
+        finished = mme_stage_frame(outer, "final", 1655, y, swap.outputs[0], owner)
+        link(_bake(outer, bake_x, y, finished, live_input), gout.inputs[0])
+        _deselect(outer)
         return outer, mapping, edit_input, live_input
     except Exception:
         bpy.data.node_groups.remove(outer)

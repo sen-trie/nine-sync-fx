@@ -38,14 +38,29 @@ def mme_pass_groups(obj):
     return groups
 
 
-# Deletes groups left without users; a group already removed along with its owner is skipped.
+# Deletes groups that no datablock uses any more; a group already removed along with its owner is skipped. The user
+# map decides, not the user count, because a tree open in a node editor keeps an extra user. Groups used only by
+# other freed groups go in later rounds.
 def mme_free_groups(groups):
-    for group in groups:
-        try:
-            if group.users == 0:
-                bpy.data.node_groups.remove(group)
-        except ReferenceError:
-            pass
+    pending = list(groups)
+    while pending:
+        alive = []
+        for group in pending:
+            try:
+                group.name
+            except ReferenceError:
+                continue
+            alive.append(group)
+        if not alive:
+            return
+        users = bpy.data.user_map(subset=alive)
+        unused = [g for g in alive if not g.use_fake_user and not users.get(g)]
+        if not unused:
+            return
+        gone = {g.as_pointer() for g in unused}
+        pending = [g for g in alive if g.as_pointer() not in gone]
+        for group in unused:
+            bpy.data.node_groups.remove(group)
 
 
 # Drops unused materials and groups whose owner key starts with the prefix, i.e. leftovers of accessories that

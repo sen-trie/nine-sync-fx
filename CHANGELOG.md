@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.2
+
+- Fixed rebuilds throwing away GN edits inside effect passes.
+
 ## 0.7.1
 
 - The interface, tooltips and messages can now be translated through Blender's language settings. Generated node trees keep their English names.

@@ -38,7 +38,6 @@ BLENDER = [
     ("gate_cache", (), ()),
     ("tr_zero", (), ()),
     ("bake_store", (), ()),
-    ("bake_node", (), ()),
     ("incremental", (), ()),
     ("plain_fixture", (), ()),
     ("xparse", (), ()),

@@ -51,6 +51,8 @@ def mme_frame_handler(scene, depsgraph=None):
         return
     _mme_state["busy"] = True
     try:
+        from .runtime.middle.controllers import revive_invalid_controls
+        revive_invalid_controls(scene)
         updated = mme_update_scene(scene, depsgraph)
         if updated and depsgraph is not None and _mme_state.get("only") is not None:
             depsgraph.update()
@@ -73,6 +75,8 @@ def mme_load_handler(*_args):
     _mme_runtimes.clear()
     mme_sample_cache.clear()
     _mme_state["errors"].clear()
+    from .runtime.middle.controllers import revive_invalid_controls
+    revive_invalid_controls()
     try:
         for root in mme_effect_roots(bpy.context.scene):
             missing = mme_missing_files(root)
@@ -110,6 +114,11 @@ def mme_param_watch(scene, depsgraph=None):
         return
     if bpy.app.is_job_running("RENDER"):
         return
+    # A native bone rename can update only the affected node-tree paths,
+    # without an armature update in this callback. Retry owned invalid drivers
+    # after any update; valid drivers and unresolved sources are left alone.
+    from .runtime.middle.controllers import revive_invalid_controls
+    revive_invalid_controls(scene)
     for update in depsgraph.updates:
         obj = update.id.original if isinstance(update.id, bpy.types.Object) else None
         if obj is not None and obj.get(MME_PASS_KEY_PROP) and obj.get(MME_BAKED_PROP) and obj.parent is not None:

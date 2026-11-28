@@ -17,6 +17,11 @@ from .operators.library import (
     NINESYNC_FX_OT_rebuild_core_library,
     NINESYNC_FX_OT_save_core_library,
 )
+from .operators.middle import (
+    NINESYNC_FX_OT_middle_apply,
+    NINESYNC_FX_OT_middle_remove,
+    NINESYNC_FX_OT_middle_retarget,
+)
 from .panels.accessories import NINESYNC_FX_PT_accessories
 from .panels.accessory_effects import NINESYNC_FX_PT_effects
 from .panels.bake import NINESYNC_FX_PT_bake
@@ -48,6 +53,9 @@ CLASSES = (
     NINESYNC_FX_OT_rebuild_core_library,
     NINESYNC_FX_OT_open_core_library,
     NINESYNC_FX_OT_assign_control,
+    NINESYNC_FX_OT_middle_apply,
+    NINESYNC_FX_OT_middle_remove,
+    NINESYNC_FX_OT_middle_retarget,
     NINESYNC_FX_OT_clean,
     NINESYNC_FX_OT_copy_report,
     NINESYNC_FX_PT_accessories,

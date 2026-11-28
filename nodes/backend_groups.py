@@ -53,6 +53,7 @@ class MmeGroupEnv:
 # and native node versions of common intrinsics.
 class MmeGroupCalls:
     group_mode = False
+    use_shared_groups = True
 
     # How a group exposes a value: float3 as one vector socket, float4x4 as one matrix socket (Geometry Nodes
     # only), anything else as separate float sockets.
@@ -360,6 +361,8 @@ class MmeGroupCalls:
     # parameters or arrays,
     # and at least one argument must be non-constant. Otherwise the function is inlined.
     def call_group(self, ex, function, args):
+        if not self.use_shared_groups:
+            return None
         info = fx_function_info(ex.program, function)
         if not info["pure"] or (info["slots"] and not self.image_inputs):
             return None
@@ -504,7 +507,7 @@ class MmeGroupCalls:
         return t * t * (3.0 - 2.0 * t)
 
     def intrinsic_group(self, ex, name, args):
-        if name not in FX_GROUP_INTRINSICS or not args:
+        if not self.use_shared_groups or name not in FX_GROUP_INTRINSICS or not args:
             return None
         if not all(fx_is_numeric(a.t) for a in args):
             return None

@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "entries": [
+    {
+      "entry": "tonal.fx",
+      "name": "Synthetic Tonal",
+      "version": "1",
+      "author": "NineSync",
+      "source": "tests/fixtures/mme/known",
+      "review": "Original synthetic fixture.",
+      "files": {
+        "settings.fxh": "54b04792c6b0abc26f54e043bc7abb2f8797a2b8c7c44ee3d3a46cb1332f8089",
+        "tonal.fx": "7063342bd5bbffa7731f75496bca279b9cfdfb95a5cb693fdcd8255049635335"
+      },
+      "role": "FULLSCREEN_POST",
+      "features": [
+        "buffer_draw"
+      ],
+      "adapter": "tonal",
+      "status": "enabled",
+      "adapter_notes": "Demonstrates exact recognition of an original fixture. Its shader is not translated."
+    },
+    {
+      "entry": "o_Tonemap.fx",
+      "name": "o_Tonemap",
+      "version": "0.7",
+      "author": "o_tamon",
+      "source": "https://okoneya.jp/mmd_files/#o_Tonemap",
+      "review": "Creator README reviewed. Experimental independent adaptation with partial control coverage.",
+      "files": {
+        "bitmap/Bright.bmp": "bb66e7e94109cd6715bad8bf614d0a0b30d0d1e35c59eb0e7c1bffab493d1e85",
+        "bitmap/Contrast.bmp": "ec0bca6d37397372d45765377266c5cf2080ecdb81d2a2268d1b1e8ec948e55c",
+        "bitmap/Contrast_Strong.bmp": "35f50955c7f07a51a08389320576ca6f96e6124cef4ab75e9733eb1587b71521",
+        "bitmap/Cross-process.bmp": "7b4f426bc3c626d453a64a0225e30d1f9796386b7053045c8197dee26f374f88",
+        "bitmap/Dark.bmp": "0dbb0b5624d66589bf06efa266f69c902a313b837c01ff2ee3d29d30d7e86a51",
+        "bitmap/Default.bmp": "68c3b8481ef9a7bd637bafc5217896e4efffee2ffdd8bbd25b9832b374c56510",
+        "bitmap/Inversion.bmp": "86d8aa1e5809fbf000492c6e7b762b9ce897716163724f7c2d896dd3d21282e7",
+        "bitmap/Negative-film.bmp": "ac72ebe3adfcd3bc309f94e5d75326089cf5ac3cda54cd17a375118fed2da000",
+        "bitmap/Plain.bmp": "6a5696a25a519110dda7ec9f344d0610016a50707302bb16b7675cfdd249716f",
+        "bitmap/Sepia.bmp": "534ce0af468492aae3a25622cd438f868c180a57af9c0bf6659371cd1fa61a13",
+        "bitmap/psSepia.bmp": "0af01ad7eca683125de782e9a78b9e79761cac76e3dbcb27348ffb42b95b2a80",
+        "bitmap/test.bmp": "7b634674684920b186a1fa1042c834db11eb2c20766e88b602a5476a9ca45378",
+        "o_Monochrome.fx": "7755264e55f9855371eeeb9e014151871bf7373eeed65ed8b2ab250c25869445",
+        "o_Monochrome.x": "0ca7669595af7e68675aa56a79a633de9051ca89200d05fe125a092450f78be1",
+        "o_Plain.fx": "e0777cee44859ffa002632bb7932190a5e96840e1fc4c6d09c8967b99e8842c3",
+        "o_Plain.x": "0ca7669595af7e68675aa56a79a633de9051ca89200d05fe125a092450f78be1",
+        "o_Sepia.fx": "6ca50a73ebf05e0dc83c04bb9ab9a4535959083cbb151513706558639639d736",
+        "o_Sepia.x": "0ca7669595af7e68675aa56a79a633de9051ca89200d05fe125a092450f78be1",
+        "o_Tonemap.fx": "45ba3a54df3ce4ffa83467a3fbaf6f82d82b9b2ab1f726f50c12848b9c0c2905",
+        "o_Tonemap.x": "0ca7669595af7e68675aa56a79a633de9051ca89200d05fe125a092450f78be1",
+        "o_psSepia.fx": "591cc3c81d6ad1f512dc033c741dec1cd9271c40b391a2fcea8d998af9e20982",
+        "o_psSepia.x": "0ca7669595af7e68675aa56a79a633de9051ca89200d05fe125a092450f78be1",
+        "readme.txt": "5f6cf0308d3e7f7c49e9cc0a3db85f6d44e5759899a936e592ca153342a55f25"
+      },
+      "role": "POST_CONTROLLER",
+      "features": [
+        "buffer_draw",
+        "material_inputs",
+        "postprocess_order",
+        "render_targets"
+      ],
+      "adapter": "tonal",
+      "status": "enabled",
+      "adapter_notes": "Match Strength to MME Tr manually. LUTs, presets, per-channel offsets and MME alpha modes are omitted."
+    }
+  ]
+}

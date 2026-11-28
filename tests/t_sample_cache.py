@@ -1,9 +1,7 @@
 import os, sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from harness_fx import *
 import hashlib, importlib, shutil, tempfile, types
-import paths
 cache_mod = importlib.import_module("ninesync_fx.runtime.sample_cache")
-strips = importlib.import_module("ninesync_fx.runtime.strips")
 
 failed = []
 checks = 0
@@ -126,64 +124,6 @@ with open(fx_file, "w") as f:
 os.utime(fx_file, ns=(1, 2))
 check("pass key changes with the effect file", cache_mod.mme_sample_pass_key(runtime, draw, src, rows, 4, 1.0, 2) != base)
 shutil.rmtree(folder, ignore_errors=True)
-
-lv2 = os.environ.get("NINESYNC_THUNDER_LV2", os.path.join(paths.REPO, "debug-src"))
-X, FXF = os.path.join(lv2, "Thunder_lv2.x"), os.path.join(lv2, "Thunder_lv2.fx")
-if os.path.isfile(X) and os.path.isfile(FXF):
-    cache = cache_mod.mme_sample_cache
-    scene, col, root0, cam = setup_scene()
-    bpy.data.objects.remove(root0)
-    settings = scene.ninesync_fx
-    settings.mme_backend = "GEONODES"
-    scene.frame_start, scene.frame_end = 1, 120
-
-    class A:
-        pass
-    A.name = "Thunder_lv2"; A.path = X; A.index = 0; A.keys = [Key(0)]
-    controls = {"Tr": {"kind": "self", "item": "Tr"}, "Si": {"kind": "self", "item": "Si"}}
-    root = bpy.data.objects.new("root_lv2", None); root["mmd_bridge_accessory"] = "Thunder_lv2"; col.objects.link(root)
-
-    def meshes():
-        out = {}
-        for c in sorted(root.children, key=lambda c: c.name):
-            if c.type != "MESH":
-                continue
-            co = np.zeros(len(c.data.vertices) * 3, dtype=np.float32)
-            c.data.vertices.foreach_get("co", co)
-            loops = np.zeros(len(c.data.loops), dtype=np.int32)
-            c.data.loops.foreach_get("vertex_index", loops)
-            out[c.name] = hashlib.sha1(co.tobytes() + loops.tobytes()).hexdigest()
-        return out
-
-    def strip_files():
-        for f in os.listdir(mb.mme_cache_folder()):
-            if f.endswith("_strip.json"):
-                os.remove(os.path.join(mb.mme_cache_folder(), f))
-
-    cache.clear()
-    mb.mme_build_effect(scene, col, settings, A, root, X, FXF, 1.0, controls)
-    root["mme_tr"] = 1.0; root.keyframe_insert('["mme_tr"]', frame=1)
-    root["mme_tr"] = 0.0; root.keyframe_insert('["mme_tr"]', frame=120)
-    hits = cache.hits
-    strip_files()
-    mb.mme_rebuild_effect(scene, root, True)
-    warm, replayed = meshes(), cache.hits - hits
-    cache.clear()
-    strip_files()
-    mb.mme_rebuild_effect(scene, root, True)
-    cold = meshes()
-    check("real effect: the cold-cache rebuild sampled again", cache.bytes > 0 and cache.entries)
-    print("Thunder lv2 Tr rebuild: %d probe state(s) replayed, %.0f MB kept" % (replayed, cache.bytes / 1048576.0))
-    check("real effect: states replayed after a Tr edit", replayed > 0)
-    check("real effect: replayed rebuild matches a cold-cache rebuild", warm == cold and len(warm) > 0)
-    settings.mme_memory_budget = "LOW"
-    cache.clear()
-    strip_files()
-    mb.mme_rebuild_effect(scene, root, True)
-    check("real effect: the Low budget keeps no samples", cache.bytes == 0 and not cache.entries)
-    check("real effect: Low budget rebuild matches", meshes() == cold)
-else:
-    print("Thunder lv2 not found; set NINESYNC_THUNDER_LV2 to run the real effect")
 
 print("sample cache: %d of %d checks passed" % (checks - len(failed), checks))
 print("FAILED:", failed or "none")

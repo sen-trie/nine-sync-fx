@@ -11,51 +11,40 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 TESTS = os.path.join(REPO, "tests")
 
-THUNDER = "Thunder/Thunder_lv1.fx"
+THUNDER = ("Thunder/Thunder_lv1.fx", "Thunder/Thunder_lv1.x")
+PURE = ("adapter_recognition", "digest", "mme_analyzer", "paths")
 
 BLENDER = [
-    ("compare", (), (THUNDER,)),
-    ("bake", (), (THUNDER,)),
-    ("misc", (), (THUNDER,)),
-    ("ui", (), (THUNDER,)),
-    ("clean", (), (THUNDER,)),
-    ("features", (), (THUNDER,)),
-    ("reuse", (), (THUNDER,)),
-    ("controller", (), (THUNDER,)),
-    ("user_bug", (), (THUNDER,)),
-    ("keyed", (), (THUNDER,)),
-    ("standalone", (), (THUNDER,)),
-    ("hook", (), ()),
-    ("scenes", (), (THUNDER,)),
-    ("synth", (), ()),
-    ("precull", (), (THUNDER,)),
-    ("library", (), ()),
-    ("manual_controls", (), (THUNDER,)),
-    ("thunder_rings", (), ()),
-    ("strip_stream", (), ()),
-    ("finite_paths", (), ()),
-    ("sample_cache", (), ()),
-    ("gate_cache", (), ()),
-    ("tr_zero", (), ()),
-    ("bake_store", (), ()),
-    ("incremental", (), ()),
-    ("plain_fixture", (), ()),
-    ("xparse", (), ()),
-    ("relative_paths", (), ()),
-    ("x_importer", (), ()),
-    ("mixed", (), ()),
-    ("version", (), ()),
-    ("user_path", (), ()),
-    ("emm", (), ()),
-    ("accessory_keys", (), ()),
-    ("cache", (), ()),
-    ("particle_stage", (), ()),
-    ("instanced", (), ()),
-    ("labels", (), (THUNDER,)),
-    ("panels", ("--", "fx"), ("@core",)),
-    ("cycle", (), ("@core",)),
-    ("core_fx", (), ("@core", "meiling.pmm", THUNDER)),
+    "accessory_keys",
+    "adapter_scene",
+    "bake_store",
+    "cache",
+    "emm",
+    "finite_paths",
+    "gate_cache",
+    "incremental",
+    "instanced",
+    "library",
+    "log_redact",
+    "manual_controls",
+    "mixed",
+    "mme_triangle",
+    "mme_unsourced",
+    "mme_visibility",
+    "particle_stage",
+    "relative_paths",
+    "sample_cache",
+    "seams",
+    "strip_stream",
+    "tr_zero",
+    "wrapper_reuse",
+    "x_importer",
+    "xparse",
 ]
+
+
+FIXTURES = {"manual_controls": THUNDER, "tr_zero": THUNDER}
+
 
 BAD_LINE = re.compile(r"Traceback \(most recent call last\)|FAILED: (?!none)|\bFAILED\b(?!: none)")
 
@@ -70,17 +59,6 @@ def scrub(text, extra):
     return re.sub(r"(?i)[a-z]:[\/]users[\/][^\/\s]+", "~", text)
 
 
-def missing(requirements, fixtures, core):
-    out = []
-    for item in requirements:
-        if item == "@core":
-            if not core:
-                out.append("NineSync Core not found (set NINESYNC_CORE)")
-        elif not os.path.exists(os.path.join(fixtures, item)):
-            out.append("fixture %s not supplied" % item)
-    return out
-
-
 def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("--blender", default=os.environ.get("BLENDER"))
@@ -91,34 +69,35 @@ def main(argv):
     if not args.blender or not os.path.isfile(args.blender):
         print("set --blender or BLENDER to a Blender 5.3+ executable")
         return 2
-    sys.path.insert(0, TESTS)
-    import paths
-
-    core = paths.locate("ninesync")
+    tests = [*PURE, *BLENDER]
+    unknown = sorted(set(args.only or ()) - set(tests))
+    if unknown:
+        parser.error("unknown test: " + ", ".join(unknown))
     work = tempfile.mkdtemp(prefix="ninesync_run_")
     env = dict(os.environ)
     env["BLENDER_USER_RESOURCES"] = os.path.join(work, "resources")
     env["NINESYNC_FIXTURES"] = args.fixtures
     env.setdefault("NINESYNC_FX", REPO)
-    if core:
-        env.setdefault("NINESYNC_CORE", core)
-    scrub_map = [(work, "<work>"), (args.fixtures, "<fixtures>"), (REPO, "<fx>"), (core, "<core>"), (args.blender, "<blender>")]
+    scrub_map = [(work, "<work>"), (args.fixtures, "<fixtures>"), (REPO, "<fx>"), (args.blender, "<blender>")]
     results = []
     version = subprocess.run([args.blender, "--version"], capture_output=True, text=True).stdout.splitlines()[0]
     print("Blender:", version)
-    pure = [("paths", None, ())]
-    for name, extra, requirements in pure + BLENDER:
+    for name in tests:
         if args.only and name not in args.only:
             continue
-        reasons = missing(requirements, args.fixtures, core)
+        reasons = [
+            "fixture %s not supplied" % item
+            for item in FIXTURES.get(name, ())
+            if not os.path.isfile(os.path.join(args.fixtures, item))
+        ]
         if reasons:
             results.append((name, "SKIP", "; ".join(reasons)))
             continue
         script = os.path.join(TESTS, "t_%s.py" % name)
-        if extra is None:
+        if name in PURE:
             command = [sys.executable, "-I", script]
         else:
-            command = [args.blender, "-b", "--factory-startup", "--python", script] + list(extra)
+            command = [args.blender, "-b", "--factory-startup", "--python", script]
         started = time.time()
         try:
             done = subprocess.run(command, capture_output=True, text=True, errors="replace", env=env, timeout=args.timeout, cwd=TESTS)

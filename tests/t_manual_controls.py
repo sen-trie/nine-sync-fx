@@ -1,6 +1,5 @@
 import os, sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from harness_fx import *
-import json
 import tempfile
 
 scene = bpy.context.scene
@@ -23,63 +22,57 @@ bpy.ops.object.mode_set(mode="EDIT")
 bone = arm.data.edit_bones.new("Hand"); bone.head = (0, 0, 0); bone.tail = (0, 0, 1)
 bpy.ops.object.mode_set(mode="OBJECT")
 
-print("import:", bpy.ops.import_scene.ninesync_fx_accessory(filepath=XP, scale=0.08))
+assert bpy.ops.import_scene.ninesync_fx_accessory(filepath=XP, scale=0.08) == {"FINISHED"}
 entry = settings.accessories[0]
 col = bpy.data.collections.get(mb.ACCESSORY_COLLECTION)
 root = mb.find_accessory_root(col, entry.key)
 controls = mb.mme_load_controls(root)
-missing = sorted(k for k, v in controls.items() if v.get("kind") == "const")
-print("unresolved before:", missing)
-print("item stored:", controls["morph_r"].get("item") == "赤")
+assert controls["morph_r"]["kind"] == "const" and controls["morph_r"]["item"] == "\u8d64"
 assign = bpy.ops.ninesync_fx.assign_control
 
 
-def attempt(**kw):
+def refused(**kwargs):
     try:
-        return assign(root_name=root.name, **kw)
-    except RuntimeError as error:
-        return "refused: " + str(error).strip().splitlines()[-1][:90]
+        return assign(root_name=root.name, **kwargs) == {"CANCELLED"}
+    except RuntimeError:
+        return True
 
 
-print("no object:", attempt(control="morph_r"))
-print("object without the item:", attempt(control="morph_r", object_name="cam"))
-print("nothing stored by refused calls:", mb.mme_manual_prop("morph_r") not in root)
-print("assign:", attempt(control="morph_r", object_name=holder.name))
+assert refused(control="morph_r")
+assert refused(control="morph_r", object_name="cam")
+assert mb.mme_manual_prop("morph_r") not in root
+assert assign(root_name=root.name, control="morph_r", object_name=holder.name) == {"FINISHED"}
 controls = mb.mme_load_controls(root)
-print("kinds after:", sorted((k, v["kind"]) for k, v in controls.items() if k.startswith("morph")))
-print("透明度 is not on the object, so it stays missing:", controls["morph_a"]["kind"], mb.mme_manual_prop("morph_a") not in root)
-dg = bpy.context.evaluated_depsgraph_get()
-print("reads the shape key:", mb.mme_control_values(controls["morph_r"], root, dg, 1.0, ("f", ())) == [0.75])
-print("passes after rebuild:", len(mb.mme_effect_passes(root)))
-holder.name = "RenamedPicker"; mesh.name = "RenamedPicker_mesh"
-print("rebuild after rename:", bpy.ops.ninesync_fx.refresh_effects(root_name=root.name))
+assert controls["morph_r"]["kind"] == "shapekey"
+assert controls["morph_a"]["kind"] == "const" and mb.mme_manual_prop("morph_a") not in root
+assert mb.mme_effect_passes(root)
+
+holder.name = "RenamedPicker"
+mesh.name = "RenamedPicker_mesh"
+assert bpy.ops.ninesync_fx.refresh_effects(root_name=root.name) == {"FINISHED"}
 controls = mb.mme_load_controls(root)
-print("follows rename:", controls["morph_r"]["object"], controls["morph_r"]["manual"])
-print("reads after rename:", mb.mme_control_values(controls["morph_r"], root, bpy.context.evaluated_depsgraph_get(), 1.0, ("f", ())) == [0.75])
-print("bone without bone name on rig is refused:", attempt(control="morph_a", object_name=arm.name))
-print("named bone:", attempt(control="morph_a", object_name=arm.name, bone_name="Hand"))
-controls = mb.mme_load_controls(root)
-print("bone control:", controls["morph_a"]["kind"], controls["morph_a"]["bone"], controls["morph_a"]["object"])
-print("bad bone refused:", attempt(control="morph_a", object_name=arm.name, bone_name="Nope"))
-path = os.path.join(tempfile.mkdtemp(), "saved.blend")
-bpy.ops.wm.save_as_mainfile(filepath=path)
-root_name = root.name
-bpy.ops.wm.open_mainfile(filepath=path)
-root = bpy.data.objects[root_name]
-controls = mb.mme_load_controls(root)
-print("persists through save and load:", controls["morph_r"]["kind"], controls["morph_a"]["kind"], root[mb.mme_manual_prop("morph_r")].name)
-scene = bpy.context.scene
-col = bpy.data.collections.get(mb.ACCESSORY_COLLECTION)
-project = __import__("types").SimpleNamespace(models=[], accessories=[], accessory_error=None)
-program = mb.fx_parse_file(root["mme_fx"])
-resolved, _tracks = mb.mme_resolve_controls(program, project, scene.ninesync_fx, None, root)
-print("sync path keeps it:", resolved["morph_r"]["kind"], resolved["morph_r"].get("manual"))
+assert controls["morph_r"]["object"] in (holder.name, mesh.name) and controls["morph_r"]["manual"]
+depsgraph = bpy.context.evaluated_depsgraph_get()
+assert mb.mme_control_values(controls["morph_r"], root, depsgraph, 1.0, ("f", ())) == [0.75]
+assert refused(control="morph_a", object_name=arm.name)
+assert assign(root_name=root.name, control="morph_a", object_name=arm.name, bone_name="Hand") == {"FINISHED"}
+bone_control = mb.mme_load_controls(root)["morph_a"]
+assert (bone_control["kind"], bone_control["object"], bone_control["bone"]) == ("bone", arm.name, "Hand")
+assert refused(control="morph_a", object_name=arm.name, bone_name="Nope")
+
+with tempfile.TemporaryDirectory() as folder:
+    path = os.path.join(folder, "saved.blend")
+    bpy.ops.wm.save_as_mainfile(filepath=path)
+    root_name = root.name
+    bpy.ops.wm.open_mainfile(filepath=path)
+    root = bpy.data.objects[root_name]
+    controls = mb.mme_load_controls(root)
+    assert (controls["morph_r"]["kind"], controls["morph_a"]["kind"]) == ("shapekey", "bone")
+
 bpy.data.objects.remove(bpy.data.objects["RenamedPicker_mesh"])
 bpy.data.objects.remove(bpy.data.objects["RenamedPicker"])
-print("rebuild after delete:", bpy.ops.ninesync_fx.refresh_effects(root_name=root.name))
-controls = mb.mme_load_controls(root)
-print("deleted target falls back:", controls["morph_r"]["kind"], "-", controls["morph_r"].get("note"))
-print("clear:", attempt(control="morph_r", clear=True))
-controls = mb.mme_load_controls(root)
-print("cleared:", controls["morph_r"]["kind"], "manual" in controls["morph_r"], mb.mme_manual_prop("morph_r") in root)
-print("clearing morph_r also clears its unresolved peers:", controls["morph_g"]["kind"], controls["morph_a"]["kind"])
+assert bpy.ops.ninesync_fx.refresh_effects(root_name=root.name) == {"FINISHED"}
+assert mb.mme_load_controls(root)["morph_r"]["kind"] == "const"
+assert assign(root_name=root.name, control="morph_r", clear=True) == {"FINISHED"}
+assert mb.mme_manual_prop("morph_r") not in root
+assert mb.mme_load_controls(root)["morph_r"]["kind"] == "const"

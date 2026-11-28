@@ -22,12 +22,12 @@ def drop(*names):
 
 addon_key = "bl_ext.fake_repo.io_directx_x"
 mesh_mod.loaded_addon_names = lambda modules: []
-print("neither -> None:", mesh_mod.x_importer_function() is None)
+assert mesh_mod.x_importer_function() is None
 standalone_operator = "directx_x" in dir(bpy.ops.import_scene)
 if standalone_operator:
     print("SKIP no-operator checks: an importer add-on registers its own operator in this profile")
 else:
-    print("no importer -> no operator, not available:", mesh_mod.x_importer_operator() is None and not mesh_mod.x_importer_available())
+    assert mesh_mod.x_importer_operator() is None and not mesh_mod.x_importer_available()
 
 fake_module(addon_key + ".importer", "addon")
 sys.modules[addon_key] = types.ModuleType(addon_key)
@@ -36,28 +36,28 @@ fn = mesh_mod.x_importer_function()
 calls.clear()
 if fn is not None:
     fn(bpy.context, filepath="x")
-print("addon only -> addon function:", [c[0] for c in calls] == ["addon"])
+assert [c[0] for c in calls] == ["addon"]
 
 fake_module(bundled_name, "bundled")
 fn = mesh_mod.x_importer_function()
 calls.clear()
 if fn is not None:
     fn(bpy.context, filepath="x")
-print("bundled + addon -> bundled wins:", [c[0] for c in calls] == ["bundled"])
-print("available:", mesh_mod.x_importer_available())
+assert [c[0] for c in calls] == ["bundled"]
+assert mesh_mod.x_importer_available()
 
 target = os.path.join(FIX, "Synth", "synth.x")
 calls.clear()
 mesh_mod.import_x_with_addon(target)
 label, path, options = calls[0]
-print("call goes to bundled with explicit options:", label == "bundled" and path == target and all(
-    k in options for k in ("use_import_collection", "import_animation", "use_apply_transform", "global_scale")))
-print("registers no operator:", standalone_operator or "directx_x" not in dir(bpy.ops.import_scene))
+assert label == "bundled" and path == target
+assert {"use_import_collection", "import_animation", "use_apply_transform", "global_scale"} <= options.keys()
+assert standalone_operator or "directx_x" not in dir(bpy.ops.import_scene)
 
 drop(bundled_name)
 calls.clear()
 mesh_mod.import_x_with_addon(target)
-print("bundled gone -> addon used, called once:", [c[0] for c in calls] == ["addon"])
+assert [c[0] for c in calls] == ["addon"]
 
 def boom(context, filepath, **options):
     bpy.data.objects.new("half", None)
@@ -67,10 +67,11 @@ sys.modules[addon_key + ".importer"].import_x = boom
 objects_before = len(bpy.data.objects); collections_before = len(bpy.data.collections)
 try:
     mesh_mod.import_x_with_addon(target)
-    print("importer error reported as RuntimeError: False")
 except RuntimeError as error:
-    print("importer error reported as RuntimeError:", "bad file" in str(error))
-print("partial import cleaned:", len(bpy.data.objects) == objects_before and len(bpy.data.collections) == collections_before)
+    assert "bad file" in str(error)
+else:
+    raise AssertionError("Importer errors must surface as RuntimeError")
+assert (len(bpy.data.objects), len(bpy.data.collections)) == (objects_before, collections_before)
 
 drop(addon_key, addon_key + ".importer")
 mesh_mod.loaded_addon_names = real_names
@@ -93,5 +94,6 @@ else:
         mesh_mod.x_importer_function = lambda: None
         by_operator = mesh_mod.import_x_with_addon(binary)
         operator_result = snapshot(by_operator)
-        print("function vs operator (objects, materials, vertices):", function_result, operator_result, function_result == operator_result)
-print("no FX-registered x operator:", not any(n in dir(bpy.ops.import_scene) for n in ("x", "directx", "directx_x", "x_file", "dx")) or real is not None)
+        assert function_result == operator_result, (function_result, operator_result)
+if real is None:
+    assert not any(n in dir(bpy.ops.import_scene) for n in ("x", "directx", "directx_x", "x_file", "dx"))

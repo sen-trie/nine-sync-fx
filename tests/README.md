@@ -1,28 +1,20 @@
 # Tests
 
-Headless Blender tests. Each `t_*.py` is a script; run it with the Python that has the `bpy` wheel (`pip install bpy==5.2.3`, the newest wheel when these were written; it lacks a few Blender 5.3 nodes, `shim52.py` stands in for them).
+Run the FX suite from the repository root with Blender 5.3 or newer.
 
+```sh
+python tools/run_tests.py --blender "/path/to/blender" [--fixtures DIR]
 ```
-cd tests
-NINESYNC_FIXTURES=/path/to/fixtures python3 t_standalone.py
-```
 
-`python tools/run_tests.py --blender <blender 5.3+> [--fixtures DIR]` runs the whole list one test at a time in a throw-away Blender profile. It marks a test FAIL on a traceback or a `FAILED:` line, and SKIP, with the reason, when a fixture is missing. Skipped tests are pending, not passed. Output has local paths and the user name scrubbed. `python tools/check_release.py` is the static check (versions, licence, exclusions, hooks parity with `NINESYNC_CORE`, private paths; extra terms to refuse come from `NINESYNC_PRIVATE_TERMS`). Most `t_*.py` scripts print values and only fail loudly on an error, so PASS means "ran without error", not that every printed value was compared.
+The runner uses a temporary Blender profile. Use `--only mme_visibility xparse` to select scripts by name. The runner reports a failure for an assertion, a traceback, or a `FAILED:` line. It lists any tests skipped for missing required fixtures. Run `python tools/check_release.py` to verify release metadata and hook parity.
 
-`plain/plainthing.x` is a synthetic cube made by `tools/make_plain_fixture.py`. The Thunder files are third-party (SimpleMagic) and are not in the repository: copy `Thunder_lv1.fx/.x` from your own MMD effect folder into `<fixtures>/Thunder/` and keep that folder outside the repository.
-
-Environment:
-
-| Variable | Meaning |
+| Environment variable | Use |
 |---|---|
-| `NINESYNC_FX` | FX package folder (default: this repo; `nine-sync-fx`, `ninesync-fx` and `ninesync_fx` are recognised) |
-| `NINESYNC_CORE` | core package folder (default: sibling `nine-sync-core`, `ninesync-core` or `ninesync`) |
-| `NINESYNC_FIXTURES` | folder with `Thunder/`, `Synth/`, `Texture/`, `plain/`, `meiling.pmm` (core tests only) |
-| `NINESYNC_TEST_PMM` | PMM used by `t_core.py` (needs core) |
-| `NINESYNC_THUNDER_LV2` | folder with `Thunder_lv2.fx/.x` and `Thunder_lv2_2.fx/.x` for `t_thunder_rings.py` (default `debug-src`; put `Texture/` next to it for real textures) |
+| `NINESYNC_FX` | Override the FX package folder. The runner defaults to this repository. |
+| `NINESYNC_FIXTURES` | Override the fixture folder. Start with a copy of `tests/fixtures` so it includes the shipped assets. |
+| `NINESYNC_THUNDER_LV2` | Point to local `Thunder_lv2.fx` and `.x` files to exercise the gate cache. The X parser test also compares any text meshes it finds there. |
+| `NINESYNC_X_BINARY` | Provide a binary X file for the optional importer comparison when a DirectX X add-on is enabled. |
 
-`tests/fixtures` ships `Synth/` and `Texture/` only. `Thunder/Thunder_lv1.fx` and `.x` are the third-party SimpleMagic Thunder effect, `plain/plainthing.x` is any plain text `.x` mesh, and `meiling.pmm` is a PMM with three accessories; supply your own copies.
+The manual controller and Tr-zero tests require third-party Thunder fixtures. Copy `Thunder_lv1.fx` and `Thunder_lv1.x` into `Thunder/` in your external fixture folder. The gate-cache test checks the local Lv2 fixture when available.
 
-Scripts that use `harness_fx.py` register only FX and print values to compare against earlier runs. Scripts that import both packages: `t_core.py` (`-- core` or `-- both`), `t_panels.py` (`-- core|fx|both`), `t_cycle.py`, `t_import.py` (`-- ninesync ninesync_fx`).
-
-`harness_fx.py` points the user library, and with it the effect cache folder, at a temp folder. `t_emm.py` covers `.emm` effect assignments, `t_accessory_keys.py` accessory key edits, parent switching, Tr and additive materials, and `t_cache.py` the cache folder; each prints `FAILED: none` on success. `t_library.py` covers library upgrade, merge, downgrade, nested groups, backup, failure fallback and the open operator; it prints `FAILED: none` on success. `t_manual_controls.py` covers controller assignment. `t_thunder_rings.py` covers the strip culling fix; its real-effect half runs when the lv2 files are found. `t_finite_paths.py` checks the float32 `fmod` path and the finite-only `nan_to_num` skips in strip sampling bit for bit against the original code, with NaN and infinity inputs, and that dropping repeated instance lanes keeps the same lane set and kept rows; it prints `FAILED: none` on success. `t_sample_cache.py` covers the session cache of strip samples (hits, sharing, eviction, pass-key invalidation) and, when the lv2 files are found, that a Tr rebuild replaying cached states matches one without them; it prints `FAILED: none` on success. `t_gate_cache.py` checks, with the lv2 files, that cached alpha gates and Tr = 0 proofs equal a fresh search after rebuilds and edits to parameters, camera, Tr keys, the shader file and textures, and that a damaged cache file is recomputed; it prints `FAILED: none` on success. `t_relative_paths.py` checks that a saved `.blend` records the effect's `.fx` and `.x` relative to itself, a hand-picked `.fx` stays absolute, that a moved folder still rebuilds, and that a missing file is reported and stops a bake; it prints `FAILED: none` on success. `t_xparse.py` checks that the `.x` parser, which reads runs of numbers in one step, builds the same block tree bit for bit (or raises the same error) as a token-by-token parse, on edge cases, random token soups and every text `.x` it finds (the fixtures, the lv2 folder and `NINESYNC_FIXTURES`); it prints `FAILED: none` on success.
+The suite checks rendered output, keyed opacity, view-dependent geometry, MME package diagnostics, X parsing and importer fallback, PMM sync hooks and accessory keys, node edits, strip and gate caches, and shared bakes.

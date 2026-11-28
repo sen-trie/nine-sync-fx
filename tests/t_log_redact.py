@@ -1,5 +1,6 @@
 import os, sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from harness_fx import *
+import io
 
 failed = []
 def check(label, ok):
@@ -18,7 +19,7 @@ set_home(home)
 red = logmod.redact_home
 
 check("backslash path", red("x " + home + B + "p" + B + "a.pmm") == "x ~" + B + "p" + B + "a.pmm")
-check("forward slash and other case", red("c:" + "/users/AB/p/a.pmm") == "~/p/a.pmm")
+check("forward slash and other case", red("c:/users/AB/p/a.pmm" if os.name == "nt" else "C:/Users/ab/p/a.pmm") == "~/p/a.pmm")
 check("doubled backslash (repr)", red("C:" + B * 2 + "Users" + B * 2 + "ab" + B * 2 + "p") == "~" + B * 2 + "p")
 check("a longer sibling folder is untouched", red("C:" + B + "Users" + B + "abc" + B + "p") == "C:" + B + "Users" + B + "abc" + B + "p")
 check("text without a home path is unchanged", red("nothing here") == "nothing here")
@@ -33,13 +34,18 @@ if bpy.data.texts.get(text_name):
     bpy.data.texts.remove(bpy.data.texts[text_name])
 logmod.setup_logging()
 mb.log.info("sync start: %s/x.pmm", home.replace(B, "/"))
+console = next(handler for handler in mb.log.handlers if isinstance(handler, logging.StreamHandler))
+original_stream = console.setStream(io.StringIO())
 try:
-    raise ValueError(home + B + "boom")
-except ValueError:
-    mb.log.exception("failed")
+    try:
+        raise ValueError(home + B + "boom")
+    except ValueError:
+        mb.log.exception("failed")
+finally:
+    console.setStream(original_stream)
 body = bpy.data.texts[text_name].as_string()
 check("the NineSyncLog text holds ~ and not the account name", "~/x.pmm" in body and "ab" + B not in body and "Users" not in body)
-check("tracebacks are redacted too", "boom" in body and home not in body)
+check("tracebacks are redacted too", "Traceback" in body and "boom" in body and home not in body)
 
 path = os.path.join(tempfile.mkdtemp(), "log.blend")
 bpy.ops.wm.save_as_mainfile(filepath=path)

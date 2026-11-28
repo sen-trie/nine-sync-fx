@@ -21,6 +21,16 @@ For syncing accessories with MMD models, use PMM Bridge with [mmd_tools](https:/
 2. In the **3D Viewport**, press **N** and open the **NineSync** tab to manage accessories, effects and baking.
 3. When used with **PMM Bridge**, click **Sync Now** in PMM Bridge to import or update accessories along with the project.
 
+## Inspecting an MME package
+
+To inspect an unpacked MME package from a source checkout, run the following from the repository root with Python and NumPy. The command prints JSON with the shaders, planned passes, controller references, missing resources and inferred target types.
+
+```sh
+python -m tools.mme "/path/to/effect-folder"
+```
+
+Add `--probe` to evaluate a sample vertex and pixel for eligible accessory shaders. The [compatibility matrix](tests/corpus/COMPATIBILITY_MATRIX.md) lists the fixtures exercised in Blender and the [taxonomy](tests/corpus/MME_EFFECT_TAXONOMY.md) explains the predictions.
+
 ## Reporting issues
 
 Report bugs and request features in the [NineSync release tracker](https://github.com/sen-trie/nine-sync-release/issues/new/choose), which covers both the combined extension and the standalone add-ons.

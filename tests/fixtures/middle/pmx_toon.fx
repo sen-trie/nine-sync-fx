@@ -1,0 +1,5 @@
+#define NINESYNC_PMX_TOON
+#define NINESYNC_TOON_CONTROLLER "MME Control.x"
+#define NINESYNC_TOON_INTENSITY 1.0
+#define NINESYNC_TOON_THRESHOLD 0.48
+#include "model_toon.fx"

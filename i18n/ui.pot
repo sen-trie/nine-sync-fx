@@ -30,7 +30,7 @@ msgid "Transparency Order for this accessory's effect, overriding the one in the
 msgstr ""
 
 #. kind: label
-#: __init__.py:111 ui/panels/effect_info.py:176
+#: __init__.py:111 ui/panels/effect_info.py:177
 msgid "Edit Particle Instances"
 msgstr ""
 
@@ -40,7 +40,7 @@ msgid "Part of this pass, so leave it enabled when rendering. Turns each particl
 msgstr ""
 
 #. kind: label
-#: __init__.py:117 ui/panels/effect_info.py:180
+#: __init__.py:117 ui/panels/effect_info.py:181
 msgid "Enable Geometry Node Editing"
 msgstr ""
 
@@ -120,7 +120,7 @@ msgid "Reset"
 msgstr ""
 
 #. kind: label
-#: ui/helpers.py:105 ui/panels/effect_info.py:112
+#: ui/helpers.py:105 ui/panels/effect_info.py:113
 msgid "Rebuild"
 msgstr ""
 
@@ -130,7 +130,7 @@ msgid "Bake"
 msgstr ""
 
 #. kind: label
-#: ui/helpers.py:110 ui/panels/effect_info.py:116
+#: ui/helpers.py:110 ui/panels/effect_info.py:117
 msgid "Clear Bake"
 msgstr ""
 
@@ -598,7 +598,7 @@ msgid "Clear Shared Bakes"
 msgstr ""
 
 #. kind: label
-#: ui/panels/bake.py:34 ui/panels/effect_info.py:114
+#: ui/panels/bake.py:34 ui/panels/effect_info.py:115
 msgid "Bake Changed"
 msgstr ""
 
@@ -613,202 +613,207 @@ msgid "Force Rebake All"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:45
+#: ui/panels/effect_info.py:46
 msgid "missing: %s (uses %s)"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:45
+#: ui/panels/effect_info.py:46
 msgid "target"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:48
+#: ui/panels/effect_info.py:49
 msgid "this accessory: %s"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:48 ui/panels/effect_info.py:50
+#: ui/panels/effect_info.py:49 ui/panels/effect_info.py:51
 msgid "transform"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:52
+#: ui/panels/effect_info.py:53
 msgid "morph %s (keyed)"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:54
+#: ui/panels/effect_info.py:55
 msgid "shape key %s on %s (live)"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:56
+#: ui/panels/effect_info.py:57
 msgid "bone %s on %s"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:58
+#: ui/panels/effect_info.py:59
 msgid "model %s"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:95
+#: ui/panels/effect_info.py:96
 msgid "Baked: all %d passes"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:97
+#: ui/panels/effect_info.py:98
 msgid "Not baked"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:99
+#: ui/panels/effect_info.py:100
 msgid "Partly baked: %d of %d passes"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:101
+#: ui/panels/effect_info.py:102
 msgid ", %d edited since"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:112
+#: ui/panels/effect_info.py:113
 msgid "Rebuild (out of date)"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:123
+#: ui/panels/effect_info.py:124
 msgid "Files not found, rebuild and bake are off"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:127
+#: ui/panels/effect_info.py:128
 msgid "Effect: %s"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:129
+#: ui/panels/effect_info.py:130
 msgid "Keyed from the PMM"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:131
+#: ui/panels/effect_info.py:132
 msgid "Tr (opacity)"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:132
+#: ui/panels/effect_info.py:133
 msgid "Si (scale)"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:135
+#: ui/panels/effect_info.py:136
 msgid "Effect Parameters"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:143
+#: ui/panels/effect_info.py:144
 msgid "This effect exposes no parameters"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:157
+#: ui/panels/effect_info.py:158
 msgid "Greyed: set by %s"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:160
+#: ui/panels/effect_info.py:161
 msgid "Pass Details"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:160
+#: ui/panels/effect_info.py:161
 msgid "Pass Details: %s"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:165
+#: ui/panels/effect_info.py:166
 msgid "Select one of this effect's passes"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:167
+#: ui/panels/effect_info.py:168
 msgid "Effect Details"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:182
+#: ui/panels/effect_info.py:183
 msgid "Viewport only: renders still use the bake"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:184
+#: ui/panels/effect_info.py:185
 msgid "Edits are not baked yet: Bake Changed"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:206
+#: ui/panels/effect_info.py:207
 msgid "Pass Material"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:212
+#: ui/panels/effect_info.py:213
 msgid "Gamma"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:214
+#: ui/panels/effect_info.py:215
 msgid "Emission"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:216
+#: ui/panels/effect_info.py:217
 msgid "Produce Diffuse Rays"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:226
+#: ui/panels/effect_info.py:227
 msgid "This effect reads no other objects"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:235
+#: ui/panels/effect_info.py:236
 msgid "This accessory"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:265
+#: ui/panels/effect_info.py:266
 msgid "Full-screen passes are not supported and were skipped: %s"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:286
+#: ui/panels/effect_info.py:274
+msgid "These inputs come from MMD-only rendering (buffer passes or scene captures) and read as zero, so the effect will not look like it does in MMD: %s"
+msgstr ""
+
+#. kind: label
+#: ui/panels/effect_info.py:295
 msgid "Pick a pass in the Passes tab"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:297
+#: ui/panels/effect_info.py:306
 msgid "Subset %s, %s backend"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:299
+#: ui/panels/effect_info.py:308
 msgid "Loops: %s"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:301
+#: ui/panels/effect_info.py:310
 msgid "State: %s"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:302
+#: ui/panels/effect_info.py:311
 msgid "%d vertex outputs to the material"
 msgstr ""
 
 #. kind: label
-#: ui/panels/effect_info.py:303
+#: ui/panels/effect_info.py:312
 msgid "%d material inputs from the scene (%d by drivers)"
 msgstr ""
 

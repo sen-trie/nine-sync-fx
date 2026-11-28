@@ -40,7 +40,7 @@ msgstr "このアクセサリのエフェクトの透過順序です。エフェ
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: __init__.py:111 ui/panels/effect_info.py:176
+#: __init__.py:111 ui/panels/effect_info.py:177
 #, fuzzy
 msgid "Edit Particle Instances"
 msgstr "パーティクルインスタンスを編集"
@@ -54,7 +54,7 @@ msgstr "このパスの一部なので、レンダー時は有効のままにし
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: __init__.py:117 ui/panels/effect_info.py:180
+#: __init__.py:117 ui/panels/effect_info.py:181
 #, fuzzy
 msgid "Enable Geometry Node Editing"
 msgstr "Geometry Nodes編集を有効化"
@@ -166,7 +166,7 @@ msgstr "リセット"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/helpers.py:105 ui/panels/effect_info.py:112
+#: ui/helpers.py:105 ui/panels/effect_info.py:113
 #, fuzzy
 msgid "Rebuild"
 msgstr "再構築"
@@ -180,7 +180,7 @@ msgstr "ベイク"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/helpers.py:110 ui/panels/effect_info.py:116
+#: ui/helpers.py:110 ui/panels/effect_info.py:117
 #, fuzzy
 msgid "Clear Bake"
 msgstr "ベイクを消去"
@@ -830,7 +830,7 @@ msgstr "共有ベイクを消去"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/bake.py:34 ui/panels/effect_info.py:114
+#: ui/panels/bake.py:34 ui/panels/effect_info.py:115
 #, fuzzy
 msgid "Bake Changed"
 msgstr "変更分をベイク"
@@ -851,280 +851,285 @@ msgstr "すべて強制再ベイク"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:45
+#: ui/panels/effect_info.py:46
 #, fuzzy
 msgid "missing: %s (uses %s)"
 msgstr "不明: %s（%s を使用）"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:45
+#: ui/panels/effect_info.py:46
 #, fuzzy
 msgid "target"
 msgstr "ターゲット"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:48
+#: ui/panels/effect_info.py:49
 #, fuzzy
 msgid "this accessory: %s"
 msgstr "このアクセサリ: %s"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:48 ui/panels/effect_info.py:50
+#: ui/panels/effect_info.py:49 ui/panels/effect_info.py:51
 #, fuzzy
 msgid "transform"
 msgstr "トランスフォーム"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:52
+#: ui/panels/effect_info.py:53
 #, fuzzy
 msgid "morph %s (keyed)"
 msgstr "モーフ %s（キー設定済み）"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:54
+#: ui/panels/effect_info.py:55
 #, fuzzy
 msgid "shape key %s on %s (live)"
 msgstr "シェイプキー %s（%s 上、ライブ）"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:56
+#: ui/panels/effect_info.py:57
 #, fuzzy
 msgid "bone %s on %s"
 msgstr "ボーン %s（%s 上）"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:58
+#: ui/panels/effect_info.py:59
 #, fuzzy
 msgid "model %s"
 msgstr "モデル %s"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:95
+#: ui/panels/effect_info.py:96
 #, fuzzy
 msgid "Baked: all %d passes"
 msgstr "ベイク済み: 全 %d パス"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:97
+#: ui/panels/effect_info.py:98
 #, fuzzy
 msgid "Not baked"
 msgstr "未ベイク"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:99
+#: ui/panels/effect_info.py:100
 #, fuzzy
 msgid "Partly baked: %d of %d passes"
 msgstr "一部ベイク済み: %d / %d パス"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:101
+#: ui/panels/effect_info.py:102
 #, fuzzy
 msgid ", %d edited since"
 msgstr "、その後 %d 個編集"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:112
+#: ui/panels/effect_info.py:113
 #, fuzzy
 msgid "Rebuild (out of date)"
 msgstr "再構築（古い状態）"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:123
+#: ui/panels/effect_info.py:124
 #, fuzzy
 msgid "Files not found, rebuild and bake are off"
 msgstr "ファイルが見つからないため、再構築とベイクは無効です"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:127
+#: ui/panels/effect_info.py:128
 #, fuzzy
 msgid "Effect: %s"
 msgstr "エフェクト: %s"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:129
+#: ui/panels/effect_info.py:130
 #, fuzzy
 msgid "Keyed from the PMM"
 msgstr "PMMからキー設定"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:131
+#: ui/panels/effect_info.py:132
 #, fuzzy
 msgid "Tr (opacity)"
 msgstr "Tr（不透明度）"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:132
+#: ui/panels/effect_info.py:133
 #, fuzzy
 msgid "Si (scale)"
 msgstr "Si（スケール）"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:135
+#: ui/panels/effect_info.py:136
 #, fuzzy
 msgid "Effect Parameters"
 msgstr "エフェクトパラメーター"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:143
+#: ui/panels/effect_info.py:144
 #, fuzzy
 msgid "This effect exposes no parameters"
 msgstr "このエフェクトにはパラメーターがありません"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:157
+#: ui/panels/effect_info.py:158
 #, fuzzy
 msgid "Greyed: set by %s"
 msgstr "グレー表示: %s が設定しています"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:160
+#: ui/panels/effect_info.py:161
 #, fuzzy
 msgid "Pass Details"
 msgstr "パスの詳細"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:160
+#: ui/panels/effect_info.py:161
 #, fuzzy
 msgid "Pass Details: %s"
 msgstr "パスの詳細: %s"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:165
+#: ui/panels/effect_info.py:166
 #, fuzzy
 msgid "Select one of this effect's passes"
 msgstr "このエフェクトのパスを選択してください"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:167
+#: ui/panels/effect_info.py:168
 #, fuzzy
 msgid "Effect Details"
 msgstr "エフェクトの詳細"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:182
+#: ui/panels/effect_info.py:183
 #, fuzzy
 msgid "Viewport only: renders still use the bake"
 msgstr "ビューポートのみ。レンダーは引き続きベイクを使います"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:184
+#: ui/panels/effect_info.py:185
 #, fuzzy
 msgid "Edits are not baked yet: Bake Changed"
 msgstr "編集内容はまだベイクされていません。「変更分をベイク」を押してください"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:206
+#: ui/panels/effect_info.py:207
 #, fuzzy
 msgid "Pass Material"
 msgstr "パスのマテリアル"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:212
+#: ui/panels/effect_info.py:213
 #, fuzzy
 msgid "Gamma"
 msgstr "ガンマ"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:214
+#: ui/panels/effect_info.py:215
 #, fuzzy
 msgid "Emission"
 msgstr "放射"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:216
+#: ui/panels/effect_info.py:217
 #, fuzzy
 msgid "Produce Diffuse Rays"
 msgstr "拡散光線を生成"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:226
+#: ui/panels/effect_info.py:227
 #, fuzzy
 msgid "This effect reads no other objects"
 msgstr "このエフェクトは他のオブジェクトを読み取りません"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:235
+#: ui/panels/effect_info.py:236
 #, fuzzy
 msgid "This accessory"
 msgstr "このアクセサリ"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:265
+#: ui/panels/effect_info.py:266
 #, fuzzy
 msgid "Full-screen passes are not supported and were skipped: %s"
 msgstr "全画面パスは非対応のためスキップしました: %s"
 
+#. kind: label
+#: ui/panels/effect_info.py:274
+msgid "These inputs come from MMD-only rendering (buffer passes or scene captures) and read as zero, so the effect will not look like it does in MMD: %s"
+msgstr ""
+
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:286
+#: ui/panels/effect_info.py:295
 #, fuzzy
 msgid "Pick a pass in the Passes tab"
 msgstr "「パス」タブでパスを選んでください"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:297
+#: ui/panels/effect_info.py:306
 #, fuzzy
 msgid "Subset %s, %s backend"
 msgstr "サブセット %s、%s バックエンド"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:299
+#: ui/panels/effect_info.py:308
 #, fuzzy
 msgid "Loops: %s"
 msgstr "ループ: %s"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:301
+#: ui/panels/effect_info.py:310
 #, fuzzy
 msgid "State: %s"
 msgstr "状態: %s"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:302
+#: ui/panels/effect_info.py:311
 #, fuzzy
 msgid "%d vertex outputs to the material"
 msgstr "マテリアルへの頂点出力: %d"
 
 # Machine-drafted pilot; needs review by a native speaker before the fuzzy flag is removed.
 #. kind: label
-#: ui/panels/effect_info.py:303
+#: ui/panels/effect_info.py:312
 #, fuzzy
 msgid "%d material inputs from the scene (%d by drivers)"
 msgstr "シーンからのマテリアル入力: %d（ドライバー経由 %d）"

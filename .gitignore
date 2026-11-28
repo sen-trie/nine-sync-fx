@@ -2,3 +2,9 @@ __pycache__/
 *.pyc
 tests/fixtures/out/
 debug-src/
+
+# Local Middle experiment notes
+/AGENT_HANDOFF.md
+/EXPERIMENT_PLAN.md
+/GENERAL_CONVERTER_PROGRESS.md
+/.middle-local/

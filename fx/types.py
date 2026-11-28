@@ -75,13 +75,38 @@ def fx_is_array(t):
 # A sampler with its state block; helpers turn the HLSL filter and address states into the modes the importer
 # supports.
 class FxSampler:
-    __slots__ = ("name", "texture", "states", "register")
+    __slots__ = ("name", "texture", "states", "register", "native_slot")
 
-    def __init__(self, name, texture, states, register):
+    def __init__(self, name, texture, states, register, native_slot=None):
         self.name = name
         self.texture = texture
         self.states = states
         self.register = register
+        text = (register or "").lower().replace(" ", "")
+        self.native_slot = (int(text[1:]) if text.startswith("s") and text[1:].isdigit() else "GENERIC") if native_slot is None else native_slot
+
+    def defaults(self, stage):
+        # Native probes: initialized pixel slots 0..2 carry LINEAR mip state;
+        # custom slots >=3 and vertex slots retain POINT/NONE. Inherited
+        # implicit spatial filtering in initialized slots is not guessed.
+        if stage == "vs":
+            return "POINT", "NONE"
+        if self.native_slot == "GENERIC":
+            return "LINEAR", "LINEAR"
+        if self.native_slot == "CUSTOM" or isinstance(self.native_slot, int) and self.native_slot >= 3:
+            return "POINT", "NONE"
+        if self.native_slot in ("MMD", "MMD_NONZERO", 0, 1, 2):
+            return None, "LINEAR"  # Mip state is verified; spatial state needs explicit filters.
+        return None, None
+
+    def default_address(self, stage):
+        if stage == "vs" or self.native_slot in ("GENERIC", "CUSTOM", "MMD_NONZERO", 1, 2):
+            return "WRAP"
+        if self.native_slot == 0:
+            return "CLAMP"
+        if isinstance(self.native_slot, int) and self.native_slot >= 3:
+            return "WRAP"
+        return None
 
     def state(self, key, default=""):
         value = self.states.get(key)
@@ -103,3 +128,28 @@ class FxSampler:
         if value == "MIRROR":
             return "MIRROR"
         return "WRAP"
+
+
+def fx_sampler_scope(program, declaration, used_names=None):
+    """Resolve only register-default classes proved independently of allocation order."""
+    text = (declaration.register or "").lower().replace(" ", "")
+    if text.startswith("s") and text[1:].isdigit():
+        return int(text[1:])
+    reserved = set()
+    automatic = []
+    for global_value in program.globals.values():
+        if fx_resolve_type(global_value.type, program) != "sampler":
+            continue
+        register = (global_value.register or "").lower().replace(" ", "")
+        if register.startswith("s") and register[1:].isdigit():
+            reserved.add(int(register[1:]))
+        elif used_names is None or global_value.name in used_names:
+            automatic.append(global_value.name)
+    if {0, 1, 2} <= reserved:
+        return "CUSTOM"
+    available = [slot for slot in range(3) if slot not in reserved]
+    if len(automatic) == 1 and available:
+        return available[0]
+    if automatic and len(automatic) <= len(available):
+        return "MMD_NONZERO" if 0 not in available else "MMD"
+    return "UNKNOWN"

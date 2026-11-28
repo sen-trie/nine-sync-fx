@@ -109,7 +109,7 @@ class FxCalls:
             uv = self.eval(args[1])
             info = sampler.c
             if isinstance(info, FxSampler) and texture.t == "texture":
-                info = FxSampler(info.name, texture.c, info.states, info.register)
+                info = FxSampler(info.name, texture.c, info.states, info.register, info.native_slot)
             lod = None
             if lower == "samplelevel" and len(args) > 2:
                 lod = self.eval(args[2]).c[0]

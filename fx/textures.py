@@ -1,6 +1,7 @@
 import numpy as np
 import os
 
+from .errors import FxUnsupported
 from .annotations import fx_annotation
 from .semantics import (
     fx_classify_global,
@@ -16,13 +17,17 @@ from .types import (
 
 # Float RGBA pixels with HLSL-style point/bilinear sampling and wrap, clamp or mirror addressing.
 class FxImage:
-    __slots__ = ("pixels", "width", "height", "path", "single")
+    __slots__ = ("pixels", "width", "height", "path", "single", "mips",
+                 "mip_levels", "reduce_mip")
 
-    def __init__(self, pixels, path):
+    def __init__(self, pixels, path, *, mip_levels=None, reduce_mip=None):
         self.pixels = pixels
         self.height, self.width = pixels.shape[:2]
         self.path = path
         self.single = None
+        self.mips = [self]
+        self.mip_levels = mip_levels
+        self.reduce_mip = reduce_mip
 
     # Vectorised over u/v arrays; bilinear uses texel centres (the -0.5 offset) like the GPU does. Coordinates
     # are always worked out in float64. A float32 caller gets point samples from a float32 copy of the
@@ -37,10 +42,12 @@ class FxImage:
         v = np.broadcast_to(v, shape)
         w, h = self.width, self.height
 
-        def wrap(i, n):
-            if address == "CLAMP":
+        address_u, address_v = (address, address) if isinstance(address, str) else address
+
+        def wrap(i, n, mode):
+            if mode in ("CLAMP", "BORDER"):
                 return np.clip(i, 0, n - 1)
-            if address == "MIRROR":
+            if mode == "MIRROR":
                 period = np.mod(i, 2 * n)
                 return np.where(period >= n, 2 * n - 1 - period, period)
             if n & (n - 1) == 0:
@@ -48,8 +55,8 @@ class FxImage:
             return np.mod(i, n)
 
         if point:
-            x = wrap(np.floor(u * w).astype(np.int64), w)
-            y = wrap(np.floor(v * h).astype(np.int64), h)
+            x = wrap(np.floor(u * w).astype(np.int64), w, address_u)
+            y = wrap(np.floor(v * h).astype(np.int64), h, address_v)
             if dtype == np.float32:
                 if self.single is None:
                     self.single = self.pixels.astype(np.float32)
@@ -67,14 +74,146 @@ class FxImage:
             ty = (fy - y0)[..., None]
             x0 = x0.astype(np.int64)
             y0 = y0.astype(np.int64)
-            xa, xb = wrap(x0, w), wrap(x0 + 1, w)
-            ya, yb = wrap(y0, h), wrap(y0 + 1, h)
+            xa, xb = wrap(x0, w, address_u), wrap(x0 + 1, w, address_u)
+            ya, yb = wrap(y0, h, address_v), wrap(y0 + 1, h, address_v)
             p = self.pixels
             texel = (p[ya, xa] * (1 - tx) + p[ya, xb] * tx) * (1 - ty) + (p[yb, xa] * (1 - tx) + p[yb, xb] * tx) * ty
         texel = np.asarray(texel, dtype=np.float64)
         if texel.ndim == 1:
             return [np.float64(texel[k]) for k in range(4)]
         return [texel[..., k] for k in range(4)]
+
+
+    def d3dx_png_upload(self, *, material_texture=False):
+        """Create the native-sized base and byte-quantized PNG mip chain."""
+        rounding = 1 if material_texture else 2
+
+        def reduce_mip(pixels):
+            # Source bytes and power-of-two extents give exact quarter-byte
+            # sums. Material uploads mostly round half ties down in native
+            # captures, while effect resources round them up.
+            quarters = np.rint(FxImage._area_mip(pixels) * 1020)
+            return (np.floor((quarters + rounding) / 4) / 255).astype(np.float32)
+
+        target_width = 1 << (self.width - 1).bit_length()
+        target_height = 1 << (self.height - 1).bit_length()
+        if (target_width, target_height) == (self.width, self.height):
+            return FxImage(self.pixels, self.path, reduce_mip=reduce_mip)
+        pixels = np.asarray(self.pixels, dtype=np.float32)
+        for axis, size in ((1, target_width), (0, target_height)):
+            original = pixels.shape[axis]
+            if original == size:
+                continue
+            position = (np.arange(size, dtype=np.float32) + .5) * (original / size) - .5
+            left = np.floor(position).astype(np.intp)
+            shape = [1] * pixels.ndim
+            shape[axis] = size
+            fraction = (position - left).astype(np.float32).reshape(shape)
+            lower = np.take(pixels, left.clip(0, original - 1), axis=axis)
+            upper = np.take(pixels, (left + 1).clip(0, original - 1), axis=axis)
+            pixels = lower + fraction * (upper - lower)
+        # Native upload stores its resampled base in an 8-bit texture. The
+        # device's triangle filter and dither still leave small byte residuals.
+        pixels = np.floor(pixels * 255 + .5) / 255
+        return FxImage(pixels, self.path, reduce_mip=reduce_mip)
+
+    # Area averaging retains odd-size edges and signed numeric channels in encoded space.
+    def mip_chain(self):
+        if len(self.mips) > 1 or max(self.width, self.height) == 1:
+            return self.mips
+        pixels = self.pixels
+        level_count = self.mip_levels or max(self.width, self.height).bit_length()
+        reduce = self.reduce_mip or self._area_mip
+        while len(self.mips) < level_count:
+            pixels = reduce(pixels)
+            self.mips.append(FxImage(pixels, self.path))
+        return self.mips
+
+    @staticmethod
+    def _area_mip(pixels):
+        for axis in (0, 1):
+            size = pixels.shape[axis]
+            if size == 1:
+                continue
+            count = size // 2
+            scale = size / count
+            start = np.arange(count) * scale
+            first = np.floor(start).astype(np.int64)
+            shape = [1] * pixels.ndim
+            shape[axis] = count
+            reduced = None
+            for offset in range(int(np.ceil(scale)) + 1):
+                indices = first + offset
+                weights = np.maximum(0, np.minimum(start + scale, indices + 1) - np.maximum(start, indices)) / scale
+                values = np.take(pixels, np.minimum(indices, size - 1), axis=axis) * weights.reshape(shape)
+                reduced = values if reduced is None else reduced + values
+            pixels = reduced
+        return pixels
+
+    # Explicit LOD bypasses footprint selection; implicit magnification keeps the MAG filter.
+    def sample_filtered(self, u, v, info, lod=None, derivatives=None, dtype=np.float64, *, stage="ps"):
+        state = info.state if info else lambda key, default='': default
+        default_filter, default_mip = info.defaults(stage) if info else (('POINT', 'NONE') if stage == 'vs' else ('LINEAR', 'LINEAR'))
+        # Explicit pixel LOD has no footprint for anisotropic filtering. Native
+        # readouts of initialized slots use linear spatial filtering here.
+        if default_filter is None and lod is not None and info.native_slot in ("MMD", "MMD_NONZERO", 0, 1, 2):
+            default_filter = 'LINEAR'
+        mip = state('mipfilter', state('filter', default_mip))
+        if mip is None:
+            raise FxUnsupported(f'Sampler {info.name!r} has an ambiguous native register; specify its mip filter explicitly.')
+        if mip not in ('NONE', 'POINT', 'LINEAR'):
+            raise FxUnsupported(f'Unimplemented numeric mip filter {mip!r}.')
+        filters = [state(key, state('filter', default_filter)) for key in ('minfilter', 'magfilter')]
+        if any(value is None for value in filters):
+            raise FxUnsupported(f'Sampler {info.name!r} has an unverified native spatial-filter binding; specify min/mag filters explicitly.')
+        if any(value not in ('NONE', 'POINT', 'LINEAR') for value in filters):
+            raise FxUnsupported(f'Unimplemented numeric spatial filters {filters!r}.')
+        default_address = info.default_address(stage) if info else 'WRAP'
+        address = (state('addressu', default_address), state('addressv', default_address))
+        if any(mode is None for mode in address):
+            raise FxUnsupported(f'Sampler {info.name!r} has ambiguous native addressing; specify U/V address modes explicitly.')
+        if any(mode not in ('WRAP', 'MIRROR', 'CLAMP', 'BORDER') for mode in address):
+            raise FxUnsupported(f'Unimplemented numeric address modes {address!r}.')
+        if lod is None:
+            if derivatives is None:
+                level = np.asarray(0.)
+            else:
+                du_dx, dv_dx, du_dy, dv_dy = derivatives
+                rho = np.maximum(np.hypot(du_dx * self.width, dv_dx * self.height),
+                                 np.hypot(du_dy * self.width, dv_dy * self.height))
+                level = np.log2(np.maximum(rho, np.finfo(float).tiny))
+            level = level + float(state('mipmaplodbias', '0'))
+        else:
+            level = np.asarray(lod, dtype=float)
+        if not np.isfinite(level).all():
+            raise FxUnsupported('Nonfinite texture level of detail.')
+        u, v, level = np.broadcast_arrays(u, v, level)
+        shape = u.shape
+        magnify = level <= 0
+        minimum = int(state('maxmiplevel', '0'))
+        if minimum < 0:
+            raise FxUnsupported('MAXMIPLEVEL must be nonnegative.')
+        chain = self.mip_chain() if mip != 'NONE' and (minimum or np.any(level > 0)) else [self]
+        level = np.clip(level, min(minimum, len(chain)-1), len(chain)-1) if mip != 'NONE' else np.zeros(shape)
+        lower = np.floor(level + .5).astype(int) if mip == 'POINT' else np.floor(level).astype(int)
+        upper = np.minimum(lower + 1, len(chain)-1) if mip == 'LINEAR' else lower
+        fraction = level - lower if mip == 'LINEAR' else np.zeros(shape)
+        result = np.empty((u.size, 4), dtype=dtype)
+        uf, vf = u.ravel(), v.ravel()
+        for is_mag in (False, True):
+            point = filters[int(is_mag)] in ('NONE', 'POINT')
+            mask = (magnify == is_mag).ravel()
+            for index in np.unique(lower.ravel()[mask]):
+                selected = mask & (lower.ravel() == index)
+                sampled = np.stack(chain[index].sample(uf[selected], vf[selected], point, address, dtype), axis=-1)
+                result[selected] = sampled
+            if mip == 'LINEAR':
+                for index in np.unique(upper.ravel()[mask]):
+                    selected = mask & (upper.ravel() == index)
+                    sampled = np.stack(chain[index].sample(uf[selected], vf[selected], point, address, dtype), axis=-1)
+                    blend = fraction.ravel()[selected, None]
+                    result[selected] = result[selected] * (1-blend) + sampled * blend
+        return [result[:, channel].reshape(shape) for channel in range(4)]
 
 
 # Resolves effect textures to image files (ResourceName annotation) and caches loaded images, including

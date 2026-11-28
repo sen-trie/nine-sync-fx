@@ -6,6 +6,7 @@ from ..errors import (
 from ..program import FxStruct
 from ..types import (
     FxSampler,
+    fx_sampler_scope,
     FxValue,
     fx_array_type,
     fx_count,
@@ -142,7 +143,7 @@ class FxExec(FxStatements, FxExpressions, FxCalls):
                 tex = states.get("texture")
                 if tex:
                     texture = "".join(tex).strip("<>() ")
-            return FxValue("sampler", FxSampler(g.name, texture, states, g.register))
+            return FxValue("sampler", FxSampler(g.name, texture, states, g.register, fx_sampler_scope(self.program, g, getattr(self.env, "sampler_names", None))))
         if t == "texture":
             return FxValue("texture", g.name)
         if t == "string":

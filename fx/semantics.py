@@ -74,6 +74,10 @@ FX_MATERIAL_SEMANTICS = {
     "TOONCOLOR",
     "EDGECOLOR",
     "GROUNDSHADOWCOLOR",
+    "ADDINGTEXTURE",
+    "MULTIPLYINGTEXTURE",
+    "ADDINGSPHERETEXTURE",
+    "MULTIPLYINGSPHERETEXTURE",
 }
 
 
@@ -242,6 +246,10 @@ class FxSceneState:
         if kind == "material":
             m = self.material
             sem = source[1]
+            if sem in ("ADDINGTEXTURE", "ADDINGSPHERETEXTURE"):
+                return [0.0]*4  # Generic X accessories have no PMX material morphs.
+            if sem in ("MULTIPLYINGTEXTURE", "MULTIPLYINGSPHERETEXTURE"):
+                return [1.0]*4
             if sem == "DIFFUSE":
                 return list(m["diffuse"])
             if sem == "AMBIENT":
@@ -294,6 +302,16 @@ def fx_value_from_list(ex, values, t):
 
 
 # The texture global a sampler refers to, if it has one.
+# The texture a sampler global refers to, as plain text.
+def fx_sampler_slot(program, g):
+    if g is None or g.init is None or g.init[0] != "sampler_state":
+        return None
+    tex = g.init[1].get("texture")
+    if not tex:
+        return None
+    return "".join(tex).strip("<>() ")
+
+
 def fx_sampler_texture_global(program, info):
     if info is None or not isinstance(info, FxSampler):
         return None

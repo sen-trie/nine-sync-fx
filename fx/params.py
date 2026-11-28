@@ -8,8 +8,9 @@ from .errors import FxError
 from .semantics import (
     FX_FLAG_DEFAULTS,
     fx_classify_global,
+    fx_sampler_slot,
 )
-from .techniques import fx_technique_script
+from .techniques import fx_script_commands, fx_technique_script
 from .types import (
     fx_count,
     fx_is_numeric,
@@ -109,10 +110,10 @@ def fx_find_params(program):
 # Names of globals the vertex shader entry points can read, found by walking the function bodies, called
 # functions and global initialisers.
 # Used to know which parameters change geometry.
-def fx_vs_globals(program, passes=None, stages=("vs",)):
+def fx_vs_globals(program, passes=None, stages=("vs",), global_names=()):
     names = set()
     seen = set()
-    stack = []
+    stack = [("id", name) for name in global_names]
     if passes is None:
         passes = [fx_pass for technique in program.techniques for fx_pass in technique.passes]
     for technique in [None]:
@@ -220,3 +221,37 @@ def fx_structural_params(program):
     params = getattr(program, "params", {})
     used = fx_vs_globals(program) | set(fx_script_values(program, "loopbycount"))
     return sorted(name for name in params if name in used)
+
+
+# Globals one pass reads in either stage, with each sampler's texture added.
+def fx_pass_reads(program, fx_pass):
+    reads = fx_vs_globals(program, [fx_pass], stages=("vs", "ps")) & program.globals.keys()
+    for name in sorted(reads):
+        slot = fx_sampler_slot(program, program.globals[name])
+        if slot in program.globals:
+            reads.add(slot)
+    return reads
+
+
+# Textures a main-target geometry draw samples that only MMD's own rendering fills: targets written by buffer
+# passes alone, offscreen scene captures and ScriptExternal captures. The add-on draws none of these, so the
+# reads come back as zero; a target some geometry draw writes is emulated from that draw instead.
+def fx_unsourced_reads(program, draws):
+    drawn = {d.target for d in draws if d.kind == "geometry" and d.target}
+    computed = {d.target for d in draws if d.kind == "buffer" and d.target} - drawn
+    captured = {n for n, g in program.globals.items() if g.semantic == "OFFSCREENRENDERTARGET"}
+    for technique in {d.technique for d in draws}:
+        current = ""
+        for key, value in fx_script_commands(fx_technique_script(technique, program)):
+            if key in ("rendercolortarget", "rendercolortarget0"):
+                current = value
+            elif key == "scriptexternal" and current:
+                captured.add(current)
+    found = []
+    for d in draws:
+        if d.kind != "geometry" or d.target:
+            continue
+        reads = fx_pass_reads(program, d.fx_pass)
+        found.extend((d, name, "buffer") for name in sorted(reads & computed - captured))
+        found.extend((d, name, "capture") for name in sorted(reads & (captured - drawn)))
+    return found

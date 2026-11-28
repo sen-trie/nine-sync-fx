@@ -2,7 +2,10 @@ from .program import FxStruct
 from .types import (
     FxValue,
     fx_resolve_type,
+    fx_array_type,
+    fx_is_array,
 )
+from .errors import FxUnsupported
 
 
 # Overloads are matched by argument count only.
@@ -59,6 +62,37 @@ def fx_run_entry(ex, function, compile_args, inputs):
     program = ex.program
     bound = fx_bind_entry(function, compile_args)
     args = []
+    def indexed(semantic, index):
+        semantic = fx_norm_semantic(semantic)
+        if not semantic:
+            raise FxUnsupported("A shader interface array requires a semantic.")
+        end = len(semantic)
+        while end and semantic[end-1].isdigit():
+            end -= 1
+        return semantic[:end] + str(int(semantic[end:] or 0) + index)
+
+    def read(type_name, semantic, array=None):
+        t = fx_resolve_type(type_name, program)
+        if array is None:
+            return ex.convert(inputs(fx_norm_semantic(semantic), t), t)
+        count = ex.const_int(array)
+        if count is None or count < 0:
+            raise FxUnsupported("Shader interface array size must be a nonnegative constant.")
+        if not isinstance(t, tuple) or len(t) != 2 or len(t[1]) > 1:
+            raise FxUnsupported("Shader interface arrays currently require scalar/vector elements.")
+        return FxValue(fx_array_type(t, count), [ex.convert(inputs(indexed(semantic, i), t), t) for i in range(count)])
+
+    def output(semantic, value):
+        sem = fx_norm_semantic(semantic)
+        if not sem:
+            return
+        if fx_is_array(value.t):
+            for i, element in enumerate(value.c):
+                if fx_is_array(element.t) or isinstance(element.t, FxStruct) or len(element.t[1]) > 1:
+                    raise FxUnsupported("Shader interface arrays currently require scalar/vector elements.")
+                outputs[indexed(sem, i)] = element
+        else:
+            outputs[sem] = value
     for index, param in enumerate(function.params):
         pt = fx_resolve_type(param.type, program)
         if index in bound:
@@ -69,12 +103,11 @@ def fx_run_entry(ex, function, compile_args, inputs):
             continue
         if isinstance(pt, FxStruct):
             members = {}
-            for name, type_name, semantic, _array in pt.members:
-                mt = fx_resolve_type(type_name, program)
-                members[name] = ex.convert(inputs(fx_norm_semantic(semantic), mt), mt)
+            for name, type_name, semantic, array in pt.members:
+                members[name] = read(type_name, semantic, array)
             args.append(FxValue(pt, members))
         else:
-            args.append(ex.convert(inputs(fx_norm_semantic(param.semantic), pt), pt))
+            args.append(read(param.type, param.semantic, param.array))
         if ex.B.wants_text:
             ex.tag(args[-1], param.name)
     result, outs = ex.run_function(function, args)
@@ -82,19 +115,15 @@ def fx_run_entry(ex, function, compile_args, inputs):
     rt = fx_resolve_type(function.ret, program)
     if isinstance(rt, FxStruct):
         for name, type_name, semantic, _array in rt.members:
-            sem = fx_norm_semantic(semantic)
-            if sem:
-                outputs[sem] = result.c[name]
+            output(semantic, result.c[name])
     elif function.semantic and rt != "void":
-        outputs[fx_norm_semantic(function.semantic)] = result
+        output(function.semantic, result)
     for param in function.params:
         if param.name in outs:
             value = outs[param.name]
             if isinstance(value.t, FxStruct):
                 for name, type_name, semantic, _array in value.t.members:
-                    sem = fx_norm_semantic(semantic)
-                    if sem:
-                        outputs[sem] = value.c[name]
+                    output(semantic, value.c[name])
             elif param.semantic:
-                outputs[fx_norm_semantic(param.semantic)] = value
+                output(param.semantic, value)
     return outputs

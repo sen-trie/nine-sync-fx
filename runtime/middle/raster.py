@@ -44,11 +44,12 @@ def quantize_color(values, format):
 
 
 class ColorTarget:
-    def __init__(self, width, height, format="A8R8G8B8"):
+    def __init__(self, width, height, format="A8R8G8B8", mip_levels=1):
         format = format.upper().removeprefix("D3DFMT_")
         if format not in FORMATS or width < 1 or height < 1:
             raise FxUnsupported(f"Invalid color target {width}x{height} / {format}.")
         self.width, self.height, self.format = int(width), int(height), format
+        self.mip_levels = mip_levels
         self.pixels = np.zeros((self.height, self.width, 4), dtype=np.float32)
         if format in ("R16F", "R32F"):
             self.pixels[..., 3] = 1
@@ -58,8 +59,30 @@ class ColorTarget:
         value = np.floor(np.clip(np.asarray(value, dtype=np.float64), 0, 1) * 255) / 255
         self.pixels[:] = quantize_color(value, self.format)
 
+    def reduce_mip(self, pixels):
+        for axis in (0, 1):
+            size = pixels.shape[axis]
+            if size == 1:
+                continue
+            count = size // 2
+            indices = np.arange(count)
+            first = np.take(pixels, 2 * indices, axis=axis)
+            middle = np.take(pixels, 2 * indices + 1, axis=axis)
+            if size % 2 == 0:
+                pixels = (first + middle) * .5
+                continue
+            # Native MME impulse probes show three taps for an odd source axis.
+            # The first tap transfers part of its area weight to the middle tap.
+            shape = [1] * pixels.ndim
+            shape[axis] = count
+            first_weight = ((count - indices - (indices + .5) / count) / size).reshape(shape)
+            last_weight = ((indices + 1) / size).reshape(shape)
+            last = np.take(pixels, 2 * indices + 2, axis=axis)
+            pixels = first * first_weight + middle * (1 - first_weight - last_weight) + last * last_weight
+        return quantize_color(pixels, self.format)
+
     def copy(self):
-        other = ColorTarget(self.width, self.height, self.format)
+        other = ColorTarget(self.width, self.height, self.format, self.mip_levels)
         other.pixels[:] = self.pixels
         return other
 
@@ -105,6 +128,10 @@ class RasterState:
     color_mask: int = 15
     depth_bias: float = 0
     slope_bias: float = 0
+    color_mask1: int = 15
+    color_mask2: int = 15
+    color_mask3: int = 15
+    quantize_blend_source: bool = False
 
     def apply(self, states):
         fields = {
@@ -115,7 +142,11 @@ class RasterState:
             "srcblend": ("source_blend", enum_value), "destblend": ("destination_blend", enum_value),
             "blendop": ("blend_op", enum_value), "separatealphablendenable": ("separate_alpha", bool_value),
             "srcblendalpha": ("source_alpha", enum_value), "destblendalpha": ("destination_alpha", enum_value),
-            "blendopalpha": ("alpha_op", enum_value), "colorwriteenable": ("color_mask", integer_value),
+            "blendopalpha": ("alpha_op", enum_value),
+            "colorwriteenable": ("color_mask", integer_value),
+            "colorwriteenable1": ("color_mask1", integer_value),
+            "colorwriteenable2": ("color_mask2", integer_value),
+            "colorwriteenable3": ("color_mask3", integer_value),
             "depthbias": ("depth_bias", float), "slopescaledepthbias": ("slope_bias", float),
         }
         updates = {}
@@ -125,8 +156,11 @@ class RasterState:
             name, parse = fields[key.lower()]
             updates[name] = parse(value)
         result = replace(self, **updates)
-        if result.cull not in ("CW", "CCW", "NONE") or not 0 <= result.alpha_ref <= 255 or not 0 <= result.color_mask <= 15:
-            raise FxUnsupported("Invalid culling, alpha reference or color-write mask.")
+        if result.cull not in ("CW", "CCW", "NONE") or not 0 <= result.alpha_ref <= 255:
+            raise FxUnsupported("Invalid culling or alpha reference.")
+        if any(not 0 <= mask <= 15 for mask in (result.color_mask, result.color_mask1,
+                                               result.color_mask2, result.color_mask3)):
+            raise FxUnsupported("Color-write masks must be between 0 and 15.")
         compare(result.depth_func, 0, 0)
         compare(result.alpha_func, 0, 0)
         return result
@@ -233,11 +267,30 @@ def top_left(a, b):
     return delta[1] < 0 or delta[1] == 0 and delta[0] > 0
 
 
+class RasterInputs(dict):
+    pass
+
+
 class Rasterizer:
-    def __init__(self, width, height, fragment_batch=262144, subpixel_bits=8):
+    def __init__(self, width, height, fragment_batch=262144, subpixel_bits=8, derivatives=False, *, buffer=False):
         self.width,self.height = int(width),int(height)
+        self.derivatives = derivatives
+        self.buffer = buffer
         self.fragment_batch,self.subpixel_bits = fragment_batch,subpixel_bits
         self.stats = dict(input_triangles=0,clipped_triangles=0,shaded_fragments=0,passing_fragments=0)
+
+    def _buffer_gradient_delta(self, clip, screen, values, area):
+        # Native fullscreen UV readouts show a reduced reciprocal of the
+        # power-of-two triangle area. Keep analytic pixel inputs and constant
+        # varyings exact, and use the same plane for derivative helper lanes.
+        if (not self.buffer or self.width & (self.width - 1) or self.height & (self.height - 1)
+                or not np.all(clip[:, 3] == 1)
+                or not np.all((screen == 0) | (screen == [self.width, self.height]))):
+            return None
+        gradients = np.linalg.solve(np.column_stack([screen, np.ones(3)]), values)[:2]
+        inverse = np.float32(1 / area)
+        ratio = float(np.nextafter(inverse, np.float32(0))) * area
+        return gradients * (ratio - 1)
 
     def fragments(self, positions, varyings, indices, state):
         names = list(varyings)
@@ -275,7 +328,25 @@ class Rasterizer:
             perspective=weights/clip[:,3]
             perspective/=perspective.sum(axis=1,keepdims=True)
             interpolated=perspective @ values
+            delta = self._buffer_gradient_delta(clip, screen, values, float_area)
+            if delta is not None:
+                interpolated += np.column_stack([x + .5, y + .5]) @ delta
             vpos=np.column_stack([x,y,depth,weights @ (1/clip[:,3])])
+            if self.derivatives:
+                samples=[interpolated];locations=[vpos]
+                dx = np.where(x % 2 == 0, 1, -1)
+                dy = np.where(y % 2 == 0, 1, -1)
+                for offset_x, offset_y in ((dx, 0), (0, dy), (dx, dy)):
+                    hx, hy = x + offset_x, y + offset_y
+                    helper=np.column_stack([edge(screen[a],screen[b],hx,hy)/float_area for a,b in ((1,2),(2,0),(0,1))])
+                    reciprocal=helper @ (1/clip[:,3])
+                    interpolated_helper = (helper / clip[:, 3]) @ values / reciprocal[:, None]
+                    if delta is not None:
+                        interpolated_helper += np.column_stack([hx + .5, hy + .5]) @ delta
+                    samples.append(interpolated_helper)
+                    locations.append(np.column_stack([hx,hy,helper @ (clip[:,2]/clip[:,3]),reciprocal]))
+                interpolated=np.stack(samples,axis=1)
+                vpos=np.stack(locations,axis=1)
             if state.depth_bias or state.slope_bias:
                 slopes=np.linalg.solve(np.column_stack([screen,np.ones(3)]),clip[:,2]/clip[:,3])
                 depth+=state.depth_bias+state.slope_bias*np.abs(slopes[:2]).max()
@@ -288,20 +359,30 @@ class Rasterizer:
     @staticmethod
     def _pack(parts,names,widths):
         x,y,z,values,vpos,face=[np.concatenate([p[i] for p in parts]) for i in range(6)]
+        count=len(x)
+        helpers=values.ndim==3
+        if helpers:
+            lanes = values.shape[1]
+            values = values.transpose(1, 0, 2).reshape(lanes * count, values.shape[-1])
+            vpos = vpos.transpose(1, 0, 2).reshape(lanes * count, vpos.shape[-1])
+            face = np.tile(face, lanes)
         channels=np.split(values,np.cumsum(widths)[:-1],axis=1) if names else []
-        varyings=dict(zip(names,channels));varyings['VPOS']=vpos;varyings['VFACE']=face[:,None]
+        varyings=RasterInputs(zip(names,channels));varyings['VPOS']=vpos;varyings['VFACE']=face[:,None]
+        varyings.fragment_count=count
+        varyings.derivative_signs=(np.where(x%2==0,1,-1),np.where(y%2==0,1,-1)) if helpers else None
         # This also supplies the raster position for SV_Position-normalized
         # entry structs. Legacy DX9 shaders commonly declare an unused Pos.
         varyings['POSITION0']=vpos
         return x,y,z,varyings
 
-    def draw(self, positions, varyings, indices, shader, targets, depth, state=RasterState()):
+    def draw(self, positions, varyings, indices, shader, targets, depth, state=RasterState(), *, written_pixels=None):
         if not targets: raise FxUnsupported('A raster draw needs a bound color target.')
         if any((t.width,t.height)!=(self.width,self.height) for t in targets.values()):
             raise FxUnsupported('All bound color targets must match the raster viewport.')
         if state.depth_test and depth is not None and (depth.width<self.width or depth.height<self.height):
             raise FxUnsupported('The depth target must cover the raster viewport.')
         if state.depth_test and depth is None: raise FxUnsupported('Depth testing needs a bound depth target.')
+        masks = (state.color_mask, state.color_mask1, state.color_mask2, state.color_mask3)
         for x,y,z,inputs in self.fragments(positions,varyings,indices,state):
             self.stats['shaded_fragments']+=len(x)
             colors,discard,pixel_depth=shader(inputs)
@@ -325,14 +406,22 @@ class Rasterizer:
                 active=starts+layer;active=active[active<ends]
                 lane=order[active]
                 if state.depth_test: lane=lane[compare(state.depth_func,z[lane],depth.values[y[lane],x[lane]])]
+                if written_pixels is not None:
+                    lane = lane[~written_pixels[y[lane], x[lane]]]
                 if not len(lane): continue
                 self.stats['passing_fragments']+=len(lane)
                 for slot,target in targets.items():
-                    if slot not in colors: continue
+                    if slot not in colors or not masks[slot]:
+                        continue
+                    mask = masks[slot]
                     source=colors[slot][lane]
                     if not np.isfinite(source).all(): raise FxUnsupported('Nonfinite pixel colors have undefined raster behavior.')
+                    if state.quantize_blend_source and state.blend and target.format == "A8R8G8B8":
+                        source = quantize_color(source, target.format)
                     destination=target.pixels[y[lane],x[lane]]
                     result=quantize_color(blend_color(state,source,destination),target.format)
                     for channel in range(4):
-                        if state.color_mask & (1<<channel): target.pixels[y[lane],x[lane],channel]=result[:,channel]
+                        if mask & (1<<channel): target.pixels[y[lane],x[lane],channel]=result[:,channel]
                 if state.depth_test and state.depth_write: depth.values[y[lane],x[lane]]=z[lane]
+                if written_pixels is not None:
+                    written_pixels[y[lane], x[lane]] = True

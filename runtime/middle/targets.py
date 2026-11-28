@@ -1,6 +1,7 @@
 """Apply, update and remove experimental FX on an explicit Blender mesh."""
 
 from dataclasses import dataclass
+import json
 from math import isfinite
 from uuid import uuid4
 
@@ -9,8 +10,9 @@ import bpy
 from ...common.digest import digest
 from ...fx.errors import FxUnsupported
 from ...nodes.material_compile import mme_tree_signature
-from .analysis import DEFORM, MATERIAL, analyze
+from .analysis import DEFORM, MATERIAL, RENDER, analyze
 from .compiler import compile_core, validate_base_image, is_mmd_material, has_sphere_map
+from .specialists import AUTO, apply_specialist, plan_specialist
 from .controllers import binding_diagnostics, retarget as retarget_core, saved_bindings
 from .images import discard_unused, views_current
 from .material_morphs import signature as morph_signature, diagnostics as morph_diagnostics
@@ -24,7 +26,7 @@ CORE_NODE = "ninesync_middle_core_node"
 STAGE_NODE = "ninesync_middle_edit_node"
 SOURCE = "ninesync_middle_source"
 SIGNATURE = "ninesync_middle_signature"
-PROFILE = 15
+PROFILE = 24
 
 
 @dataclass(frozen=True)
@@ -235,9 +237,19 @@ def _new_deformer(obj, core, token, modifier_index):
 
 
 def apply(obj, path, target, *, scene=None, slot=0, bindings=None, units=1.0, image=None, light=None,
-          modifier_index=None, force_rebuild=False, interpolate_vertices=None, pass_type=None, pass_context=None):
+          modifier_index=None, force_rebuild=False, interpolate_vertices=None, pass_type=None, pass_context=None,
+          scene_members=None, offscreen_owner=None, package_root=None, reset_targets=None,
+          ground_shadows=None, ground_shadow_brightness=None, self_shadow_mode=None, self_shadow_distance=None):
     """Apply one target. Material slots and optional modifier positions are zero-based."""
     scene = scene if scene is not None else bpy.context.scene
+    if target == AUTO:
+        adapter_plan = plan_specialist(path, package_root)
+        if adapter_plan is not None:
+            if pass_context is not None or scene_members is not None or offscreen_owner is not None or bindings:
+                raise FxUnsupported("The compositor specialist does not accept mesh inputs or offscreen owners.")
+            effect, changed = apply_specialist(scene, adapter_plan, force_rebuild)
+            return Result(effect, effect.node_group, "SPECIALIST", (adapter_plan.omissions,), changed)
+        target = MATERIAL
     _require_model(obj, scene)
     if pass_context:
         pass_context.validate(scene)
@@ -249,6 +261,15 @@ def apply(obj, path, target, *, scene=None, slot=0, bindings=None, units=1.0, im
         raise FxUnsupported("Blender units per MMD unit must be positive and finite.")
     if light is not None and (light == obj or scene.objects.get(light.name) != light):
         raise FxUnsupported("The light direction source must be another object in the destination scene.")
+    if target == RENDER:
+        if pass_context is not None:
+            raise FxUnsupported('Supply scene members for ordered rendering instead of a node pass context.')
+        from .raster_targets import apply_render
+        return apply_render(obj,path,scene=scene,units=units,light=light,members=scene_members,
+                            owner=offscreen_owner,bindings=bindings,force_rebuild=force_rebuild,
+                            reset_targets=reset_targets,ground_shadows=ground_shadows,
+                            ground_shadow_brightness=ground_shadow_brightness,
+                            self_shadow_mode=self_shadow_mode,self_shadow_distance=self_shadow_distance)
     original = selected_slot = existing = wrapper = None
     if target == MATERIAL:
         selected_slot = _slot(obj, slot)
@@ -284,7 +305,7 @@ def apply(obj, path, target, *, scene=None, slot=0, bindings=None, units=1.0, im
                  "UseSphereMap": has_sphere_map(original),
                  "UseToon": is_mmd_material(original)}
     facts = analyze(path, slot if target == MATERIAL else 0, material_flags=flags,
-                    pass_type=pass_type, pass_context=pass_context)
+                    pass_type=pass_type, pass_context=pass_context, destination=target)
     if target == DEFORM:
         for material_slot in obj.material_slots:
             material = material_slot.material
@@ -321,8 +342,16 @@ def apply(obj, path, target, *, scene=None, slot=0, bindings=None, units=1.0, im
     used_bindings = saved_bindings(old) if old else {}
     if old_vertex:
         used_bindings.update(saved_bindings(old_vertex))
+    if old:
+        for name in json.loads(old.get("ninesync_middle_pass_binding_names", "[]")):
+            used_bindings.pop(name, None)
     if bindings:
         used_bindings.update(bindings)
+    if pass_context:
+        for name, mapped in pass_context.bindings.items():
+            if bindings and name in bindings and bindings[name] != mapped:
+                raise FxUnsupported(f"Controller {name!r} conflicts with the specialist's pass mapping.")
+            used_bindings[name] = mapped
     colors = obj.data.color_attributes.active_color
     source_images = []
     if original and original.node_tree:
@@ -335,6 +364,7 @@ def apply(obj, path, target, *, scene=None, slot=0, bindings=None, units=1.0, im
     signature = digest([PROFILE, bpy.app.version, facts.signature, facts.technique.name, pass_type, flags, sphere_mode, source_images,
                         pass_context.signature if pass_context else None,
                         morph_signature(obj, original), interpolation,
+                        scene.render.engine if target == MATERIAL and facts.texture_writers else None,
                         target, slot if target == MATERIAL else 0,
                         units, tuple(layer.name for layer in obj.data.uv_layers), colors.name if colors else ""])
     if old and old.get(SIGNATURE) == signature and not force_rebuild and not bindings:
@@ -345,7 +375,7 @@ def apply(obj, path, target, *, scene=None, slot=0, bindings=None, units=1.0, im
                 and old.get("ninesync_middle_image") == image
                 and old.get("ninesync_middle_light") == light
                 and old.get("ninesync_middle_camera") == scene.camera and not messages
-                and views_current([old] + ([old_vertex] if old_vertex else []))):
+                and views_current([old] + ([old_vertex] if old_vertex else []), scene)):
             if old.get("ninesync_middle_samples_base"):
                 validate_base_image(image)
             warnings = tuple(filter(None, old.get("ninesync_middle_warnings", "").splitlines()))
@@ -430,6 +460,19 @@ def apply(obj, path, target, *, scene=None, slot=0, bindings=None, units=1.0, im
 
 
 def inspect_bindings(obj, target, *, slot=0, scene=None):
+    if target == RENDER:
+        from .raster_targets import CONFIG
+        data=obj.get(CONFIG)
+        if data is None:return ('The selected mesh has no owned rendered scene.',)
+        result=[];source_scene=scene or bpy.context.scene
+        for row in data['members'].values():
+            source=row['obj']
+            if source is None or source_scene.objects.get(source.name)!=source:
+                result.append(f"Rendered scene member {row['name']!r} is missing.")
+            for name,source in row.get('bindings',{}).items():
+                if source is None or source_scene.objects.get(source.name)!=source:
+                    result.append(f'Controller {name!r} is missing from the rendered scene.')
+        return tuple(result)
     _destination, wrapper, token = _current(obj, target, slot)
     core = _core_node(wrapper, token).node_tree
     result = binding_diagnostics(core, scene or bpy.context.scene)
@@ -449,6 +492,11 @@ def inspect_bindings(obj, target, *, slot=0, scene=None):
 def retarget(obj, target, name, replacement, *, slot=0, scene=None):
     scene = scene or bpy.context.scene
     _require_model(obj, scene)
+    if target == RENDER:
+        from .raster_targets import retarget_render
+        return retarget_render(obj,name,replacement,scene)
+    if name.lower() == "(offscreenowner)":
+        raise FxUnsupported("The effect specialist supplies (OffscreenOwner). Update the pass context to change it.")
     destination, wrapper, token = _current(obj, target, slot)
     if (target == DEFORM and wrapper.users > 1) or (target == MATERIAL and destination.users > 1):
         raise FxUnsupported("The experimental output is shared.")
@@ -460,6 +508,8 @@ def retarget(obj, target, name, replacement, *, slot=0, scene=None):
         _vertex_wrapper, vertex_group_node = vertex_node(obj, token)
         if vertex_group_node.node_tree != core[VERTEX_CORE] or core[VERTEX_CORE].users > 2:
             raise FxUnsupported("The material's vertex core is shared or its connection changed.")
+    if name in json.loads(core.get("ninesync_middle_pass_binding_names", "[]")):
+        raise FxUnsupported(f"The effect specialist supplies {name!r}. Update the pass mapping to change it.")
     affected = [group for group in cores if name in saved_bindings(group)]
     if not affected:
         raise FxUnsupported(f"No generated input reads controller {name!r}.")
@@ -471,6 +521,9 @@ def retarget(obj, target, name, replacement, *, slot=0, scene=None):
 
 def remove(obj, target, *, slot=0, scene=None):
     _require_model(obj, scene or bpy.context.scene)
+    if target == RENDER:
+        from .raster_targets import remove_render
+        return remove_render(obj)
     destination, wrapper, token = _current(obj, target, slot)
     core = _core_node(wrapper, token).node_tree
     vertex = core.get(VERTEX_CORE)

@@ -1,5 +1,8 @@
 import bpy
 
+X_MATERIAL = "ninesync_x_material"
+X_BASE_TEXTURE = "ninesync_x_base_texture"
+
 from ..common.constants import ACCESSORY_FADE_PROP
 from ..common.log import log
 from ..common.scene_utils import (
@@ -92,6 +95,9 @@ def make_additive(mat, nodes, links, color, alpha):
 # alpha or texture switches the material to blended.
 def build_x_material(name, xmat, folder, settings, additive=False):
     mat = bpy.data.materials.new(name)
+    # Retain the source values that Principled cannot represent reversibly.
+    # The numeric FX renderer reads these alongside the editable base color.
+    mat[X_MATERIAL] = dict(power=float(xmat.power), specular=list(xmat.specular), emissive=list(xmat.emissive))
     tree = mat.node_tree
     nodes, links = tree.nodes, tree.links
     bsdf = next((n for n in nodes if n.type == "BSDF_PRINCIPLED"), None)
@@ -136,6 +142,7 @@ def build_x_material(name, xmat, folder, settings, additive=False):
             log.warning("texture not found for %s: %s", name, plain[0])
         else:
             texture = nodes.new("ShaderNodeTexImage")
+            texture[X_BASE_TEXTURE] = True
             texture.image = bpy.data.images.load(found, check_existing=True)
             color_socket = texture.outputs["Color"]
             links.new(texture.outputs["Alpha"], alpha)

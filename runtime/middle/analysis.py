@@ -23,6 +23,7 @@ from ...fx.techniques import (
 
 MATERIAL = "MODEL_MATERIAL"
 DEFORM = "MESH_DEFORM"
+RENDER = "SCENE_RENDER"
 
 
 @dataclass(frozen=True)
@@ -44,7 +45,10 @@ def _commands(script):
     return [part.strip().lower().replace(" ", "") for part in (script or "").split(";") if part.strip()]
 
 
-def analyze(path, subset=0, material_flags=None, *, pass_type=None, pass_context=None):
+def analyze(path, subset=0, material_flags=None, *, pass_type=None, pass_context=None, destination=None):
+    if destination not in (None, MATERIAL, DEFORM):
+        raise FxUnsupported(f"Unsupported node destination: {destination!r}.")
+    vertex_only = destination == DEFORM
     if pass_type not in (None, "object", "object_ss"):
         raise FxUnsupported(f"Unsupported existing-model pass selection: {pass_type!r}.")
     roles = (pass_type,) if pass_type else ("object", "object_ss")
@@ -140,12 +144,13 @@ def analyze(path, subset=0, material_flags=None, *, pass_type=None, pass_context
             if screen and any(str(shader_pass.states.get(key, "")).strip().lower() not in ("false", "0")
                               for key in ("zenable", "zwriteenable", "alphablendenable")):
                 problems.append("The fullscreen subset requires explicit disabled depth test/write and blending.")
-            if shader_pass.states and not (screen and all(
+            if not vertex_only and shader_pass.states and not (screen and all(
                     key in screen_states and str(value).strip().lower() in screen_states[key]
                     for key, value in shader_pass.states.items())):
                 problems.append("Unsupported pass states: " + ", ".join(sorted(shader_pass.states)))
     selected_passes = [shader_pass] if shader_pass else []
-    used = fx_vs_globals(program, selected_passes, stages=("vs", "ps"))
+    stages = ("vs",) if vertex_only else ("vs", "ps")
+    used = fx_vs_globals(program, selected_passes, stages=stages)
     targets_read = {g.name for g in program.globals.values() if fx_is_render_target(g) and g.name in used}
     unknown_targets = targets_read - {name for name, _writer in writers} - set(pass_context.images if pass_context else ())
     if unknown_targets:
@@ -162,7 +167,7 @@ def analyze(path, subset=0, material_flags=None, *, pass_type=None, pass_context
     refs = []
     passes = ([writer for _name, writer in writers] + [shader_pass] if shader_pass
               else [p for tech in program.techniques for p in tech.passes])
-    names = fx_vs_globals(program, passes, stages=("vs", "ps"))
+    names = fx_vs_globals(program, passes, stages=stages, global_names=(item[2] for item in loops))
     for g in program.globals.values():
         if g.name in names:
             source = fx_classify_global(g, program)
@@ -174,11 +179,21 @@ def analyze(path, subset=0, material_flags=None, *, pass_type=None, pass_context
     if technique and shader_pass and not problems:
         vs, _ = fx_entry(program, shader_pass.vs)
         ps, _ = fx_entry(program, shader_pass.ps)
-        if ps:
+        if ps and not vertex_only:
             targets.append(MATERIAL)
         local = fx_annotation(technique, "NineSyncLocalPosition", program)
         if vs and fx_technique_subset(technique, program) is None:
             local_position = fx_norm_semantic(local) if isinstance(local, str) else None
             targets.append(DEFORM)
+    if technique is not None and not vertex_only:
+        from ...fx.execution_plan import fx_plan_operations
+        from .raster import RasterState
+        try:
+            state=RasterState()
+            for operation in fx_plan_operations(program,subset,technique=technique):
+                if operation.kind=='states':state=state.apply(operation.value)
+            targets.append(RENDER)
+        except FxUnsupported as error:
+            problems.append(str(error))
     return Analysis(path, program, signature, technique, shader_pass, tuple(targets), tuple(refs),
                     local_position, tuple(problems), tuple(writers), loops)

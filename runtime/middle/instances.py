@@ -1,5 +1,6 @@
 """Adapt the shared FX draw planner's loops to an existing evaluated mesh."""
 
+from ...fx.interp.executor import FxExec
 from ...fx.types import FxValue, fx_resolve_type
 from ...fx.errors import FxUnsupported
 from ...nodes.socket import MmeSock
@@ -15,19 +16,26 @@ def loop_fields(env):
     attr.data_type = "INT"
     attr.inputs["Name"].default_value = name
     remaining = MmeSock(attr.outputs["Attribute"])
-    for variable, count, parameter in env.analysis.loops:
-        meta = env.program.params.get(parameter)
-        if meta:
-            if meta["size"] != 1 or meta["type"] not in ("i", "f"):
-                raise FxUnsupported("LoopByCount requires a float or int scalar count.")
-            source = B.new_input(parameter, label=parameter)
-            env.parameters[parameter] = (meta["default"][0], meta["help"] or meta["label"])
-        else:
+    execution = FxExec(env.program, B, env)
+    env._building_instance_counts = True
+    try:
+        for variable, count, parameter in env.analysis.loops:
             declaration = env.program.globals.get(parameter)
-            if declaration and (declaration.semantic or declaration.init is None):
-                raise FxUnsupported("Dynamic LoopByCount requires a numeric UI parameter.")
-            source = float(count)
-        counts.append(B.unary("floor", B.max(source, 0.0)))
+            if declaration is None:
+                try:
+                    source = float(parameter)
+                except ValueError:
+                    raise FxUnsupported(f"LoopByCount {parameter!r} references an unknown effect parameter.") from None
+            else:
+                if "static" in declaration.quals:
+                    raise FxUnsupported(f"LoopByCount {parameter!r} is static and is not an exposed native MME effect parameter.")
+                value = execution.global_value(parameter)
+                if value.t not in (("f", ()), ("i", ()), ("b", ())):
+                    raise FxUnsupported(f"LoopByCount {parameter!r} requires a uniform numeric scalar.")
+                source = value.c[0]
+            counts.append(B.unary("floor", B.max(source, 0.0)))
+    finally:
+        env._building_instance_counts = False
     for (variable, _count, _parameter), count in reversed(list(zip(env.analysis.loops, counts))):
         if variable:
             global_value = env.program.globals.get(variable)

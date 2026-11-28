@@ -89,11 +89,11 @@ def _new_scene(name, width, height, clear):
     return scene
 
 
-def create(source_scene, owner, owner_fx, name, camera, draws, *, units=.08, controls=()):
+def create(source_scene, owner, owner_fx, name, camera, draws, *, units=.08, controls=(), bindings=None):
     """Create one A8R8G8B8 target with explicit model->FX draw assignments.
 
-    DefaultEffect text is retained as provenance; participating objects are an
-    explicit mapping for this subset. No scene-wide wildcard import is inferred.
+    Draw assignments and named controller mappings come from the caller.
+    Pass context supplies the owner independently of the named bindings.
     """
     if source_scene.objects.get(owner.name) != owner or owner.type != "EMPTY":
         raise FxUnsupported("This offscreen subset needs an existing accessory owner Empty in the source scene.")
@@ -121,6 +121,12 @@ def create(source_scene, owner, owner_fx, name, camera, draws, *, units=.08, con
         raise FxUnsupported("Multisampled scene targets need a verified resolve path.")
     if not draws:
         raise FxUnsupported("Supply at least one actual model draw assignment.")
+    bindings = dict(bindings or {})
+    PassContext(source_scene, owner=owner, bindings=bindings).validate(source_scene)
+    controls = tuple(dict.fromkeys((*controls, *bindings.values())))
+    for control in controls:
+        if source_scene.objects.get(control.name) != control or control.type != "EMPTY":
+            raise FxUnsupported("Explicit pass controls must be existing source-scene Empties.")
     scene = _new_scene(f"MME target {owner.name} | {name}",width,height,clear)
     scene.render.fps = source_scene.render.fps
     scene.render.fps_base = source_scene.render.fps_base
@@ -129,6 +135,7 @@ def create(source_scene, owner, owner_fx, name, camera, draws, *, units=.08, con
     image.alpha_mode = "STRAIGHT"
     image[TAG] = scene[TAG]
     scene["ninesync_target_owner"] = owner
+    scene["ninesync_target_bindings"] = bindings
     scene["ninesync_target_image"] = image
     scene["ninesync_target_name"] = name
     scene["ninesync_target_fx"] = str(Path(owner_fx).resolve())
@@ -141,9 +148,6 @@ def create(source_scene, owner, owner_fx, name, camera, draws, *, units=.08, con
     _link(scene,owner)
     _dependencies(scene,owner)
     for control in controls:
-        if source_scene.objects.get(control.name)!=control or control.type!="EMPTY":
-            discard(SceneTarget(scene,image,name))
-            raise FxUnsupported("Explicit pass controls must be existing source-scene Empties.")
         _link(scene,control)
         _dependencies(scene,control)
     handle = SceneTarget(scene,image,name)
@@ -171,7 +175,7 @@ def create(source_scene, owner, owner_fx, name, camera, draws, *, units=.08, con
             used = {p.material_index for p in clone.data.polygons}
             for slot in sorted(used):
                 apply(clone,fx,MATERIAL,scene=scene,slot=slot,units=units,
-                      pass_context=PassContext(scene,owner=owner))
+                      pass_context=PassContext(scene, owner=owner, bindings=bindings))
         return handle
     except Exception:
         discard(handle)
@@ -197,7 +201,8 @@ def bake(targets, frame, directory):
     try:
         for handle in targets:
             scene = handle.scene
-            PassContext(scene,owner=handle.owner).validate(scene)
+            context = PassContext(scene, owner=handle.owner, bindings=dict(scene.get("ninesync_target_bindings", {})))
+            context.validate(scene)
             with active_scene(scene):
                 scene.frame_set(frame)
                 # Revalidate source graphs before drawing, keeping failures transactional.
@@ -205,7 +210,7 @@ def bake(targets, frame, directory):
                     clone,fx = scene[f"ninesync_draw_{index}"],scene[f"ninesync_fx_{index}"]
                     for slot in sorted({p.material_index for p in clone.data.polygons}):
                         apply(clone,fx,MATERIAL,scene=scene,slot=slot,units=scene["ninesync_target_units"],
-                              pass_context=PassContext(scene,owner=handle.owner))
+                              pass_context=context)
                 scene.render.filepath=str(directory/f"{scene[TAG]}-{frame}.png")
                 bpy.ops.render.render(write_still=True,scene=scene.name)
             temporary=bpy.data.images.load(scene.render.filepath,check_existing=False)

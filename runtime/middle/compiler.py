@@ -6,9 +6,10 @@ from pathlib import Path
 import bpy
 
 from ...fx.entry import fx_entry, fx_run_entry
+from ...fx.annotations import fx_annotation
 from ...fx.errors import FxUnsupported
 from ...fx.interp.executor import FxExec
-from ...fx.semantics import fx_classify_global, fx_sampler_texture_global
+from ...fx.semantics import fx_classify_global, fx_sampler_slot, fx_sampler_texture_global
 from ...fx.textures import FxTextureStore
 from ...nodes.images import mme_effect_image
 from ...fx.types import FxValue, fx_count, fx_is_numeric, fx_resolve_type
@@ -90,6 +91,7 @@ class ModelInputs:
         self.unavailable = {}
         self.pending = {}
         self.controls = {}
+        self.control_values = {}
         self.optional_controls = set()
         self.encoded_images = {}
         self.attributes = {}
@@ -99,6 +101,7 @@ class ModelInputs:
         self.texture_writers = dict(analysis.texture_writers)
         self.target_order = {name: index for index, (name, _writer) in enumerate(analysis.texture_writers)}
         self.visiting_targets = set()
+        self.buffer_images = {}
         self.vertex_fields = False
         self.vertex_pipeline = None
         self.vertex_parameters = {}
@@ -118,7 +121,7 @@ class ModelInputs:
         try:
             return self._global_value(ex, g)
         except FxUnsupported as error:
-            if not self.recover_position:
+            if not self.recover_position or getattr(self, "_building_instance_counts", False):
                 raise
             t = fx_resolve_type(g.type, self.program)
             if not fx_is_numeric(t) or g.array is not None:
@@ -137,6 +140,8 @@ class ModelInputs:
         if self.analysis.loops:
             names = {item[0] for item in self.analysis.loops}
             if g.name in names:
+                if getattr(self, "_building_instance_counts", False):
+                    raise FxUnsupported(f"LoopByCount cannot depend on per-instance counter {g.name!r}.")
                 if self.vertex_pipeline:
                     from .instances import loop_fields
                     value = loop_fields(self.vertex_pipeline.env)[0][g.name]
@@ -183,7 +188,9 @@ class ModelInputs:
             if t[0] in {"i", "b"}:
                 return None  # The initial declaration is a compile-time variant in this profile.
             raise FxUnsupported(f"Unsupported runtime parameter type for {g.name}.")
-        if kind == "control" and (t[0] == "f" and (len(t[1]) <= 1 or t[1] == (4, 4)) or t == ("b", ())):
+        if kind == "control" and ((t[0] == "f" or t[0] == "i" and loop_count) and (len(t[1]) <= 1 or t[1] == (4, 4)) or t == ("b", ())):
+            if g.name in self.control_values:
+                return self.control_values[g.name]
             if t == ("b", ()):
                 target, _sources = resolve(self.scene, self.obj, source[1], source[2], count,
                                             self.bindings, self.units, base="b",
@@ -194,7 +201,16 @@ class ModelInputs:
             # Delay scene resolution until the backend has pruned unused outputs.
             values = [self.driven(f"{g.name} [{i}]", None) for i in range(count)]
             self.controls[g.name] = (source[1], source[2], [v.socket.node.name for v in values], t)
-            return FxValue(t, values) if len(t[1]) == 2 else self.value(ex, t, values)
+            if t[1] == (4, 4):
+                # Object and bone CONTROLOBJECT providers return affine row-vector
+                # transforms. Keep their homogeneous column provably constant;
+                # drivers for it would hide that invariant from position recovery.
+                result = FxValue(t, [float(i == 15) if i % 4 == 3 else value
+                                     for i, value in enumerate(values)])
+            else:
+                result = self.value(ex, t, values)
+            self.control_values[g.name] = result
+            return result
         if kind == "viewport":
             percentage = self.driven("Resolution percentage", DriverSource(self.scene, "render.resolution_percentage", scale=0.01))
             parts = [ex.B.mul(percentage, self.driven(f"{g.name} {axis}",
@@ -345,22 +361,23 @@ class ModelInputs:
 
     def sample(self, ex, info, u, v, lod):
         texture = fx_sampler_texture_global(self.program, info)
+        default_filter = "POINT" if self.stage == "vs" else "LINEAR"
         if texture and self.pass_context and texture.name in self.pass_context.images:
             if texture.semantic not in ("OFFSCREENRENDERTARGET", "RENDERCOLORTARGET", "RENDERTARGET"):
                 raise FxUnsupported("An external scene image must match a declared render target.")
             image = self.pass_context.images[texture.name]
             validate_base_image(image)
             allowed={"texture","addressu","addressv","minfilter","magfilter","mipfilter"}
-            filters=[info.state(key,"LINEAR") for key in ("minfilter","magfilter")]
+            filters=[info.state(key,info.state("filter",default_filter)) for key in ("minfilter","magfilter")]
             if set(info.states)-allowed or len(set(filters))!=1 or filters[0] not in ("POINT","LINEAR"):
                 raise FxUnsupported("Scene targets require matching point/linear filters and supported sampler states.")
             if info.state("addressu", "WRAP") != "CLAMP" or info.state("addressv", "WRAP") != "CLAMP":
                 raise FxUnsupported("The scene-target sampling subset requires CLAMP on U/V.")
             if lod is not None or info.state("mipfilter", "NONE") not in ("NONE", "POINT"):
                 raise FxUnsupported("Scene-target mip/LOD sampling is not implemented.")
-            return self.backend.image_sample(image, "Closest" if info.point() else "Linear", "EXTEND", u, v)
+            return self.backend.image_sample(image, "Closest" if filters[0] == "POINT" else "Linear", "EXTEND", u, v)
         if texture and texture.name in self.texture_writers:
-            return self.sample_target(ex, texture.name, u, v)
+            return self.sample_target(ex, texture.name, u, v, info, lod)
         material_sampler = texture and texture.semantic == "MATERIALTEXTURE"
         sampler_zero = info and not info.texture and (info.register or "").lower().replace(" ", "") in ("s0", "")
         image = self.image if material_sampler or sampler_zero else None
@@ -374,8 +391,15 @@ class ModelInputs:
         if image is None:
             raise FxUnsupported(f"Unsupported or missing texture source {getattr(info, 'name', None)!r}.")
         validate_base_image(image)
+        explicit_level = None
         if lod is not None:
-            self.warnings.add("Explicit FX texture LOD uses Blender's material texture filtering.")
+            if self.backend.tree_tag == "GN":
+                from math import isfinite
+                explicit_level = self.backend.known(lod)
+                if explicit_level is None or not isfinite(explicit_level):
+                    raise FxUnsupported("Vertex texture LOD must be a finite uniform constant.")
+            else:
+                self.warnings.add("Explicit FX texture LOD uses Blender's material texture filtering.")
         address_u, address_v = (info.state(key, "WRAP") for key in ("addressu", "addressv"))
         modes = {"WRAP": "REPEAT", "CLAMP": "EXTEND", "MIRROR": "MIRROR"}
         if address_u != address_v or address_u not in modes:
@@ -383,39 +407,164 @@ class ModelInputs:
         supported = {"texture", "addressu", "addressv", "minfilter", "magfilter", "mipfilter", "filter", "maxanisotropy"}
         if set(info.states) - supported:
             raise FxUnsupported(f"Unsupported sampler states: {', '.join(sorted(set(info.states) - supported))}.")
-        filters = [info.state(key, "LINEAR") for key in ("minfilter", "magfilter")]
+        filters = [info.state(key, info.state("filter", default_filter)) for key in ("minfilter", "magfilter")]
+        filters = ["POINT" if value == "NONE" else value for value in filters]
         if len(set(filters)) != 1 or filters[0] not in ("POINT", "LINEAR", "ANISOTROPIC"):
             raise FxUnsupported("Minification and magnification must both use point or linear filtering.")
         if "filter" in info.states and info.state("filter") not in ("LINEAR", "POINT", "MIN_MAG_MIP_LINEAR", "MIN_MAG_MIP_POINT", "ANISOTROPIC", "NONE"):
             raise FxUnsupported(f"Unsupported sampler filter {info.state('filter')}.")
         if "ANISOTROPIC" in filters or info.state("filter") == "ANISOTROPIC" or "maxanisotropy" in info.states:
             self.warnings.add("Anisotropic sampler settings use Blender's material texture filtering.")
+        _, native_mip = info.defaults(self.stage)
+        mip_filter = info.state("mipfilter", info.state("filter", native_mip))
+        interpolation = "Closest" if filters[0] in ("POINT", "NONE") or info.state("filter") in ("POINT", "MIN_MAG_MIP_POINT", "NONE") else "Linear"
+        if explicit_level is not None:
+            from math import floor, log2
+            if mip_filter not in ("NONE", "POINT", "LINEAR"):
+                raise FxUnsupported(f"Unsupported explicit vertex mip filter: {mip_filter}.")
+            level = min(max(explicit_level, 0.0), floor(log2(max(image.size)))) if mip_filter != "NONE" else 0.0
+            low = floor(level + .5) if mip_filter == "POINT" else floor(level)
+            result = self.sample_image(image, u, v, interpolation, modes[address_u], low)
+            if mip_filter == "LINEAR" and level != low:
+                high = self.sample_image(image, u, v, interpolation, modes[address_u], low + 1)
+                result = [ex.B.add(a, ex.B.mul(level-low, ex.B.sub(b, a))) for a, b in zip(result, high)]
+            return result
+        # Inline buffer functions approximate the filtering of their final
+        # rendered target with Blender's source texture footprint. Applying
+        # base-only sampling inside that approximation drops the target's mips.
+        if self.mmd_shading and self.stage == "ps" and mip_filter == "NONE" and not self.visiting_targets:
+            if interpolation == "Closest":
+                return self.sample_image(image, u, v, interpolation, modes[address_u])
+            if filters[0] == "LINEAR":
+                return self.sample_base_linear(image, u, v, modes[address_u])
         if "mipfilter" in info.states:
             self.warnings.add("Blender chooses its own mip filtering.")
-        interpolation = "Closest" if info.point() or info.state("filter") in ("POINT", "MIN_MAG_MIP_POINT", "NONE") else "Linear"
         return self.sample_image(image, u, v, interpolation, modes[address_u])
 
-    def sample_image(self, image, u, v, interpolation, extension):
-        if self.mmd_shading and image.colorspace_settings.name == "sRGB":
+    def sample_base_linear(self, image, u, v, extension):
+        """Bilinear interpolation over four explicit base texels."""
+        B = self.backend
+        width, height = image.size
+        x = B.sub(B.mul(u, width), .5)
+        y = B.sub(B.mul(v, height), .5)
+        left, top = B.unary("floor", x), B.unary("floor", y)
+        fx, fy = B.sub(x, left), B.sub(y, top)
+        centers_u = [B.div(B.add(left, offset), width) for offset in (.5, 1.5)]
+        centers_v = [B.div(B.add(top, offset), height) for offset in (.5, 1.5)]
+
+        def lerp(start, end, weight):
+            return [B.add(a, B.mul(weight, B.sub(b, a))) for a, b in zip(start, end)]
+
+        rows = []
+        for sample_v in centers_v:
+            a, b = [self.sample_image(image, sample_u, sample_v, "Closest", extension)
+                    for sample_u in centers_u]
+            rows.append(lerp(a, b, fx))
+        return lerp(*rows, fy)
+
+    def sample_image(self, image, u, v, interpolation, extension, mip_level=0):
+        if mip_level:
+            from .images import mip_image
+            image = mip_image(image, mip_level, encoded=self.mmd_shading)
+        if not mip_level and self.mmd_shading and image.colorspace_settings.name == "sRGB":
             from .images import encoded_image
             if image not in self.encoded_images:
                 self.encoded_images[image] = encoded_image(image)
             image = self.encoded_images[image]
         return self.backend.image_sample(image, interpolation, extension, u, v)
 
-    def sample_target(self, ex, name, u, v):
+    def buffer_source(self, name, writer):
+        if name in self.buffer_images:
+            return self.buffer_images[name]
+        names = fx_vs_globals(self.program, [writer], stages=("vs", "ps"))
+        textures = set()
+        for global_name in names & self.program.globals.keys():
+            g = self.program.globals[global_name]
+            if fx_resolve_type(g.type, self.program) == "sampler":
+                texture = self.program.globals.get(fx_sampler_slot(self.program, g))
+                if not texture or texture.semantic != "MATERIALTEXTURE":
+                    return None
+                textures.add(texture.name)
+            else:
+                source = fx_classify_global(g, self.program)
+                if (source and source[0] != "viewport"
+                        or not source and g.semantic and g.semantic != "MATERIALTEXTURE"):
+                    return None
+        if len(textures) != 1:
+            return None
+        from .images import buffer_image, viewport_size
+        view = viewport_size(self.scene)
+        try:
+            image = buffer_image(self.analysis, name, writer, next(iter(textures)), self.image, view)
+        except FxUnsupported as error:
+            self.warnings.add(f"Buffer target {name} uses inline sampling: {error}")
+            return None
+        self.buffer_images[name] = (image, view)
+        return self.buffer_images[name]
+
+    def sample_target(self, ex, name, u, v, info, lod):
         if name in self.visiting_targets:
             raise FxUnsupported(f"Render-target feedback is unavailable: {name}.")
         if any(self.target_order[name] >= self.target_order[parent] for parent in self.visiting_targets):
             raise FxUnsupported(f"Buffer pass needs a prior render target: {name}.")
+        if lod is not None and ex.B.known(lod) != 0.0:
+            raise FxUnsupported(f"Buffer target {name} needs rendered mip levels for nonzero or dynamic LOD.")
+        default_filter = "POINT" if self.stage == "vs" else "LINEAR"
+        filters = [info.state(key, info.state("filter", default_filter)) for key in ("minfilter", "magfilter")]
+        filters = ["POINT" if value == "NONE" else value for value in filters]
+        if len(set(filters)) != 1 or filters[0] not in ("POINT", "LINEAR", "ANISOTROPIC"):
+            raise FxUnsupported(f"Buffer target {name} requires matching point/linear spatial filters.")
+        point = filters[0] == "POINT"
         self.visiting_targets.add(name)
+        previous_stage = self.stage
         try:
+            self.stage = "vs"
             draw = self.texture_writers[name]
             vs, args = fx_entry(self.program, draw.vs)
+            target = self.program.globals[name]
+            ratio = fx_annotation(target, "ViewPortRatio", self.program)
+            if isinstance(ratio, (float, int)):
+                ratio = (ratio, ratio)
+            percentage = self.driven("Buffer resolution percentage", DriverSource(self.scene, "render.resolution_percentage"))
+            viewport = [ex.B.div(ex.B.mul(percentage, self.driven(
+                "Buffer viewport " + axis, DriverSource(self.scene, "render.resolution_" + axis))), 100.0)
+                for axis in "xy"]
+            dimensions = []
+            for index, dimension in enumerate(("Width", "Height")):
+                fixed = fx_annotation(target, dimension, self.program)
+                if ratio is not None or fixed is None:
+                    size = viewport[index]
+                    if ratio is not None:
+                        size = ex.B.mul(size, ratio[index])
+                    size = ex.B.max(1.0, ex.B.unary("floor", size))
+                else:
+                    size = int(fixed)
+                    if size < 1:
+                        raise FxUnsupported(f"Buffer target {name} has a nonpositive dimension.")
+                dimensions.append(size)
+            # A texture query uses texel centers. Native Draw=Buffer supplies
+            # integer-pixel UVs before the original VS applies its own offset.
+            # Invert that raster-to-texture mapping, retaining the shader offset.
+            queries = [u, v]
+            if point:
+                for index, (value, size) in enumerate(zip(queries, dimensions)):
+                    center = ex.B.div(ex.B.add(ex.B.unary("floor", ex.B.mul(value, size)), .5), size)
+                    address = info.state(("addressu", "addressv")[index], "WRAP")
+                    if address == "WRAP":
+                        center = ex.B.unary("frac", center)
+                    elif address == "CLAMP":
+                        half = ex.B.div(.5, size)
+                        center = ex.B.min(ex.B.max(center, half), ex.B.sub(1.0, half))
+                    elif address == "MIRROR":
+                        center = ex.B.sub(1.0, ex.B.unary("abs", ex.B.sub(ex.B.mul(2.0, ex.B.unary("frac", ex.B.mul(.5, center))), 1.0)))
+                    else:
+                        raise FxUnsupported(f"Buffer target {name} has unsupported addressing: {address}.")
+                    queries[index] = center
+            coordinates = [ex.B.sub(value, ex.B.div(.5, size)) for value, size in zip(queries, dimensions)]
 
             def buffer_input(semantic, t):
                 if semantic == "TEXCOORD0":
-                    return self.value(ex, t, [u, v, 0.0, 1.0][:fx_count(t[1])])
+                    return self.value(ex, t, (coordinates + [0.0, 1.0])[:fx_count(t[1])])
                 parts = []
                 for component in range(fx_count(t[1])):
                     key = f"Unavailable buffer {name} {semantic}.{component}"
@@ -438,13 +587,50 @@ class ModelInputs:
             def pixel_input(semantic, t):
                 return varyings[semantic] if semantic in varyings else buffer_input(semantic, t)
 
+            self.stage = "ps"
             pixel = FxExec(self.program, ex.B, self)
             output = fx_run_entry(pixel, ps, args, pixel_input)
             if set(output) != {"COLOR0"} or ex.B.known(pixel.discard) != 0.0:
                 raise FxUnsupported(f"Buffer pass {draw.name} requires raster output or discard.")
+            result = pixel.convert(output["COLOR0"], ("f", (4,))).c
+            format = str(fx_annotation(target, "Format", self.program, "A8R8G8B8")).upper().removeprefix("D3DFMT_")
+            modes = {"WRAP": "REPEAT", "CLAMP": "EXTEND", "MIRROR": "MIRROR"}
+            address = info.state("addressu", "WRAP")
+            if (previous_stage == "ps" and self.mmd_shading and self.image and lod is None and not point
+                    and info.state("mipfilter") == "LINEAR" and address == info.state("addressv", "WRAP")
+                    and address in modes and format == "A8R8G8B8"
+                    and fx_annotation(target, "MipLevels", self.program, 1) == 0):
+                baked = self.buffer_source(name, draw)
+                if baked is not None:
+                    image, view = baked
+                    mip_states = {"texture", "filter", "minfilter", "magfilter", "mipfilter",
+                                  "addressu", "addressv", "maxanisotropy"}
+                    max_anisotropy = info.state("maxanisotropy", "1")
+                    if ((not self.pass_context or not self.pass_context.screen)
+                            and self.scene.render.engine == "BLENDER_EEVEE"
+                            and info.states.keys() <= mip_states
+                            and max_anisotropy.isdecimal() and int(max_anisotropy) > 0):
+                        from .sampling import sample_buffer_mips
+                        limit = int(max_anisotropy) if filters[0] == "ANISOTROPIC" else 1
+                        filtered = sample_buffer_mips(ex.B, image, view, u, v, modes[address], limit)
+                        if limit > 1:
+                            self.warnings.add("Rendered buffer sampling approximates anisotropy through 4:1 and blends to Blender filtering above it.")
+                    else:
+                        filtered = self.backend.image_sample(image, "Linear", modes[address], u, v)
+                        self.warnings.add("The current engine or sampler states use Blender's rendered-buffer filtering.")
+                    # Resolution changes use the live inline coordinates until reapply.
+                    matches = [ex.B.cmp("==", ex.B.max(1.0, ex.B.unary("floor", size)), expected)
+                               for size, expected in zip(viewport, view)]
+                    matches_viewport = ex.B.mul(*matches)
+                    self.warnings.add("Reapply the rendered buffer after changing its source texture or render size.")
+                    return [ex.B.select(matches_viewport, sample, fallback) for sample, fallback in zip(filtered, result)]
             self.warnings.add("Intermediate texture passes evaluate as shader functions. Blender supplies mip filtering and texture precision.")
-            return pixel.convert(output["COLOR0"], ("f", (4,))).c
+            if point and format == "A8R8G8B8":
+                result = [ex.B.div(ex.B.unary("floor", ex.B.add(ex.B.mul(ex.B.min(ex.B.max(value, 0.0), 1.0), 255.0), .5)), 255.0)
+                          for value in result]
+            return result
         finally:
+            self.stage = previous_stage
             self.visiting_targets.remove(name)
 
     def attribute(self, semantic):
@@ -538,8 +724,10 @@ class ModelInputs:
         return FxValue(("f", (len(values),)), values)
 
     def finish(self):
-        if self.pass_context and self.pass_context.owner:
-            self.backend.tree["ninesync_middle_offscreen_owner"] = self.pass_context.owner
+        if self.pass_context:
+            if self.pass_context.owner:
+                self.backend.tree["ninesync_middle_offscreen_owner"] = self.pass_context.owner
+            self.backend.tree["ninesync_middle_pass_binding_names"] = json.dumps(sorted(self.pass_context.bindings))
         if self.material_morphs:
             self.material_morphs.finish()
         tree = self.backend.tree
@@ -685,13 +873,32 @@ def _geometry(B, env, analysis):
     x, y, z = position.c[:3]
     node = B.new("GeometryNodeSetPosition")
     mesh = B.new_input("Geometry", "NodeSocketGeometry", "Geometry")
+    normal_nodes = [item for item in B.nodes if item.bl_idname == "GeometryNodeInputNormal"]
+    capture = B.new("GeometryNodeCaptureAttribute")
+    capture.domain = "CORNER"
+    capture.capture_items.new("VECTOR", "Source normal")
+    capture.label = "Preserve posed corner normals before FX deformation"
+    B.links.new(mesh.socket, capture.inputs["Geometry"])
+    normal = B.new("GeometryNodeInputNormal")
+    B.links.new(normal.outputs[0], capture.inputs["Source normal"])
+    original_normal = capture.outputs["Source normal"]
+    for original in normal_nodes:
+        for link in list(original.outputs[0].links):
+            B.links.new(original_normal, link.to_socket)
+    mesh = MmeSock(capture.outputs["Geometry"])
     if analysis.loops:
         from .instances import duplicate
         mesh = duplicate(env, mesh)
     B.links.new(mesh.socket, node.inputs["Geometry"])
     vector = B.vector_of([B.mul(value, env.units) for value in (x, z, y)], force=True)
     B.links.new(vector.socket, node.inputs["Position"])
-    B.finish([("Geometry", MmeSock(node.outputs["Geometry"]), "NodeSocketGeometry")])
+    restore = B.new("GeometryNodeSetMeshNormal")
+    restore.mode, restore.domain = "FREE", "CORNER"
+    restore.label = "Retain source corner normals"
+    B.links.new(node.outputs["Geometry"], restore.inputs["Mesh"])
+    B.links.new(original_normal, restore.inputs["Custom Normal"])
+    B.tree["ninesync_middle_preserved_corner_normals"] = True
+    B.finish([("Geometry", MmeSock(restore.outputs["Mesh"]), "NodeSocketGeometry")])
 
 
 def compile_core(tree, target, analysis, obj, scene, material, image, bindings, units, light,
@@ -701,6 +908,8 @@ def compile_core(tree, target, analysis, obj, scene, material, image, bindings, 
     B.use_shared_groups = False
     env = ModelInputs(analysis, B, obj, scene, material, image, bindings, units, light, pass_context)
     if target == DEFORM:
+        if analysis.shader_pass.states:
+            env.warnings.add("Vertex-only conversion omits object-pass raster states: " + ", ".join(sorted(analysis.shader_pass.states)) + ". Supply rendering through the effect specialist.")
         _geometry(B, env, analysis)
     else:
         _material(B, env, analysis, vertex_tree, attribute_prefix, vertex_slot)

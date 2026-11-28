@@ -31,6 +31,8 @@ from .properties import (
     NineSyncFXSettings,
 )
 
+from ..experimental_adapters.ui import CLASSES as EXPERIMENTAL_CLASSES
+
 
 CLASSES = (
     NineSyncFXPreferences,
@@ -57,4 +59,5 @@ CLASSES = (
     NINESYNC_FX_PT_bake,
     NINESYNC_FX_PT_effects,
     NINESYNC_FX_PT_library,
+    *EXPERIMENTAL_CLASSES,
 )

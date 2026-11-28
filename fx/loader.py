@@ -46,9 +46,13 @@ def fx_parse_file_uncached(path, defines=None):
     folder = os.path.dirname(os.path.abspath(path))
     pre = FxPreprocessor(folder, defines)
     text = pre.run_file(path)
+    return fx_parse_source(text, folder, pre.files)
+
+
+def fx_parse_source(text, folder, files):
     program = FxProgram()
     program.folder = folder
-    program.files = list(dict.fromkeys(pre.files))
+    program.files = list(dict.fromkeys(files))
     FxParser(fx_tokenize(text), program).parse()
     program.params = fx_find_params(program)
     return program

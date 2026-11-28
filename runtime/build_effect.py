@@ -16,6 +16,7 @@ from ..common.constants import (
     MME_PASS_KEY_PROP,
     MME_PRUNED_PROP,
     MME_RUNTIME_VALUES_PROP,
+    MME_UNSOURCED_PROP,
     MME_UNSUPPORTED_PROP,
 )
 from ..common.controls import (
@@ -39,6 +40,7 @@ from ..fx.loader import fx_parse_file
 from ..fx.params import (
     fx_overridden_params,
     fx_structural_params,
+    fx_unsourced_reads,
 )
 from ..nodes.standard_groups import mme_save_core_library
 from ..nodes.user_frames import mme_clear_stash, mme_stash_pass, mme_unstash_pass
@@ -132,7 +134,7 @@ def mme_build_effect_steps(scene, collection, settings, acc, root, x_path, fx_pa
     values = mme_param_values(root, program)
     root["mme_controls"] = json.dumps(controls)
     mme_ensure_use_props(root, controls)
-    variants, combos, highs = mme_build_variants(scene, root, types.SimpleNamespace(program=program), mme_self_tr_globals(None, root))
+    variants, combos, highs = mme_build_variants(scene, root, types.SimpleNamespace(program=program), mme_self_tr_globals(program, root))
     for name, high in highs.items():
         if name in values:
             values[name] = [max(a, b) for a, b in zip(values[name], high)] + values[name][len(high):]
@@ -298,6 +300,15 @@ def mme_build_effect_steps(scene, collection, settings, acc, root, x_path, fx_pa
             offscreen,
         )
     root[MME_UNSUPPORTED_PROP] = json.dumps(skipped)
+    unsourced = sorted({"%s: %s" % (d.label, name) for d, name, _ in fx_unsourced_reads(runtime.program, runtime.draws)})
+    root[MME_UNSOURCED_PROP] = json.dumps(unsourced)
+    if unsourced:
+        log.warning(
+            "effect '%s': %d pass input(s) come from MMD-only rendering (buffer passes or scene captures) and read as zero: %s",
+            os.path.basename(fx_path),
+            len(unsourced),
+            unsourced,
+        )
     if skipped:
         log.info(
             "effect '%s': skipped %d full-screen pass(es), which this add-on does not support: %s",

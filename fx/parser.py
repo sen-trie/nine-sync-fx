@@ -42,8 +42,9 @@ class FxParser(FxStatementParser, FxExpressionParser):
 
     def advance(self):
         token = self.tokens[self.pos]
-        if self.pos < len(self.tokens) - 1:
-            self.pos += 1
+        if token[0] == "eof":
+            raise FxError("unexpected end of effect source")
+        self.pos += 1
         return token
 
     def accept(self, text):

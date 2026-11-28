@@ -14,6 +14,7 @@ from ..fx.geometry_inputs import (
 )
 from ..fx.interp.executor import FxExec
 from ..fx.interp.numpy_backend import FxNumpyBackend
+from ..fx.semantics import FX_ACCESSORY_TR, fx_classify_global
 from ..fx.textures import FxNumpyEnv
 from ..fx.types import FxValue
 
@@ -68,11 +69,14 @@ def mme_budget(runtime):
 
 # Names of globals bound to the accessory's own opacity (tr), which pruning varies to find vertices that only
 # appear at some opacity.
-def mme_self_tr_globals(runtime, root):
+def mme_self_tr_globals(program, root, used=None):
     found = []
     for name, desc in mme_load_controls(root).items():
         if desc.get("kind") == "self" and desc.get("item", "").lower() == "tr":
             found.append(name)
+    globals_ = program.globals.values() if used is None else (program.globals[n] for n in used if n in program.globals)
+    if any(fx_classify_global(g, program) == ("material", "DIFFUSE") for g in globals_):
+        found.append(FX_ACCESSORY_TR)
     return found
 
 

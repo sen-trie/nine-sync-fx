@@ -19,6 +19,8 @@ from ..fx.entry import (
 )
 from ..fx.interp.executor import FxExec
 from ..fx.interp.numpy_backend import FxNumpyBackend
+from ..fx.params import fx_vs_globals
+from ..fx.semantics import fx_classify_global
 from ..fx.textures import FxNumpyEnv
 from ..fx.types import (
     FxValue,
@@ -53,6 +55,7 @@ from .vs_eval import (
     MmePassData,
     mme_loop_values,
     mme_loop_values_for,
+    mme_run_vs,
 )
 
 
@@ -302,6 +305,40 @@ def mme_alpha_gates(runtime, draw, state, vs_outputs, tr_names, instances, cache
     return gates or []
 
 
+# A gate that changes with the view cannot justify permanently removing geometry.
+# Compare the gated VS outputs themselves: ordinary camera-facing positions and
+# lighting varyings do not affect this decision. This runs inside the gate cache.
+def mme_view_changes_gate(runtime, draw, state, gates, tr_names, instances):
+    program = runtime.program
+    for name in fx_vs_globals(program, [draw.fx_pass]):
+        g = program.globals.get(name)
+        source = fx_classify_global(g, program) if g is not None else None
+        if source in (("position", "camera"), ("direction", "camera")):
+            break
+        if source and source[0] == "matrix" and "VIEW" in source[1] and source[3] == "camera":
+            break
+    else:
+        return False
+    faces = [f for f, subset in zip(runtime.faces, runtime.face_subsets) if subset == draw.subset]
+    vertices = np.unique(np.concatenate(faces))
+    src = vertices[np.linspace(0, len(vertices) - 1, min(len(vertices), 64), dtype=int)]
+    inst = np.linspace(0, instances - 1, len(src), dtype=int)
+    data = MmePassData(draw, src, inst, mme_loop_values(draw, inst, 1.0), runtime)
+    probes = [mme_prune_state(state, direction) for direction in ((0, 0, 1), (1, 0, 0), (1, 2, -1))]
+    for tr in ((1.0, 0.5, 0.0) if tr_names else (None,)):
+        reference = None
+        for probe in probes:
+            for name in tr_names:
+                probe.controls[name] = [tr]
+            outputs, _ = mme_run_vs(runtime, data, probe)
+            values = [outputs[sem].c[k] for sem, k in gates]
+            if reference is None:
+                reference = values
+            elif any(not np.array_equal(a, b, equal_nan=True) for a, b in zip(reference, values)):
+                return True
+    return False
+
+
 # The gate search of mme_alpha_gates; None when the pixel shader could not be evaluated.
 def mme_alpha_gates_search(runtime, draw, state, vs_outputs, tr_names, instances):
     count = MME_GATE_PROBES
@@ -342,7 +379,15 @@ def mme_alpha_gates_search(runtime, draw, state, vs_outputs, tr_names, instances
         return None
     if not lit:
         return []
-    return [c for c in candidates if closed[c]]
+    gates = [c for c in candidates if closed[c]]
+    if gates:
+        try:
+            if mme_view_changes_gate(runtime, draw, state, gates, tr_names, instances):
+                return []
+        except Exception as error:
+            log.debug("view probe for %s failed: %s", draw.fx_pass.name, error)
+            return []
+    return gates
 
 
 # Adds rings of neighbouring faces around the kept ones so a gate that opens slightly away from a vertex does

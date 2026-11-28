@@ -197,6 +197,7 @@ MME_VARYING_PREFIX = "mmeV_"
 MME_LOOP_PREFIX = "mmeL_"
 
 
+MME_TR_UNIFORM = "mme_accessory_tr"
 MME_UNIFORM_PREFIX = "mmeU_"
 
 
@@ -336,6 +337,9 @@ MME_MANUAL_BONES_PROP = "mme_manual_bones"
 MME_UNSUPPORTED_PROP = "mme_unsupported"
 
 
+MME_UNSOURCED_PROP = "mme_unsourced"
+
+
 MME_OBJECT_ITEMS = ("x", "y", "z", "xyz", "rx", "ry", "rz", "rxyz", "si", "tr")
 
 
@@ -358,7 +362,7 @@ MME_GATE_PROBES = 96
 
 
 # Bumped when the alpha gate search changes, so cached gates from an older search are not read.
-MME_GATE_VERSION = 1
+MME_GATE_VERSION = 2
 
 
 MME_VARIANT_FRAMES = 24
@@ -373,7 +377,7 @@ MME_SIMPLIFY_VARIANTS = 8
 MME_SIMPLIFY_BUDGET = 15.0
 
 
-MME_STRIP_CACHE_VERSION = 2
+MME_STRIP_CACHE_VERSION = 3
 
 
 MME_ANALYSIS_DTYPE = np.float32
@@ -399,7 +403,7 @@ MME_SPILL_MIN_BYTES = 32 << 20
 MME_BAKE_LAYOUT_FOLDER = "ninesync_fx"
 
 
-MME_PRECULL_VERSION = 3
+MME_PRECULL_VERSION = 4
 
 
 MME_PRECULL_GROUPS = 24

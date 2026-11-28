@@ -5,6 +5,7 @@ from ..common.constants import (
     MME_ATTR_UV,
 )
 from ..fx.semantics import (
+    FX_ACCESSORY_TR,
     fx_classify_global,
     fx_source_is_runtime,
     fx_value_from_list,
@@ -38,6 +39,12 @@ class MmeGeoEnv:
         t = fx_resolve_type(g.type, self.program)
         if not fx_is_numeric(t):
             return None
+        if source == ("material", "DIFFUSE"):
+            comps = list(self.state.material["diffuse"])
+            self.needs[FX_ACCESSORY_TR] = ("accessory_tr",)
+            opacity = ex.B.new_input(FX_ACCESSORY_TR)
+            comps[3] = ex.B.mul(comps[3], opacity)
+            return ex.convert(FxValue(("f", (4,)), comps), t)
         values = self.state.values(source, g)
         runtime = fx_source_is_runtime(source)
         if source[0] == "control" and self.controls.get(g.name, {}).get("kind", "const") == "const":

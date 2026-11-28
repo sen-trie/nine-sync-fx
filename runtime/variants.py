@@ -15,6 +15,7 @@ from ..common.controls import (
 from ..common.scene_utils import scene_fps
 from ..fx.params import fx_structural_params
 from ..fx.semantics import (
+    FX_ACCESSORY_TR,
     FxSceneState,
     fx_classify_global,
 )
@@ -177,17 +178,20 @@ def mme_condition(probe, value, tr_names, skip_params=()):
 def mme_condition_key(condition, include=None, program=None):
     if include is None:
         return json.dumps(condition, sort_keys=True)
+    relevant_controls = set(include)
     timed = False
     for name in include:
         g = program.globals.get(name) if program is not None else None
         source = fx_classify_global(g, program) if g is not None else None
+        if source == ("material", "DIFFUSE"):
+            relevant_controls.add(FX_ACCESSORY_TR)
         if source is not None and source[0] in ("time", "elapsed"):
             timed = True
     projected = {
         "time": condition["time"] if timed else 0.0,
         "world": condition.get("world"),
         "params": {k: v for k, v in condition["params"].items() if k in include},
-        "controls": {k: v for k, v in condition["controls"].items() if k in include},
+        "controls": {k: v for k, v in condition["controls"].items() if k in relevant_controls},
     }
     return json.dumps(projected, sort_keys=True)
 

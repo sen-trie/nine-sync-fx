@@ -15,6 +15,7 @@ from ..common.scene_utils import (
     scene_fps,
 )
 from ..fx.semantics import (
+    FX_ACCESSORY_TR,
     FX_FAR,
     FX_NEAR,
     FxSceneState,
@@ -23,7 +24,7 @@ from ..fx.semantics import (
     fx_lh_perspective,
 )
 from ..fx.types import fx_resolve_type
-from .control_values import mme_control_values
+from .control_values import mme_control_values, mme_eval_prop
 from .matrices import mme_np_matrix
 from .params import mme_param_values
 
@@ -96,6 +97,7 @@ def mme_frame_state(scene, depsgraph, root, runtime, unit):
     fps = scene_fps(scene) or PMM_FPS
     state.time = scene.frame_current / fps
     state.elapsed = 1.0 / fps
+    state.controls[FX_ACCESSORY_TR] = [mme_eval_prop(root, depsgraph, "mme_tr", 1.0)]
     controls = mme_load_controls(root)
     program = runtime.program
     for name, desc in controls.items():
@@ -114,14 +116,16 @@ def mme_frame_state(scene, depsgraph, root, runtime, unit):
 
 # Copy of a state with a fixed distant camera, so visibility probing does not depend on where the viewport
 # camera happens to be.
-def mme_prune_state(state):
+def mme_prune_state(state, direction=(0.0, 0.0, 1.0)):
     probe = FxSceneState()
     probe.__dict__.update(state.__dict__)
     probe.controls = dict(state.controls)
-    eye = np.array([0.0, 0.0, -1.0e5])
-    probe.view = fx_lh_look(eye, (0.0, 0.0, 1.0), (0.0, 1.0, 0.0))
+    forward = np.asarray(direction, dtype=np.float64)
+    forward = forward / np.linalg.norm(forward)
+    eye = -1.0e5 * forward
+    probe.view = fx_lh_look(eye, forward, (0.0, 1.0, 0.0))
     probe.proj = fx_lh_perspective(math.radians(30.0), 1.0, FX_NEAR, FX_FAR)
     probe.camera_pos = eye
-    probe.camera_dir = np.array([0.0, 0.0, 1.0])
+    probe.camera_dir = forward
     probe.ortho = False
     return probe

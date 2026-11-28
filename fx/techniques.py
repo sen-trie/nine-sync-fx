@@ -87,6 +87,20 @@ def fx_pass_script(fx_pass, program):
     return None
 
 
+def fx_script_commands(script):
+    for command in (script or "").split(";"):
+        if "=" in command:
+            key, value = command.split("=", 1)
+            yield key.strip().lower(), value.strip()
+
+
+def fx_draw_kind(fx_pass, program):
+    for key, value in fx_script_commands(fx_pass_script(fx_pass, program)):
+        if key == "draw" and value.lower() == "buffer":
+            return "buffer"
+    return "geometry"
+
+
 # Picks the technique for normal drawing: the first one whose MMDPass is object (then object_ss) and whose
 # Subset matches.
 def fx_pick_technique(program, subset, pass_types=("object", "object_ss")):
@@ -132,18 +146,13 @@ def fx_plan_draws(program, subset_count, values=None):
         script = fx_technique_script(technique, program)
         if script is None:
             for fx_pass in technique.passes:
-                kind = "buffer" if (fx_pass_script(fx_pass, program) or "").lower().replace(" ", "").find("draw=buffer") >= 0 else "geometry"
+                kind = fx_draw_kind(fx_pass, program)
                 draws.append(FxDraw(technique, fx_pass, subset, [], "", kind, order))
                 order += 1
             continue
         target = ""
         stack = []
-        for command in script.split(";"):
-            if "=" not in command:
-                continue
-            key, value = command.split("=", 1)
-            key = key.strip().lower()
-            value = value.strip()
+        for key, value in fx_script_commands(script):
             if key in ("rendercolortarget", "rendercolortarget0"):
                 target = value
             elif key == "loopbycount":
@@ -158,8 +167,7 @@ def fx_plan_draws(program, subset_count, values=None):
                 fx_pass = passes.get(value)
                 if fx_pass is None:
                     continue
-                pass_script = (fx_pass_script(fx_pass, program) or "").lower().replace(" ", "")
-                kind = "buffer" if "draw=buffer" in pass_script else "geometry"
+                kind = fx_draw_kind(fx_pass, program)
                 loops = [(index or "", count, name) for name, count, index in stack]
                 draws.append(FxDraw(technique, fx_pass, subset, loops, target, kind, order))
                 order += 1

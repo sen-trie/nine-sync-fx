@@ -14,7 +14,7 @@ from ..common.controls import (
     mme_param_meta,
     mme_shapekey_spec,
 )
-from ..fx.semantics import fx_classify_global
+from ..fx.semantics import FX_ACCESSORY_TR, fx_classify_global
 from ..fx.types import (
     fx_is_numeric,
     fx_resolve_type,
@@ -26,6 +26,14 @@ from ..nodes.drivers import mme_add_driver
 # controller property, shape key, use-switch, opacity or scale.
 # Returns None when the value cannot be driven; the per-frame handler then sets it.
 def mme_uniform_driver(program, gname, index, root, controls, scene):
+    def scene_var(name, path):
+        return {"name": name, "type": "SINGLE_PROP", "id_type": "SCENE", "id": scene.name, "path": path}
+
+    def prop_var(obj, path):
+        return {"name": "var", "type": "SINGLE_PROP", "id_type": "OBJECT", "id": obj.name, "path": path}
+
+    if gname == FX_ACCESSORY_TR:
+        return {"expr": "var", "vars": [prop_var(root, '["mme_tr"]')]}
     g = program.globals.get(gname)
     if g is None:
         return None
@@ -33,12 +41,6 @@ def mme_uniform_driver(program, gname, index, root, controls, scene):
     if source is None:
         return None
     kind = source[0]
-
-    def scene_var(name, path):
-        return {"name": name, "type": "SINGLE_PROP", "id_type": "SCENE", "id": scene.name, "path": path}
-
-    def prop_var(obj, path):
-        return {"name": "var", "type": "SINGLE_PROP", "id_type": "OBJECT", "id": obj.name, "path": path}
 
     if kind == "time":
         return {"expr": "frame * base / fps", "vars": [scene_var("fps", "render.fps"), scene_var("base", "render.fps_base")]}

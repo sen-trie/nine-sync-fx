@@ -3,7 +3,7 @@ import hashlib
 from ..common.constants import MME_CORE_VERSION
 from .errors import FxError
 from .params import fx_script_values
-from .semantics import fx_classify_global
+from .semantics import fx_classify_global, fx_sampler_slot
 from .types import fx_resolve_type
 
 
@@ -38,16 +38,6 @@ def fx_comp_label(name, t, k):
     if dims[0] <= 4:
         return "%s.%s" % (name, "xyzw"[k])
     return "%s[%d]" % (name, k)
-
-
-# The texture a sampler global refers to, as plain text.
-def fx_sampler_slot(program, g):
-    if g is None or g.init is None or g.init[0] != "sampler_state":
-        return None
-    tex = g.init[1].get("texture")
-    if not tex:
-        return None
-    return "".join(tex).strip("<>() ")
 
 
 # True when a global's value cannot change at run time (no semantic, not a loop counter, only constant

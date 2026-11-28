@@ -19,12 +19,14 @@ from ..common.constants import (
     MME_ORDER_PASS_PROP,
     MME_PRUNED_PROP,
     MME_SWAP3,
+    MME_TR_UNIFORM,
     MME_UNIFORMS_PROP,
     MME_VARYINGS_PROP,
 )
 from ..common.log import log
 from ..fx.errors import FxError
 from ..fx.params import fx_vs_globals
+from ..fx.semantics import FX_ACCESSORY_TR
 from ..fx.types import fx_is_numeric
 from ..nodes.drivers import mme_set_drivers
 from ..nodes.geo_sprites import mme_is_sprite_mesh
@@ -107,7 +109,7 @@ def mme_pass_material(runtime, draw, state, label, owner, vs_outputs):
         log.warning("effect pass %s: pixel shader not converted (%s); using a plain material", label, error)
         mat = mme_fallback_material(label, runtime, draw.subset, reason=str(error), owner=owner)
         varyings = [mme_varying_name("TEXCOORD0", 0), mme_varying_name("TEXCOORD0", 1)]
-        return mat, varyings, [], [], "fallback material"
+        return mat, varyings, [[MME_TR_UNIFORM, FX_ACCESSORY_TR, 0]], [], "fallback material"
 
 
 # Attaches the material and stores what later stages need on the pass object (draw description, varyings,
@@ -155,7 +157,7 @@ def mme_build_pass(runtime, draw, state, root, collection, unit, density, label,
     inst = np.repeat(np.arange(instances, dtype=np.int64), per)
     data = MmePassData(draw, src, inst, mme_loop_values(draw, inst, density), runtime)
     state.world = mme_world_row(mme_child_matrix(root, unit), unit)
-    tr_names = mme_self_tr_globals(runtime, root)
+    tr_names = mme_self_tr_globals(runtime.program, root, fx_vs_globals(runtime.program, [draw.fx_pass], ("vs", "ps")))
     probe_one = MmePassData(draw, used[:1], np.zeros(1, dtype=np.int64), mme_loop_values(draw, np.zeros(1, dtype=np.int64), density), runtime)
     probe_outputs, _ex = mme_run_vs(runtime, probe_one, state)
     probe_varyings = {k: len(v.c) for k, v in probe_outputs.items() if k != "POSITION0" and fx_is_numeric(v.t)}

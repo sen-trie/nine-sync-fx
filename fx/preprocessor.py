@@ -20,6 +20,10 @@ FX_IF_SAFE = re.compile(r"^[\s\d()+\-*/%<>=!&|^~.xXa-fA-F]*$")
 def fx_read_text(path):
     with open(path, "rb") as handle:
         raw = handle.read()
+    return fx_decode_text(raw)
+
+
+def fx_decode_text(raw):
     if raw.startswith(b"\xef\xbb\xbf"):
         raw = raw[3:]
     if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
@@ -52,17 +56,19 @@ FX_PP_IDENT = re.compile(r"[A-Za-z_]\w*")
 # Small C preprocessor (#define with arguments, # and ##, #if/#elif, #include). The .fx dialect needs it
 # before parsing; files it reads are recorded for cache invalidation.
 class FxPreprocessor:
-    def __init__(self, root_dir, defines=None):
+    def __init__(self, root_dir, defines=None, *, missing_includes=None, read_text=fx_read_text):
         self.root_dir = root_dir
         self.macros = {}
         self.files = []
+        self.missing_includes = missing_includes
         self.depth = 0
+        self.read_text = read_text
         for name, value in (defines or {}).items():
             self.macros[name] = (None, str(value))
 
     def run_file(self, path):
         self.files.append(os.path.abspath(path))
-        return self.run_text(fx_read_text(path), os.path.dirname(os.path.abspath(path)))
+        return self.run_text(self.read_text(path), os.path.dirname(os.path.abspath(path)))
 
     # Include names are matched case-insensitively because effects written on Windows often get the case
     # wrong.
@@ -131,7 +137,10 @@ class FxPreprocessor:
                         continue
                     path = self.resolve_include(found.group(1), base_dir)
                     if path is None:
-                        raise FxError("include not found: %s" % found.group(1))
+                        if self.missing_includes is None:
+                            raise FxError("include not found: %s" % found.group(1))
+                        self.missing_includes.append((base_dir, found.group(1)))
+                        continue
                     if self.depth > 16:
                         raise FxError("include nesting too deep")
                     self.depth += 1
@@ -139,7 +148,7 @@ class FxPreprocessor:
                     try:
                         out.append(
                             self.run_text(
-                                fx_read_text(path), os.path.dirname(os.path.abspath(path))
+                                self.read_text(path), os.path.dirname(os.path.abspath(path))
                             )
                         )
                     finally:

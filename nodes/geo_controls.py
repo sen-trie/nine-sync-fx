@@ -219,6 +219,8 @@ class MmeGeoControls:
             source, gname, k, n = need[1], need[2], need[3], need[4]
             self.B.statement("%s" % gname)
             return self.scalar_values(source, gname, n)[k]
+        if kind == "accessory_tr":
+            return self.object_items(self.root, "tr", "", 1, False)[0]
         if kind == "vertex":
             name, k = need[1], need[2]
             key = ("vattr", name)

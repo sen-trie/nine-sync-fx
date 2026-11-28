@@ -10,6 +10,10 @@ from .types import (
 )
 
 
+# Internal control key shared by opacity probes and compiled shader inputs.
+FX_ACCESSORY_TR = "$Tr"
+
+
 # Left-handed row-vector projection as MMD/DirectX use it (depth 0..1).
 def fx_lh_perspective(fov_y, aspect, near, far):
     ys = 1.0 / math.tan(fov_y * 0.5)
@@ -243,7 +247,8 @@ class FxSceneState:
             m = self.material
             sem = source[1]
             if sem == "DIFFUSE":
-                return list(m["diffuse"])
+                rgb = list(m["diffuse"][:3])
+                return rgb + [m["diffuse"][3] * self.controls.get(FX_ACCESSORY_TR, [1.0])[0]]
             if sem == "AMBIENT":
                 return list(m["ambient"]) + [1.0]
             if sem == "EMISSIVE":
@@ -305,3 +310,12 @@ def fx_sampler_texture_global(program, info):
 # Render and depth targets only exist inside MMD's own multi-pass rendering, so they sample as zero here.
 def fx_is_render_target(g):
     return g is not None and g.semantic is not None and g.semantic.startswith(("RENDERCOLORTARGET", "OFFSCREENRENDERTARGET", "RENDERDEPTHSTENCILTARGET"))
+
+
+def fx_sampler_slot(program, g):
+    if g is None or g.init is None or g.init[0] != "sampler_state":
+        return None
+    tex = g.init[1].get("texture")
+    if not tex:
+        return None
+    return "".join(tex).strip("<>() ")

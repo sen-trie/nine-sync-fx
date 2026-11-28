@@ -1,5 +1,6 @@
-from ..common.constants import MME_UNIFORM_PREFIX
+from ..common.constants import MME_TR_UNIFORM, MME_UNIFORM_PREFIX
 from ..fx.semantics import (
+    FX_ACCESSORY_TR,
     fx_classify_global,
     fx_source_is_runtime,
     fx_value_from_list,
@@ -36,6 +37,12 @@ class MmeNodeEnv:
         t = fx_resolve_type(g.type, self.program)
         if not fx_is_numeric(t):
             return None
+        if source == ("material", "DIFFUSE"):
+            comps = list(self.state.material["diffuse"])
+            self.uniforms[MME_TR_UNIFORM] = (FX_ACCESSORY_TR, 0)
+            opacity = ex.B.attribute(MME_TR_UNIFORM, "OBJECT")
+            comps[3] = ex.B.mul(comps[3], opacity)
+            return ex.convert(FxValue(("f", (4,)), comps), t)
         values = self.state.values(source, g)
         runtime = fx_source_is_runtime(source)
         if source[0] == "control" and g.name not in self.controls_runtime:

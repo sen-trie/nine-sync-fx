@@ -15,6 +15,7 @@ from ...common.constants import (
     MME_GROUP_PROP,
     MME_SELF_NAMES,
     MME_UNIFORMS_PROP,
+    MME_UNSOURCED_PROP,
     MME_UNSUPPORTED_PROP,
     MME_VARYINGS_PROP,
 )
@@ -263,6 +264,14 @@ def draw_fx_details(layout, settings, root, active):
             unsupported = []
         if unsupported:
             draw_wrapped(box, iface_("Full-screen passes are not supported and were skipped: %s") % ", ".join(unsupported))
+        try:
+            unsourced = json.loads(root.get(MME_UNSOURCED_PROP, "[]"))
+        except (TypeError, ValueError):
+            unsourced = []
+        if unsourced:
+            col = box.column()
+            col.alert = True
+            draw_wrapped(col, iface_("These inputs come from MMD-only rendering (buffer passes or scene captures) and read as zero, so the effect will not look like it does in MMD: %s") % ", ".join(unsourced))
         for obj in mme_effect_passes(root):
             info, backend, loops, flags = fx_pass_summary(obj)
             row = box.row(align=True)

@@ -7,6 +7,7 @@ from ..common.constants import (
     MME_LOOP_PREFIX,
     MME_OWNER_PROP,
     MME_SIG_PROP,
+    MME_TR_UNIFORM,
     MME_VARYING_PREFIX,
 )
 from ..common.log import log
@@ -249,6 +250,7 @@ def mme_fallback_material(name, runtime, subset, mode="ALPHA", reason="", owner=
         if found:
             sampled = B.image_sample(mme_effect_image(found), "Linear", "REPEAT", B.attribute(mme_varying_name("TEXCOORD0", 0)), B.attribute(mme_varying_name("TEXCOORD0", 1)))
             color = [B.mul(c, s) for c, s in zip(color, sampled)]
+    color[3] = B.mul(color[3], B.attribute(MME_TR_UNIFORM, "OBJECT"))
     B.finish([("Color", color[:3], "NodeSocketColor"), ("Alpha", color[3], "NodeSocketFloat")])
     if reason:
         warning = group.nodes.new("GeometryNodeWarning")

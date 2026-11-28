@@ -123,6 +123,8 @@ class FxTextureStore:
 # than the file on disk).
 def fx_find_file(folder, name):
     name = name.replace("\\", "/")
+    if name.startswith("/") and not name.startswith("//"):
+        name = name.lstrip("/")
     candidate = os.path.join(folder, name)
     if os.path.isfile(candidate):
         return candidate

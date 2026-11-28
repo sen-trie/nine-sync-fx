@@ -1,5 +1,5 @@
 import bpy
-from bpy.props import IntProperty, StringProperty
+from bpy.props import BoolProperty, IntProperty, StringProperty
 from bpy.types import AddonPreferences
 
 from ..common.constants import ADDON_PACKAGE, MME_BAKE_STORE_LIMIT, MME_CACHE_LIMIT
@@ -32,8 +32,15 @@ class NineSyncFXPreferences(AddonPreferences):
         soft_max=131072,
     )
 
+    experimental_mme_adapters: BoolProperty(
+        name="Experimental MME Scene Effects",
+        description="Show the local effect analyzer and opt-in Blender Scene Effects",
+        default=False,
+    )
+
     def draw(self, context):
         self.layout.prop(self, "cache_dir")
         self.layout.prop(self, "cache_limit_mb")
         self.layout.prop(self, "bake_limit_mb")
+        self.layout.prop(self, "experimental_mme_adapters")
 
